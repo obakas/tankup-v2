@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual env
+.venv/
+venv/
+
+# Database
+*.db
+*.sqlite3
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Web Push Keys
+private_key.pem
+public_key.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Pytest
+.pytest_cache/
+
+# Migrations cache
+alembic/__pycache__/
