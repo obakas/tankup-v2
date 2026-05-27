@@ -39,3 +39,5 @@ alembic/__pycache__/
 
 .agents/
 .codex/
+
+CLAUDE.md
