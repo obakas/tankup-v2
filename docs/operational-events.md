@@ -1,0 +1,340 @@
+# TankUp V2 — Operational Events
+
+## Purpose
+
+Operational events are the memory trail of TankUp.
+
+Every important action should create an event.
+
+Events allow the system to answer:
+
+- What happened?
+- When did it happen?
+- Who triggered it?
+- What changed?
+- What evidence exists?
+- What should happen next?
+
+This document defines the core event model for TankUp V2.
+
+---
+
+# 1. Core Principle
+
+Statuses show current state.
+
+Events explain how the system got there.
+
+A status without events is weak.
+
+An event trail creates operational truth.
+
+---
+
+# 2. Event Structure
+
+Every operational event should contain:
+
+```txt
+id
+event_type
+entity_type
+entity_id
+actor_type
+actor_id
+previous_status
+new_status
+metadata
+evidence_url
+created_at
+source
+```
+
+## source Examples
+
+```txt
+customer_app
+driver_app
+fleet_head_dashboard
+admin_dashboard
+system
+payment_provider
+```
+
+---
+
+# 3. Delivery Request Events
+
+Current backend delivery events:
+
+```txt
+DELIVERY_ASSIGNED
+LOADING_STARTED
+DRIVER_EN_ROUTE
+DRIVER_ARRIVED
+MEASUREMENT_STARTED
+MEASUREMENT_COMPLETED
+DELIVERY_COMPLETED
+DELIVERY_FAILED
+DELIVERY_SKIPPED
+DELIVERY_OTP_GENERATED
+DELIVERY_OTP_VERIFIED
+DELIVERY_OTP_FAILED
+DELIVERY_ALERT_CREATED
+```
+
+The broader product event list below includes planned events that are not all implemented yet.
+
+```txt
+DELIVERY_REQUEST_CREATED
+DELIVERY_REQUEST_UPDATED
+DELIVERY_REQUEST_CANCELLED
+REQUEST_READY_FOR_PAYMENT
+PAYMENT_CONFIRMED
+REQUEST_READY_FOR_DISPATCH
+DISPATCH_STARTED
+DELIVERY_OFFER_SENT
+DELIVERY_OFFER_ACCEPTED
+DELIVERY_OFFER_REJECTED
+DELIVERY_OFFER_EXPIRED
+DELIVERY_ASSIGNED
+LOADING_STARTED
+LOADING_COMPLETED
+DRIVER_EN_ROUTE
+DRIVER_ARRIVED
+MEASUREMENT_STARTED
+MEASUREMENT_COMPLETED
+OTP_SENT
+OTP_CONFIRMED
+DELIVERY_COMPLETED
+DELIVERY_FAILED
+DELIVERY_DISPUTED
+DELIVERY_REFUNDED
+```
+
+---
+
+# 4. Site Intelligence Events
+
+```txt
+SITE_PROFILE_CREATED
+SITE_PROFILE_UPDATED
+SITE_VERIFICATION_SUBMITTED
+SITE_VERIFICATION_APPROVED
+SITE_VERIFICATION_REJECTED
+SITE_MARKED_HIGH_RISK
+SITE_MARKED_RESTRICTED
+TANK_HEIGHT_MISMATCH_REPORTED
+HOSE_DISTANCE_REPORTED
+PARKING_DIFFICULTY_REPORTED
+PUMP_STRAIN_REPORTED
+SITE_ACCESS_ISSUE_REPORTED
+```
+
+---
+
+# 5. Driver Events
+
+```txt
+DRIVER_REGISTERED
+DRIVER_APPROVED
+DRIVER_SUSPENDED
+DRIVER_MARKED_AVAILABLE
+DRIVER_MARKED_OFFLINE
+DRIVER_OFFER_RECEIVED
+DRIVER_OFFER_ACCEPTED
+DRIVER_OFFER_REJECTED
+DRIVER_NO_RESPONSE
+DRIVER_LOCATION_UPDATED
+DRIVER_INCIDENT_REPORTED
+DRIVER_RELIABILITY_UPDATED
+```
+
+---
+
+# 6. Fleet Events
+
+```txt
+FLEET_CREATED
+FLEET_APPROVED
+FLEET_SUSPENDED
+FLEET_HEAD_REGISTERED
+TANKER_ADDED
+TANKER_APPROVED
+TANKER_SUSPENDED
+TANKER_MARKED_AVAILABLE
+TANKER_MARKED_MAINTENANCE
+FLEET_ESCALATION_CREATED
+```
+
+---
+
+# 7. Payment Events
+
+```txt
+PAYMENT_INITIATED
+PAYMENT_CONFIRMED
+PAYMENT_FAILED
+PAYMENT_HELD
+PAYMENT_REFUND_INITIATED
+PAYMENT_REFUNDED
+PAYMENT_MARKED_PAYOUT_ELIGIBLE
+PAYOUT_CREATED
+PAYOUT_PROCESSING
+PAYOUT_COMPLETED
+PAYOUT_HELD
+PAYOUT_REVERSED
+```
+
+---
+
+# 8. Dispute Events
+
+```txt
+DISPUTE_CREATED
+DISPUTE_EVIDENCE_SUBMITTED
+DISPUTE_UNDER_REVIEW
+DISPUTE_ESCALATED
+DISPUTE_RESOLVED_CUSTOMER_FAVOR
+DISPUTE_RESOLVED_DRIVER_FAVOR
+DISPUTE_RESOLVED_PARTIAL_REFUND
+DISPUTE_REJECTED
+DISPUTE_CLOSED
+```
+
+---
+
+# 9. Incident Events
+
+```txt
+INCIDENT_CREATED
+INCIDENT_UPDATED
+INCIDENT_ESCALATED
+INCIDENT_RESOLVED
+INCIDENT_CLOSED
+```
+
+Incident categories:
+
+```txt
+SITE_INACCESSIBLE
+CUSTOMER_UNAVAILABLE
+TANKER_BREAKDOWN
+PUMP_FAILURE
+OTP_REFUSAL
+QUANTITY_DISPUTE
+SAFETY_ISSUE
+WRONG_LOCATION
+PAYMENT_CONFLICT
+CUSTOMER_AGGRESSION
+DRIVER_MISCONDUCT
+```
+
+---
+
+# 10. Admin Events
+
+```txt
+ADMIN_LOGIN
+ADMIN_STATUS_OVERRIDE
+ADMIN_PAYMENT_OVERRIDE
+ADMIN_DISPUTE_RESOLUTION
+ADMIN_USER_SUSPENSION
+ADMIN_DRIVER_SUSPENSION
+ADMIN_FLEET_SUSPENSION
+ADMIN_TANKER_SUSPENSION
+ADMIN_CONFIG_UPDATED
+ADMIN_MANUAL_ASSIGNMENT
+ADMIN_REFUND_APPROVED
+```
+
+---
+
+# 11. System Events
+
+```txt
+SYSTEM_OFFER_EXPIRED
+SYSTEM_DISPATCH_RETRY_STARTED
+SYSTEM_REQUEST_ESCALATED
+SYSTEM_LOADING_TIMEOUT
+SYSTEM_DELIVERY_TIMEOUT
+SYSTEM_NO_TANKER_AVAILABLE
+SYSTEM_SITE_RISK_UPDATED
+SYSTEM_DRIVER_SCORE_UPDATED
+SYSTEM_BATCH_HEALTH_UPDATED
+```
+
+---
+
+# 12. Event Severity
+
+Each event may have severity:
+
+```txt
+info
+warning
+critical
+```
+
+Examples:
+
+```txt
+PAYMENT_CONFIRMED = info
+DRIVER_NO_RESPONSE = warning
+CUSTOMER_AGGRESSION = critical
+```
+
+---
+
+# 13. Events That Must Trigger Notifications
+
+```txt
+PAYMENT_CONFIRMED
+DELIVERY_OFFER_SENT
+DELIVERY_OFFER_ACCEPTED
+DRIVER_EN_ROUTE
+DRIVER_ARRIVED
+OTP_SENT
+DELIVERY_COMPLETED
+DELIVERY_FAILED
+DELIVERY_DISPUTED
+SYSTEM_NO_TANKER_AVAILABLE
+DISPUTE_RESOLVED
+```
+
+---
+
+# 14. Events That Must Trigger Audit Logs
+
+All admin events.
+
+All payment events.
+
+All dispute resolution events.
+
+All status override events.
+
+All fraud-related events.
+
+All customer/driver suspension events.
+
+---
+
+# 15. MVP Event Priorities
+
+For MVP, implement events for:
+
+1. Request creation.
+2. Payment confirmation.
+3. Dispatch offer.
+4. Offer acceptance/rejection/expiry.
+5. Delivery progress.
+6. OTP confirmation.
+7. Completion.
+8. Failure.
+9. Dispute.
+10. Admin override.
+
+Do not build a complex event bus yet.
+
+A simple `OperationalEvent` table is enough.
