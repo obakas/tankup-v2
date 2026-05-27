@@ -35,3 +35,7 @@ public_key.pem
 
 # Migrations cache
 alembic/__pycache__/
+
+
+.agents/
+.codex/
