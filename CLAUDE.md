@@ -47,6 +47,9 @@ npm run build      # production build
 npm run lint       # ESLint
 npm run test       # vitest (single run)
 npm run test:watch # vitest watch mode
+
+# Run a single test file
+npx vitest run src/path/to/file.test.ts
 ```
 
 ### Mobile
@@ -88,7 +91,8 @@ cd mobile && npx expo start --tunnel --clear
 | `/batches` | Batch lifecycle |
 | `/batch-members` | Individual members within a batch |
 | `/tankers` | Tanker CRUD and driver job flow — **most endpoints are public (no auth)** |
-| `/deliveries` | Delivery record transitions |
+| `/deliveries` | Delivery record transitions (current, uses `DeliveryRecord` + state machine) |
+| `/delivery` | **Legacy** — `delivery.py` only has `/confirm/{id}` (OTP on `BatchMember`). Coexists with `deliveries.py`; do not add new endpoints here |
 | `/payments`, `/refunds` | Payment lifecycle |
 | `/auth`, `/users` | Customer auth (phone-based) |
 | `/sites` | Customer site profiles (tank size, fill level history) |

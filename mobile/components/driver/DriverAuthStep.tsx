@@ -8,6 +8,7 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [plate, setPlate] = useState("");
+  const [fleetNumber, setFleetNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
         phone: phone.trim(),
         name: name.trim(),
         tank_plate_number: plate.trim(),
+        fleet_number: fleetNumber.trim() || undefined,
       });
       onComplete(d);
     } catch (e: any) {
@@ -66,6 +68,7 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
           <Input label="Full Name" value={name} onChangeText={setName} placeholder="Driver Name" />
           <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
           <Input label="Plate Number" value={plate} onChangeText={setPlate} placeholder="ABC-123XY" />
+          <Input label="Fleet Number (optional)" value={fleetNumber} onChangeText={setFleetNumber} placeholder="e.g. FL-001" />
         </>
       ) : (
         <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />

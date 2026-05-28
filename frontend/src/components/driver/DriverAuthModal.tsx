@@ -17,6 +17,7 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [tankPlateNumber, setTankPlateNumber] = useState("");
+  const [fleetNumber, setFleetNumber] = useState("");
   // const [latitude, setLatitude] = useState("");
   // const [longitude, setLongitude] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,7 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
     setName("");
     setPhone("");
     setTankPlateNumber("");
+    setFleetNumber("");
     // setLatitude("");
     // setLongitude("");
   };
@@ -60,6 +62,7 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
             name.trim(),
             phone.trim(),
             tankPlateNumber.trim(),
+            fleetNumber.trim() || undefined,
             // latitude.trim() ? Number(latitude) : null,
             // longitude.trim() ? Number(longitude) : null
           );
@@ -90,7 +93,7 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
 
   return (
     <div className="mx-auto mt-20 max-w-md rounded-2xl border bg-card p-6 shadow-sm">
-      <h2 className="mb-2 text-xl font-semibold">
+      <h2 className="mb-2 text-xl font-semibold text-foreground">
         {isLogin ? "Driver Login" : "Driver Sign Up"}
       </h2>
 
@@ -126,7 +129,16 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
           />
         )}
 
-        <Button className="w-full" type="submit" disabled={loading}>
+        {!isLogin && (
+          <input
+            className="w-full rounded-md border bg-background px-3 py-2"
+            placeholder="Fleet number (optional)"
+            value={fleetNumber}
+            onChange={(e) => setFleetNumber(e.target.value)}
+          />
+        )}
+
+        <Button className="w-full bg-success text-success-foreground" type="submit" disabled={loading}>
           {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
         </Button>
 

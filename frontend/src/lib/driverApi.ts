@@ -257,6 +257,7 @@ export async function signupDriver(
   name: string,
   phone: string,
   tank_plate_number: string,
+  fleet_number?: string,
   // latitude?: number | null,
   // longitude?: number | null,
   // tankerId?: number
@@ -267,6 +268,7 @@ export async function signupDriver(
       name,
       phone,
       tank_plate_number,
+      fleet_number: fleet_number || undefined,
       // latitude,
       // longitude,
       // tankerId,

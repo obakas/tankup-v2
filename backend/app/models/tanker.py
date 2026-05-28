@@ -10,6 +10,7 @@ class Tanker(Base):
     driver_name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
     tank_plate_number = Column(String, unique=True, nullable=False)
+    fleet_number = Column(String, nullable=True)
 
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

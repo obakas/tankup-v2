@@ -24,7 +24,9 @@ import {
   getBatchLive,
   getPriorityRequestLive,
   leaveBatchMember,
+  listUserSites,
   type CreateRequestResponse,
+  type SiteProfileResponse,
 } from "@/lib/api";
 
 
@@ -45,6 +47,10 @@ export function useClientFlow() {
   const [mode, setMode] = useState<RequestMode>("batch");
   const [size, setSize] = useState<number | null>(null);
   const [priorityMode, setPriorityMode] = useState<PriorityMode>("asap");
+
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
+  const [userSites, setUserSites] = useState<SiteProfileResponse[]>([]);
+  const [loadingSites, setLoadingSites] = useState(false);
 
   const [requestResp, setRequestResp] =
     useState<CreateRequestResponse | null>(null);
@@ -144,13 +150,26 @@ export function useClientFlow() {
 
   useAppStatePause(stopPolling, restartPolling);
 
+  const loadSites = useCallback(async (userId: number) => {
+    setLoadingSites(true);
+    try {
+      const sites = await listUserSites(userId);
+      setUserSites(sites);
+    } catch {
+      // non-critical — user can still proceed
+    } finally {
+      setLoadingSites(false);
+    }
+  }, []);
+
   const handleAuthComplete = (u: CurrentUser) => {
     setUser(u);
     setStep("request");
+    loadSites(u.id);
   };
 
   const handleSubmitRequest = async () => {
-    if (!user || !size) return;
+    if (!user || !size || !selectedSiteId) return;
 
     setLoading(true);
     setError(null);
@@ -163,6 +182,7 @@ export function useClientFlow() {
         latitude: DEFAULT_LAT,
         longitude: DEFAULT_LNG,
         delivery_type: mode,
+        site_profile_id: selectedSiteId,
         is_asap: mode === "priority" ? priorityMode === "asap" : undefined,
       });
 
@@ -255,6 +275,12 @@ export function useClientFlow() {
     loading,
     error,
     price,
+
+    selectedSiteId,
+    setSelectedSiteId,
+    userSites,
+    loadingSites,
+    loadSites,
 
     back,
     goRoleHome,

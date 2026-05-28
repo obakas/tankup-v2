@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
+import Toast from "react-native-toast-message";
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -17,6 +18,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: bg },
         }}
       />
+      <Toast />
     </SafeAreaProvider>
   );
 }

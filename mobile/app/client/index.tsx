@@ -73,6 +73,11 @@ export default function ClientFlow() {
             loading={flow.loading}
             scheduledFor={flow.scheduledFor}
             setScheduledFor={flow.setScheduledFor}
+            userSites={flow.userSites}
+            selectedSiteId={flow.selectedSiteId}
+            loadingSites={flow.loadingSites}
+            onSelectSite={flow.setSelectedSiteId}
+            onAddSite={() => setSitesVisible(true)}
           />
         )}
 
@@ -153,7 +158,10 @@ export default function ClientFlow() {
           visible={sitesVisible}
           user={flow.user}
           theme={theme}
-          onClose={() => setSitesVisible(false)}
+          onClose={() => {
+            setSitesVisible(false);
+            if (flow.step === "request") flow.loadSites(flow.user!.id);
+          }}
         />
       )}
     </SafeAreaView>

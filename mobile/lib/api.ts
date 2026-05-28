@@ -72,6 +72,7 @@ export interface CreateRequestPayload {
   latitude: number;
   longitude: number;
   delivery_type: DeliveryType;
+  site_profile_id?: number;
 
   // Priority only
   is_asap?: boolean;
@@ -318,7 +319,7 @@ export interface DriverResponse {
 export const driverLogin = (p: { phone: string }) =>
   apiRequest<DriverResponse>("/auth/driver-login", { method: "POST", body: p });
 
-export const driverSignup = (p: { name: string; phone: string; tank_plate_number: string }) =>
+export const driverSignup = (p: { name: string; phone: string; tank_plate_number: string; fleet_number?: string }) =>
   apiRequest<DriverResponse>("/auth/driver-signup", { method: "POST", body: p });
 
 export const driverLogout = (tankerId: number) =>

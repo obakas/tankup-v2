@@ -3,13 +3,13 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  Droplets,
   HelpCircle,
   History,
   LogOut,
   MapPin,
   Moon,
   Sun,
-  UserCircle2,
   UserPen,
 } from "lucide-react-native";
 
@@ -18,7 +18,6 @@ import type { CurrentUser } from "@/types/client";
 
 type Props = {
   title: string;
-  // stepLabel: string;
   user: CurrentUser | null;
   onBack: () => void;
   onLogout: () => void;
@@ -34,7 +33,6 @@ type Props = {
 
 export function ClientHeader({
   title,
-  // stepLabel,
   user,
   onBack,
   onLogout,
@@ -45,28 +43,31 @@ export function ClientHeader({
   onToggleTheme,
   alertsEnabled,
   onToggleAlerts,
-  onOpenHistory
+  onOpenHistory,
 }: Props) {
-  const iconColor = theme.foreground;
-
   return (
     <View
-      style={{
-        backgroundColor: theme.card,
-        borderBottomColor: theme.border,
-      }}
+      style={{ backgroundColor: theme.card, borderBottomColor: theme.border }}
       className="px-4 py-3 border-b"
     >
+      {/* Row 1: back + title + utilities */}
       <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1 mr-2">
+        <View className="flex-row items-center flex-1 mr-2 gap-2">
           <Pressable
             onPress={onBack}
             accessibilityLabel="Go back"
             accessibilityRole="button"
             className="p-2 -ml-2"
           >
-            <ArrowLeft color={iconColor} size={21} />
+            <ArrowLeft color={theme.mutedForeground} size={21} />
           </Pressable>
+
+          {/* Brand pill */}
+          <View
+            style={{ backgroundColor: theme.primarySoft, borderRadius: 8, padding: 5 }}
+          >
+            <Droplets color={theme.primary} size={15} />
+          </View>
 
           <Text
             numberOfLines={1}
@@ -77,6 +78,7 @@ export function ClientHeader({
           </Text>
         </View>
 
+        {/* Utility icons */}
         <View className="flex-row items-center gap-1">
           <Pressable
             onPress={onToggleTheme}
@@ -85,9 +87,9 @@ export function ClientHeader({
             className="p-2"
           >
             {themeMode === "dark" ? (
-              <Sun color={iconColor} size={19} />
+              <Sun color={theme.mutedForeground} size={19} />
             ) : (
-              <Moon color={iconColor} size={19} />
+              <Moon color={theme.mutedForeground} size={19} />
             )}
           </Pressable>
 
@@ -98,9 +100,9 @@ export function ClientHeader({
             className="p-2"
           >
             {alertsEnabled ? (
-              <BellOff color={iconColor} size={19} />
+              <BellOff color={theme.mutedForeground} size={19} />
             ) : (
-              <Bell color={iconColor} size={19} />
+              <Bell color={theme.mutedForeground} size={19} />
             )}
           </Pressable>
 
@@ -110,7 +112,7 @@ export function ClientHeader({
             accessibilityRole="button"
             className="p-2"
           >
-            <HelpCircle color={iconColor} size={19} />
+            <HelpCircle color={theme.mutedForeground} size={19} />
           </Pressable>
 
           {user && (
@@ -120,22 +122,23 @@ export function ClientHeader({
               accessibilityRole="button"
               className="p-2"
             >
-              <LogOut color={iconColor} size={19} />
+              <LogOut color={theme.mutedForeground} size={19} />
             </Pressable>
           )}
-
         </View>
       </View>
 
+      {/* Row 2: user info + action buttons */}
       <View className="mt-3 flex-row items-center justify-between gap-3">
         <View
-          style={{
-            borderColor: theme.border,
-            backgroundColor: theme.background,
-          }}
+          style={{ borderColor: theme.border, backgroundColor: theme.background }}
           className="flex-row items-center gap-2 rounded-2xl border px-3 py-2 flex-1"
         >
-          <UserCircle2 color={theme.mutedForeground} size={17} />
+          <View
+            style={{ backgroundColor: theme.primarySoft, borderRadius: 6, padding: 4 }}
+          >
+            <Droplets color={theme.primary} size={13} />
+          </View>
 
           <View className="flex-1">
             <Text
@@ -156,40 +159,44 @@ export function ClientHeader({
               </Text>
             )}
           </View>
-
         </View>
-         {user && (
-            <View className="flex-row gap-2">
-              <Pressable
-                onPress={onEditProfile}
-                accessibilityLabel="Edit profile"
-                accessibilityRole="button"
-                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                className="h-12 w-12 items-center justify-center rounded-2xl border"
-              >
-                <UserPen color={theme.foreground} size={19} />
-              </Pressable>
-              <Pressable
-                onPress={onOpenSites}
-                accessibilityLabel="My delivery sites"
-                accessibilityRole="button"
-                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                className="h-12 w-12 items-center justify-center rounded-2xl border"
-              >
-                <MapPin color={theme.foreground} size={19} />
-              </Pressable>
-              <Pressable
-                onPress={onOpenHistory}
-                accessibilityLabel="Order history"
-                accessibilityRole="button"
-                style={{ borderColor: theme.border, backgroundColor: theme.background }}
-                className="h-12 w-12 items-center justify-center rounded-2xl border"
-              >
-                <History color={theme.foreground} size={20} />
-              </Pressable>
-            </View>
-          )}
 
+        {user && (
+          <View className="flex-row gap-2">
+            {/* Edit profile — primary accent */}
+            <Pressable
+              onPress={onEditProfile}
+              accessibilityLabel="Edit profile"
+              accessibilityRole="button"
+              style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
+              className="h-12 w-12 items-center justify-center rounded-2xl border"
+            >
+              <UserPen color={theme.primary} size={19} />
+            </Pressable>
+
+            {/* My sites — primary accent */}
+            <Pressable
+              onPress={onOpenSites}
+              accessibilityLabel="My delivery sites"
+              accessibilityRole="button"
+              style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
+              className="h-12 w-12 items-center justify-center rounded-2xl border"
+            >
+              <MapPin color={theme.primary} size={19} />
+            </Pressable>
+
+            {/* Order history — primary accent */}
+            <Pressable
+              onPress={onOpenHistory}
+              accessibilityLabel="Order history"
+              accessibilityRole="button"
+              style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
+              className="h-12 w-12 items-center justify-center rounded-2xl border"
+            >
+              <History color={theme.primary} size={20} />
+            </Pressable>
+          </View>
+        )}
       </View>
     </View>
   );

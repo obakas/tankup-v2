@@ -10,7 +10,6 @@ import { IncomingOfferStep } from "@/components/driver/IncomingOfferStep";
 import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
 import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
-import { ToastMessage } from "@/components/ui/ToastMessage";
 import { DriverProfileModal } from "@/components/driver/ProfileModal";
 import { useState } from "react";
 
@@ -21,7 +20,6 @@ export default function DriverFlow() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <ToastMessage toast={flow.toast} theme={theme} />
       <DriverHeader
         title={flow.titles[flow.step]}
         driver={flow.driver}

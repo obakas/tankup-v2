@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Droplets, Users, Zap, XCircle, CalendarClock } from "lucide-react-native";
+import { Droplets, MapPin, Plus, Users, Zap, XCircle, CalendarClock } from "lucide-react-native";
 
 import {
   TANK_SIZES,
@@ -16,6 +16,7 @@ import {
 } from "@/constants/water";
 
 import type { RequestMode, PriorityMode } from "@/types/client";
+import type { SiteProfileResponse } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
@@ -30,6 +31,12 @@ type Props = {
 
   scheduledFor: string;
   setScheduledFor: (value: string) => void;
+
+  userSites: SiteProfileResponse[];
+  selectedSiteId: number | null;
+  loadingSites: boolean;
+  onSelectSite: (siteId: number) => void;
+  onAddSite: () => void;
 
   onContinue: () => void;
   onCancel?: () => void;
@@ -70,6 +77,11 @@ export function RequestStep({
   setPriorityMode,
   scheduledFor,
   setScheduledFor,
+  userSites,
+  selectedSiteId,
+  loadingSites,
+  onSelectSite,
+  onAddSite,
   onContinue,
   onCancel,
   loading,
@@ -109,6 +121,7 @@ export function RequestStep({
 
   const canContinue =
     !!size &&
+    !!selectedSiteId &&
     !loading &&
     (mode === "batch" || priorityMode === "asap" || !!scheduledFor);
 
@@ -334,6 +347,80 @@ export function RequestStep({
         </View>
       </View>
 
+      <View>
+        <View className="flex-row items-center justify-between mb-3">
+          <View>
+            <Text style={text} className="font-semibold">Delivery site</Text>
+            <Text style={mutedText} className="text-sm mt-1">
+              Where should we deliver the water?
+            </Text>
+          </View>
+          <Pressable
+            onPress={onAddSite}
+            className="flex-row items-center gap-1"
+          >
+            <Plus size={14} color={theme.primary} />
+            <Text style={{ color: theme.primary }} className="text-sm">
+              Add site
+            </Text>
+          </Pressable>
+        </View>
+
+        {loadingSites ? (
+          <View className="items-center py-6">
+            <ActivityIndicator color={theme.primary} />
+          </View>
+        ) : userSites.length === 0 ? (
+          <Pressable
+            onPress={onAddSite}
+            style={{ borderColor: theme.border }}
+            className="rounded-xl border-2 border-dashed p-5 items-center gap-2"
+          >
+            <MapPin size={24} color={theme.mutedForeground} />
+            <Text style={mutedText} className="text-sm">No sites saved yet.</Text>
+            <Text style={{ color: theme.primary }} className="text-sm">
+              Add your first delivery site
+            </Text>
+          </Pressable>
+        ) : (
+          <View className="gap-2">
+            {userSites.map((site) => (
+              <Pressable
+                key={site.id}
+                onPress={() => onSelectSite(site.id)}
+                style={{
+                  backgroundColor: selectedSiteId === site.id ? theme.primarySoft : theme.card,
+                  borderColor: selectedSiteId === site.id ? theme.primary : theme.border,
+                }}
+                className="rounded-xl border-2 p-3 flex-row gap-3 items-start"
+              >
+                <View
+                  style={{ backgroundColor: theme.primarySoft }}
+                  className="w-8 h-8 rounded-lg items-center justify-center mt-0.5"
+                >
+                  <MapPin size={16} color={theme.primary} />
+                </View>
+                <View className="flex-1">
+                  <Text style={text} className="text-sm font-medium" numberOfLines={1}>
+                    {site.label ?? "Unnamed site"}
+                  </Text>
+                  {!!site.address && (
+                    <Text style={mutedText} className="text-xs mt-0.5" numberOfLines={1}>
+                      {site.address}
+                    </Text>
+                  )}
+                  {site.tank_capacity_liters != null && (
+                    <Text style={mutedText} className="text-xs mt-0.5">
+                      Tank: {site.tank_capacity_liters.toLocaleString()}L
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+
       {size && (
         <View style={cardStyle} className="rounded-xl border p-5 gap-3">
           <View className="flex-row justify-between">
@@ -342,6 +429,15 @@ export function RequestStep({
               {mode === "batch" ? "Batch Saver" : "Priority Delivery"}
             </Text>
           </View>
+
+          {selectedSiteId && (
+            <View className="flex-row justify-between">
+              <Text style={mutedText} className="text-sm">Delivery site</Text>
+              <Text style={text} className="text-sm font-medium" numberOfLines={1}>
+                {userSites.find((s) => s.id === selectedSiteId)?.label ?? "Selected site"}
+              </Text>
+            </View>
+          )}
 
           {mode === "priority" && (
             <View className="flex-row justify-between">
@@ -394,7 +490,11 @@ export function RequestStep({
             <ActivityIndicator color="#fff" />
           ) : (
             <Text className="text-white font-semibold text-base">
-              {size ? "Continue to Payment" : "Select a tank size"}
+              {!size
+                ? "Select a tank size"
+                : !selectedSiteId
+                  ? "Select a delivery site"
+                  : "Continue to Payment"}
             </Text>
           )}
         </Pressable>

@@ -18,6 +18,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { type TankupTheme } from "@/components/ui/theme";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/lib/toast";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -151,7 +152,6 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   const [reqSearch, setReqSearch] = useState("");
   const [reqStatus, setReqStatus] = useState("");
@@ -244,21 +244,16 @@ export default function AdminDashboard() {
     fetchHistory(token);
   }, [reqSearch, reqStatus, reqType, delSearch, delStatus, paySearch, payStatus]);
 
-  const showToast = (msg: string, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const runAction = async (action: () => Promise<unknown>, successMsg: string) => {
     setActionLoading(true);
     try {
       await action();
-      showToast(successMsg, true);
+      toast.success(successMsg);
       if (token) {
         await Promise.all([fetchLive(token), fetchHistory(token)]);
       }
     } catch (e: any) {
-      showToast(e.message || "Action failed", false);
+      toast.error(e.message || "Action failed");
     } finally {
       setActionLoading(false);
       setConfirm(null);
@@ -380,28 +375,6 @@ export default function AdminDashboard() {
           </Pressable>
         ))}
       </ScrollView>
-
-      {/* Toast */}
-      {toast && (
-        <View
-          style={{
-            position: "absolute",
-            top: 90,
-            left: 16,
-            right: 16,
-            zIndex: 200,
-            backgroundColor: toast.ok ? theme.successSoft : theme.destructiveSoft,
-            borderWidth: 1,
-            borderColor: toast.ok ? theme.success : theme.destructive,
-            borderRadius: 12,
-            padding: 12,
-          }}
-        >
-          <Text style={{ color: toast.ok ? theme.success : theme.destructive, fontSize: 13 }}>
-            {toast.msg}
-          </Text>
-        </View>
-      )}
 
       {loading ? (
         <AdminOverviewSkeleton theme={theme} />
@@ -678,7 +651,7 @@ export default function AdminDashboard() {
               <Pressable
                 onPress={() => {
                   if (!reasonModal || reasonText.trim().length < 3) {
-                    showToast("Reason must be at least 3 characters", false);
+                    toast.error("Reason must be at least 3 characters");
                     return;
                   }
                   const { type, deliveryId } = reasonModal;

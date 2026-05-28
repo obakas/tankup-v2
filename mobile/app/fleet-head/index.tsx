@@ -31,8 +31,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { type TankupTheme } from "@/components/ui/theme";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { ToastMessage } from "@/components/ui/ToastMessage";
-import { useToast } from "@/hooks/useToast";
+import { toast } from "@/lib/toast";
 import {
   clearFleetHeadToken,
   getFleetHeadLive,
@@ -357,12 +356,10 @@ function TankersTab({
   tankers,
   theme,
   onTankerAdded,
-  showToast,
 }: {
   tankers: TankerCard[];
   theme: TankupTheme;
   onTankerAdded: () => void;
-  showToast: (msg: string, ok?: boolean) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -385,10 +382,10 @@ function TankersTab({
       setFormData({ driver_name: "", phone: "", tank_plate_number: "" });
       setShowForm(false);
       onTankerAdded();
-      showToast("Tanker registered successfully");
+      toast.success("Tanker registered successfully");
     } catch (err: any) {
       setFormError(err.message);
-      showToast(err.message, false);
+      toast.error(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -742,7 +739,6 @@ export default function FleetHeadScreen() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { toast, showToast } = useToast();
 
   useEffect(() => {
     getFleetHeadToken().then((tok) => {
@@ -838,7 +834,6 @@ export default function FleetHeadScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <ToastMessage toast={toast} theme={theme} />
       {/* Header */}
       <View style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -942,7 +937,6 @@ export default function FleetHeadScreen() {
               tankers={tankers}
               theme={theme}
               onTankerAdded={() => token && fetchAll(token, true)}
-              showToast={showToast}
             />
           )}
           {tab === "overview" && <OverviewTab overview={overview} theme={theme} />}

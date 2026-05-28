@@ -16,6 +16,7 @@ class DriverSignupPayload(BaseModel):
     name: str
     phone: str
     tank_plate_number: str
+    fleet_number: str | None = None
     # latitude: float | None = None
     # longitude: float | None = None
 
@@ -81,6 +82,7 @@ def driver_signup(payload: DriverSignupPayload, db: Session = Depends(get_db)):
         driver_name=payload.name.strip(),
         phone=phone,
         tank_plate_number=plate,
+        fleet_number=payload.fleet_number.strip() if payload.fleet_number else None,
         # latitude=payload.latitude,
         # longitude=payload.longitude,
         status="available",
