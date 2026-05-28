@@ -1,4 +1,5 @@
-import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, UserCircle2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, UserCircle2, UserPen } from "lucide-react";
 import RequestStep from "@/components/client/RequestStep";
 import PaymentStep from "@/components/client/PaymentStep";
 import BatchStep from "@/components/client/BatchStep";
@@ -10,6 +11,7 @@ import DeliveryOutcomeStep from "@/components/client/DeliveryOutcomeStep";
 import HelpModal from "@/components/client/HelpModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
 import AuthModal from "@/components/client/AuthModal";
+import { ProfileDialog } from "@/components/client/ProfileDialog";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useClientFlow } from "@/hooks/useClientFlow";
 import type { ClientViewProps } from "@/types/client";
@@ -57,6 +59,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
     paymentDeadline,
 
     currentUser,
+    setCurrentUser,
     showAuthModal,
     setShowAuthModal,
     authMode,
@@ -77,6 +80,8 @@ const ClientView = ({ onBack }: ClientViewProps) => {
     activeTab,
     setActiveTab,
   } = useClientFlow({ onBack });
+
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const {
     isSupported: webPushSupported,
@@ -283,6 +288,14 @@ const ClientView = ({ onBack }: ClientViewProps) => {
                   </div>
 
                   <button
+                    onClick={() => setProfileOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted"
+                    aria-label="Edit profile"
+                  >
+                    <UserPen className="h-4 w-4" />
+                  </button>
+
+                  <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-muted"
                     aria-label="Log out"
@@ -407,6 +420,15 @@ const ClientView = ({ onBack }: ClientViewProps) => {
           onClose={() => setShowAuthModal(false)}
           onSuccess={handleAuthSuccess}
           onModeChange={setAuthMode}
+        />
+      )}
+
+      {currentUser && (
+        <ProfileDialog
+          open={profileOpen}
+          user={currentUser}
+          onClose={() => setProfileOpen(false)}
+          onSaved={(updated) => setCurrentUser(updated)}
         />
       )}
     </div>

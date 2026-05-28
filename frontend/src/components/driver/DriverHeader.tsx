@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleHelp, LogOut, Truck } from "lucide-react";
+import { ArrowLeft, CircleHelp, LogOut, Truck, UserPen } from "lucide-react";
 import type { DriverStep } from "@/types/driver";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -8,6 +8,7 @@ interface DriverHeaderProps {
   onBack: () => void;
   onLogout: () => void;
   onOpenHelp: () => void;
+  onEditProfile?: () => void;
   isOnline?: boolean;
   onToggleOnline?: () => void;
   showOnlineToggle?: boolean;
@@ -29,6 +30,7 @@ export const DriverHeader = ({
   onBack,
   onLogout,
   onOpenHelp,
+  onEditProfile,
   isOnline = true,
   onToggleOnline,
   showOnlineToggle = false,
@@ -81,6 +83,18 @@ export const DriverHeader = ({
                 }
               />
               {isOnline ? "Online" : "Offline"}
+            </button>
+          )}
+
+          {onEditProfile && driverName && (
+            <button
+              onClick={onEditProfile}
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:border-success/30 hover:bg-muted"
+              aria-label="Edit profile"
+              title="Edit profile"
+            >
+              <UserPen className="h-4.5 w-4.5" />
             </button>
           )}
 

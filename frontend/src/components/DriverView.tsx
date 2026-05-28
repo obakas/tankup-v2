@@ -6,6 +6,7 @@ import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
 import DriverIncomingOfferStep from "@/components/driver/DriverIncomingOfferStep";
 import DriverAuthModal from "@/components/driver/DriverAuthModal";
+import { DriverProfileDialog } from "@/components/driver/DriverProfileDialog";
 import DriverHelpModal from "@/components/driver/DriverHelpModal";
 import DeliveryHistoryTab from "@/components/driver/DeliveryHistoryTab";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
@@ -100,6 +101,7 @@ function NextStepCard({
 
 const DriverView = ({ onBack }: DriverViewProps) => {
   const [showHelp, setShowHelp] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     const stored = localStorage.getItem("driver_is_online");
@@ -116,7 +118,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     });
   };
 
-  const { driver, isAuthenticated, isHydrated, loginDriver, logoutDriver } =
+  const { driver, isAuthenticated, isHydrated, loginDriver, logoutDriver, updateDriver } =
     useDriverAuth();
 
   const {
@@ -446,6 +448,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
         onBack={onBack}
         onLogout={logoutDriver}
         onOpenHelp={() => setShowHelp(true)}
+        onEditProfile={isAuthenticated ? () => setProfileOpen(true) : undefined}
         showOnlineToggle={isAuthenticated}
         isOnline={isOnline}
         onToggleOnline={toggleOnline}
@@ -486,6 +489,15 @@ const DriverView = ({ onBack }: DriverViewProps) => {
       </div>
 
       {showHelp && <DriverHelpModal onClose={() => setShowHelp(false)} />}
+
+      {driver && (
+        <DriverProfileDialog
+          open={profileOpen}
+          driver={driver}
+          onClose={() => setProfileOpen(false)}
+          onSave={updateDriver}
+        />
+      )}
     </div>
   );
 };

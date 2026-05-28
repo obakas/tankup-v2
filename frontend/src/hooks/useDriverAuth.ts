@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { updateDriverProfile } from "@/lib/driverApi";
 
 export interface DriverUser {
   id: number;
@@ -41,11 +42,20 @@ export const useDriverAuth = () => {
     toast.success("Logged out");
   };
 
+  const updateDriver = async (payload: { driver_name?: string; tank_plate_number?: string }) => {
+    if (!driver) return;
+    const updated = await updateDriverProfile(driver.tankerId, payload);
+    const next = { ...driver, name: updated.driver_name ?? driver.name };
+    setDriver(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
   return {
     driver,
     isAuthenticated: !!driver,
     isHydrated,
     loginDriver,
     logoutDriver,
+    updateDriver,
   };
 };

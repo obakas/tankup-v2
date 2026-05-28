@@ -15,6 +15,11 @@ class UserCreate(UserBase):
     address: str
 
 
+class UserUpdate(BaseModel):
+    name: str | None = None
+    address: str | None = None
+
+
 class UserOut(UserBase):
     id: int
 

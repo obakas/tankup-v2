@@ -1,5 +1,5 @@
 import { Alert, Pressable, Switch, Text, View } from "react-native";
-import { ArrowLeft, HelpCircle, Moon, Sun } from "lucide-react-native";
+import { ArrowLeft, HelpCircle, Moon, Sun, UserPen } from "lucide-react-native";
 import type { AppTheme, getTheme } from "@/components/ui/theme";
 import type { DriverResponse } from "@/lib/api";
 
@@ -9,6 +9,7 @@ type Props = {
   online: boolean;
   onBack: () => void;
   onToggleOnline: (val: boolean) => void;
+  onEditProfile: () => void;
   theme: ReturnType<typeof getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -20,6 +21,7 @@ export function DriverHeader({
   online,
   onBack,
   onToggleOnline,
+  onEditProfile,
   theme,
   themeMode,
   onToggleTheme,
@@ -63,6 +65,17 @@ export function DriverHeader({
       )}
 
       <View className="flex-row items-center gap-2">
+        {driver && (
+          <Pressable
+            onPress={onEditProfile}
+            accessibilityLabel="Edit profile"
+            accessibilityRole="button"
+            className="p-2"
+          >
+            <UserPen color={iconColor} size={20} />
+          </Pressable>
+        )}
+
         <Pressable
           onPress={onToggleTheme}
           accessibilityLabel={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}

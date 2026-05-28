@@ -247,6 +247,9 @@ export function fetchClientHistory(userId: number) {
   return apiRequest<ClientHistoryResponse>(`/history/users/${userId}`);
 }
 
+export const updateUser = (userId: number, payload: { name?: string; address?: string }) =>
+  apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
+
 // ── Driver auth ───────────────────────────────────────────────────────────────
 
 export interface DriverResponse {
@@ -267,6 +270,9 @@ export const driverSignup = (p: { name: string; phone: string; tank_plate_number
 
 export const driverLogout = (tankerId: number) =>
   apiRequest(`/auth/driver-logout/${tankerId}`, { method: "POST" });
+
+export const updateDriver = (tankerId: number, payload: { driver_name?: string; tank_plate_number?: string }) =>
+  apiRequest<DriverResponse>(`/tankers/${tankerId}`, { method: "PUT", body: payload });
 
 // ── Driver job flow ───────────────────────────────────────────────────────────
 

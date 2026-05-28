@@ -17,12 +17,14 @@ import { FailedStep } from "@/components/client/FailedStep";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useState } from "react";
 import { OrderHistoryModal } from "@/components/client/OrderHistoryModal";
+import { ProfileModal } from "@/components/client/ProfileModal";
 
 export default function ClientFlow() {
   const flow = useClientFlow();
   const { theme, themeMode, toggleTheme } = useAppTheme();
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(false);
 
 
   return (
@@ -33,6 +35,7 @@ export default function ClientFlow() {
         user={flow.user}
         onBack={flow.back}
         onLogout={flow.goRoleHome}
+        onEditProfile={() => setProfileVisible(true)}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
@@ -126,6 +129,16 @@ export default function ClientFlow() {
         user={flow.user}
         theme={theme}
       />
+
+      {flow.user && (
+        <ProfileModal
+          visible={profileVisible}
+          user={flow.user}
+          theme={theme}
+          onClose={() => setProfileVisible(false)}
+          onSaved={(updated) => { flow.setUser(updated); setProfileVisible(false); }}
+        />
+      )}
     </SafeAreaView>
   );
 }

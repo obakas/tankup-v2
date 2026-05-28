@@ -280,6 +280,16 @@ export async function logoutDriver(tankerId: number) {
   });
 }
 
+export async function updateDriverProfile(
+  tankerId: number,
+  payload: { driver_name?: string; tank_plate_number?: string }
+) {
+  return apiRequest<{ id: number; driver_name: string; phone: string; tank_plate_number: string }>(
+    `/tankers/${tankerId}`,
+    { method: "PUT", body: JSON.stringify(payload) }
+  );
+}
+
 /* =========================
    OFFER ENDPOINTS
 ========================= */

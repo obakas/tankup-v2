@@ -306,5 +306,6 @@ export function useDriverFlow() {
     handleLoaded,
     handleCompleteJob,
     markCompletedAsAvailable,
+    setDriver,
   };
 }

@@ -264,6 +264,7 @@ export function useClientFlow() {
     handleConfirmPayment,
     handleLeave,
     setStep,
+    setUser,
     scheduledFor,
     setScheduledFor,
   };

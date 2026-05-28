@@ -129,6 +129,10 @@ export function loginUser(payload: LoginUserPayload) {
   });
 }
 
+export function updateUser(userId: number, payload: { name?: string; address?: string }) {
+  return apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
+}
+
 export async function leaveBatchMember(memberId: number) {
   return apiRequest(`/batch-members/${memberId}/leave`, {
     method: "POST",

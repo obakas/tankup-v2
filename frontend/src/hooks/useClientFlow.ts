@@ -757,6 +757,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     paymentDeadline,
 
     currentUser,
+    setCurrentUser,
     showAuthModal,
     setShowAuthModal,
     authMode,

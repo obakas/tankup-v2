@@ -11,10 +11,13 @@ import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
 import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
 import { ToastMessage } from "@/components/ui/ToastMessage";
+import { DriverProfileModal } from "@/components/driver/ProfileModal";
+import { useState } from "react";
 
 export default function DriverFlow() {
   const flow = useDriverFlow();
   const { theme, themeMode, toggleTheme } = useAppTheme();
+  const [profileVisible, setProfileVisible] = useState(false);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -25,6 +28,7 @@ export default function DriverFlow() {
         online={flow.online}
         onBack={flow.back}
         onToggleOnline={flow.toggleOnline}
+        onEditProfile={() => setProfileVisible(true)}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
@@ -89,6 +93,16 @@ export default function DriverFlow() {
           <DriverCompletedStep onBackOnline={flow.markCompletedAsAvailable} />
         )}
       </ScrollView>
+
+      {flow.driver && (
+        <DriverProfileModal
+          visible={profileVisible}
+          driver={flow.driver}
+          theme={theme}
+          onClose={() => setProfileVisible(false)}
+          onSaved={(updated) => { flow.setDriver(updated); setProfileVisible(false); }}
+        />
+      )}
     </SafeAreaView>
   );
 }

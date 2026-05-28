@@ -4,11 +4,12 @@ import {
   Bell,
   BellOff,
   HelpCircle,
+  History,
   LogOut,
   Moon,
   Sun,
   UserCircle2,
-  History,
+  UserPen,
 } from "lucide-react-native";
 
 import type { AppTheme } from "@/components/ui/theme";
@@ -20,6 +21,7 @@ type Props = {
   user: CurrentUser | null;
   onBack: () => void;
   onLogout: () => void;
+  onEditProfile: () => void;
   theme: ReturnType<typeof import("@/components/ui/theme").getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -34,6 +36,7 @@ export function ClientHeader({
   user,
   onBack,
   onLogout,
+  onEditProfile,
   theme,
   themeMode,
   onToggleTheme,
@@ -153,18 +156,26 @@ export function ClientHeader({
 
         </View>
          {user && (
-            <Pressable
-              onPress={onOpenHistory}
-              accessibilityLabel="Order history"
-              accessibilityRole="button"
-              style={{
-                borderColor: theme.border,
-                backgroundColor: theme.background,
-              }}
-              className="h-12 w-12 items-center justify-center rounded-2xl border"
-            >
-              <History color={theme.foreground} size={20} />
-            </Pressable>
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={onEditProfile}
+                accessibilityLabel="Edit profile"
+                accessibilityRole="button"
+                style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                className="h-12 w-12 items-center justify-center rounded-2xl border"
+              >
+                <UserPen color={theme.foreground} size={19} />
+              </Pressable>
+              <Pressable
+                onPress={onOpenHistory}
+                accessibilityLabel="Order history"
+                accessibilityRole="button"
+                style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                className="h-12 w-12 items-center justify-center rounded-2xl border"
+              >
+                <History color={theme.foreground} size={20} />
+              </Pressable>
+            </View>
           )}
 
       </View>
