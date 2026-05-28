@@ -29,6 +29,7 @@ export default function DriverFlow() {
         onBack={flow.back}
         onToggleOnline={flow.toggleOnline}
         onEditProfile={() => setProfileVisible(true)}
+        onLogout={flow.goRoleHome}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}

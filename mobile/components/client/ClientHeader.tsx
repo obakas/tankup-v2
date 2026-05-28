@@ -6,6 +6,7 @@ import {
   HelpCircle,
   History,
   LogOut,
+  MapPin,
   Moon,
   Sun,
   UserCircle2,
@@ -22,6 +23,7 @@ type Props = {
   onBack: () => void;
   onLogout: () => void;
   onEditProfile: () => void;
+  onOpenSites: () => void;
   theme: ReturnType<typeof import("@/components/ui/theme").getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -37,6 +39,7 @@ export function ClientHeader({
   onBack,
   onLogout,
   onEditProfile,
+  onOpenSites,
   theme,
   themeMode,
   onToggleTheme,
@@ -165,6 +168,15 @@ export function ClientHeader({
                 className="h-12 w-12 items-center justify-center rounded-2xl border"
               >
                 <UserPen color={theme.foreground} size={19} />
+              </Pressable>
+              <Pressable
+                onPress={onOpenSites}
+                accessibilityLabel="My delivery sites"
+                accessibilityRole="button"
+                style={{ borderColor: theme.border, backgroundColor: theme.background }}
+                className="h-12 w-12 items-center justify-center rounded-2xl border"
+              >
+                <MapPin color={theme.foreground} size={19} />
               </Pressable>
               <Pressable
                 onPress={onOpenHistory}

@@ -145,3 +145,59 @@ export async function confirmPayment(memberId: number) {
   });
 }
 
+export interface SiteProfileCreatePayload {
+  user_id: number;
+  latitude: number;
+  longitude: number;
+  label?: string;
+  address?: string;
+  landmark_notes?: string;
+  tank_capacity_liters?: number;
+  has_gate?: boolean;
+  gate_notes?: string;
+}
+
+export interface SiteProfileUpdatePayload {
+  label?: string;
+  address?: string;
+  landmark_notes?: string;
+  tank_capacity_liters?: number;
+  has_gate?: boolean;
+  gate_notes?: string;
+}
+
+export interface SiteProfileResponse {
+  id: number;
+  user_id: number;
+  label: string | null;
+  address: string | null;
+  latitude: number;
+  longitude: number;
+  landmark_notes: string | null;
+  tank_capacity_liters: number | null;
+  tank_height_m: number | null;
+  hose_distance_m: number | null;
+  road_difficulty: number;
+  parking_difficulty: number;
+  has_gate: boolean;
+  gate_notes: string | null;
+  delivery_count: number;
+  verification_status: string;
+  truthfulness_score: number;
+  cooperation_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export function createSite(payload: SiteProfileCreatePayload) {
+  return apiRequest<SiteProfileResponse>("/sites/", { method: "POST", body: payload });
+}
+
+export function listUserSites(userId: number) {
+  return apiRequest<SiteProfileResponse[]>(`/sites/users/${userId}`);
+}
+
+export function updateSite(siteId: number, payload: SiteProfileUpdatePayload) {
+  return apiRequest<SiteProfileResponse>(`/sites/${siteId}`, { method: "PATCH", body: payload });
+}
+

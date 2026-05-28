@@ -18,6 +18,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useState } from "react";
 import { OrderHistoryModal } from "@/components/client/OrderHistoryModal";
 import { ProfileModal } from "@/components/client/ProfileModal";
+import { SitesModal } from "@/components/client/SitesModal";
 
 export default function ClientFlow() {
   const flow = useClientFlow();
@@ -25,6 +26,7 @@ export default function ClientFlow() {
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
+  const [sitesVisible, setSitesVisible] = useState(false);
 
 
   return (
@@ -36,6 +38,7 @@ export default function ClientFlow() {
         onBack={flow.back}
         onLogout={flow.goRoleHome}
         onEditProfile={() => setProfileVisible(true)}
+        onOpenSites={() => setSitesVisible(true)}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
@@ -50,7 +53,12 @@ export default function ClientFlow() {
       >
 
         {flow.step === "auth" && (
-          <AuthStep onComplete={flow.handleAuthComplete} />
+          <AuthStep
+            onComplete={(user, isSignup) => {
+              flow.handleAuthComplete(user);
+              if (isSignup) setSitesVisible(true);
+            }}
+          />
         )}
 
         {flow.step === "request" && (
@@ -137,6 +145,15 @@ export default function ClientFlow() {
           theme={theme}
           onClose={() => setProfileVisible(false)}
           onSaved={(updated) => { flow.setUser(updated); setProfileVisible(false); }}
+        />
+      )}
+
+      {flow.user && (
+        <SitesModal
+          visible={sitesVisible}
+          user={flow.user}
+          theme={theme}
+          onClose={() => setSitesVisible(false)}
         />
       )}
     </SafeAreaView>

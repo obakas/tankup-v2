@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, UserCircle2, UserPen } from "lucide-react";
+import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, MapPin, UserCircle2, UserPen } from "lucide-react";
 import RequestStep from "@/components/client/RequestStep";
 import PaymentStep from "@/components/client/PaymentStep";
 import BatchStep from "@/components/client/BatchStep";
@@ -12,6 +12,7 @@ import HelpModal from "@/components/client/HelpModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
 import AuthModal from "@/components/client/AuthModal";
 import { ProfileDialog } from "@/components/client/ProfileDialog";
+import { SitesDialog } from "@/components/client/SitesDialog";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useClientFlow } from "@/hooks/useClientFlow";
 import type { ClientViewProps } from "@/types/client";
@@ -82,6 +83,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
   } = useClientFlow({ onBack });
 
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sitesOpen, setSitesOpen] = useState(false);
 
   const {
     isSupported: webPushSupported,
@@ -296,6 +298,14 @@ const ClientView = ({ onBack }: ClientViewProps) => {
                   </button>
 
                   <button
+                    onClick={() => setSitesOpen(true)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-foreground hover:bg-muted"
+                    aria-label="My delivery sites"
+                  >
+                    <MapPin className="h-4 w-4" />
+                  </button>
+
+                  <button
                     onClick={handleLogout}
                     className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm hover:bg-muted"
                     aria-label="Log out"
@@ -418,7 +428,11 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         <AuthModal
           mode={authMode}
           onClose={() => setShowAuthModal(false)}
-          onSuccess={handleAuthSuccess}
+          onSuccess={(user) => {
+            const wasSignup = authMode === "signup";
+            handleAuthSuccess(user);
+            if (wasSignup) setSitesOpen(true);
+          }}
           onModeChange={setAuthMode}
         />
       )}
@@ -429,6 +443,14 @@ const ClientView = ({ onBack }: ClientViewProps) => {
           user={currentUser}
           onClose={() => setProfileOpen(false)}
           onSaved={(updated) => setCurrentUser(updated)}
+        />
+      )}
+
+      {currentUser && (
+        <SitesDialog
+          open={sitesOpen}
+          user={currentUser}
+          onClose={() => setSitesOpen(false)}
         />
       )}
     </div>
