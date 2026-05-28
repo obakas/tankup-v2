@@ -75,7 +75,17 @@ class DeliveryRecord(Base):
     skip_reason = Column(String, nullable=True)
 
     photo_proof_url = Column(String, nullable=True)
-    
+
+    # Site intelligence — links this stop to a CustomerSiteProfile
+    site_profile_id = Column(Integer, ForeignKey("customer_site_profiles.id"), nullable=True)
+
+    # Driver-reported conditions submitted during or after the delivery
+    driver_reported_tank_height_m = Column(Float, nullable=True)
+    driver_reported_hose_distance_m = Column(Float, nullable=True)
+    driver_reported_road_difficulty = Column(Integer, nullable=True)
+    # None = not compared yet, True = matches customer data, False = mismatch
+    site_conditions_match = Column(Boolean, nullable=True)
+
     batch_member_id = Column(Integer, ForeignKey("batch_members.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

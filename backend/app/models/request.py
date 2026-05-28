@@ -29,6 +29,8 @@ class LiquidRequest(Base):
     assignment_failed_at = Column(DateTime, nullable=True)
     refund_eligible = Column(Boolean, default=False, nullable=False)
 
+    site_profile_id = Column(Integer, ForeignKey("customer_site_profiles.id"), nullable=True)
+
     loading_deadline = Column(DateTime, nullable=True)
     accepted_at = Column(DateTime, nullable=True)
     delivering_started_at = Column(DateTime, nullable=True)

@@ -20,6 +20,7 @@ from app.api.routes import (
     healths,
     admin_auth,
     notifications,
+    sites,
 )
 from app.core.logging_config import setup_logging
 from app.middleware.request_logging import RequestLoggingMiddleware
@@ -89,3 +90,4 @@ app.include_router(healths.router)
 app.add_middleware(RequestLoggingMiddleware)
 app.include_router(admin_auth.router)
 app.include_router(notifications.router)
+app.include_router(sites.router)

@@ -14,6 +14,7 @@ from app.models.request import LiquidRequest
 from app.models.tanker import Tanker
 from app.models.user import User
 from app.utils.status_rules import ensure_valid_transition, TANKER_STATUS_TRANSITIONS
+from app.services.site_intelligence_service import update_site_on_delivery_complete
 
 OTP_WINDOW_MINUTES = 15
 ANOMALY_FACTOR = 1.2
@@ -651,6 +652,7 @@ def complete_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, aut
     db.refresh(delivery)
     if next_stop is not None:
         db.refresh(next_stop)
+    update_site_on_delivery_complete(db, delivery)
     finalize_result = _finalize_job_if_possible(db, delivery) if auto_finalize_job else None
     return {
         "message": "Delivery stop completed successfully",

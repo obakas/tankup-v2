@@ -18,6 +18,8 @@ from app.services.driver_scoring_service import (
     haversine_km,
     score_driver_for_batch,
 )
+from app.models.customer_site_profile import CustomerSiteProfile
+from app.services.site_intelligence_service import compute_site_difficulty_score
 from app.services.operation_alert_service import create_operation_alert
 from app.utils.time_policy import (
     OFFER_TIMEOUT_BLACKLIST_MINUTES, 
@@ -100,8 +102,10 @@ def rank_tankers_for_job(
     job_lat: float,
     job_lon: float,
     job_type: str,
+    site_profile=None,
 ):
     tankers = get_eligible_tankers(db)
+    site_difficulty = compute_site_difficulty_score(site_profile) if site_profile is not None else 0.0
 
     ranked = []
     for tanker in tankers:
@@ -114,6 +118,7 @@ def rank_tankers_for_job(
             job_lat=job_lat,
             job_lon=job_lon,
             job_type=job_type,
+            site_difficulty=site_difficulty,
         )
         ranked.append((tanker, breakdown))
 
@@ -268,6 +273,13 @@ def mark_priority_assignment_failed(
     return request
 
 
+def _load_site_profile_for_request(db: Session, request: LiquidRequest):
+    site_id = getattr(request, "site_profile_id", None)
+    if not site_id:
+        return None
+    return db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == site_id).first()
+
+
 def has_assignable_tanker_for_request(
     db: Session,
     request: LiquidRequest,
@@ -278,6 +290,7 @@ def has_assignable_tanker_for_request(
         job_lat=request.latitude,
         job_lon=request.longitude,
         job_type="priority",
+        site_profile=_load_site_profile_for_request(db, request),
     )
     ranked = _filter_ranked_candidates(ranked, excluded_tanker_ids)
     return len(ranked) > 0
@@ -392,6 +405,7 @@ def assign_best_tanker_for_priority(
         job_lat=request.latitude,
         job_lon=request.longitude,
         job_type="priority",
+        site_profile=_load_site_profile_for_request(db, request),
     )
 
     ranked = _filter_ranked_candidates(ranked, excluded_tanker_ids)[:offer_limit]

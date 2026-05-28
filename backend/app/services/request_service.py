@@ -44,6 +44,7 @@ def build_batch_request(data: RequestCreate) -> LiquidRequest:
         is_asap=False,
         scheduled_for=None,
         status="pending",
+        site_profile_id=getattr(data, "site_profile_id", None),
     )
 
 
@@ -67,6 +68,7 @@ def build_priority_request(data: RequestCreate) -> LiquidRequest:
         is_asap=data.is_asap,
         scheduled_for=final_scheduled_for,
         status=initial_status,
+        site_profile_id=getattr(data, "site_profile_id", None),
     )
 
 

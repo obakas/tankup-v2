@@ -66,6 +66,7 @@ if database_url:
     config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 from app.core.database import Base
+from app.models import customer_site_profile  # noqa: F401
 from app.models import DeliveryRecord  # noqa: F401
 from app.models import admin_audit_log  # noqa: F401
 from app.models import admin_user  # noqa: F401

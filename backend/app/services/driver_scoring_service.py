@@ -20,6 +20,7 @@ class DriverScoreBreakdown:
     responsiveness: float
     area_affinity: float
     fairness: float
+    site_compatibility: float
     penalty: float
     availability_confidence: float
     final_score: float
@@ -119,6 +120,20 @@ def score_fairness(metric: DriverMetric) -> float:
     return clamp((0.5 * jobs_component) + (0.5 * earnings_component))
 
 
+def score_site_compatibility(metric: DriverMetric, site_difficulty: float) -> float:
+    """
+    Boosts experienced drivers on hard sites; neutral (0.5) on easy sites.
+
+    Hard sites (difficulty > 0.6) reward drivers with high completion rates.
+    """
+    if site_difficulty <= 0.0:
+        return 0.5
+    completion_rate = safe_rate(metric.completed_total, metric.accepts_total, default=0.5)
+    if site_difficulty > 0.6:
+        return clamp(completion_rate * 1.2)
+    return clamp(0.5 + (site_difficulty * completion_rate * 0.5))
+
+
 def compute_availability_confidence(metric: DriverMetric) -> float:
     if metric.timeout_count_today >= 3:
         return 0.5
@@ -150,6 +165,7 @@ def compute_driver_score(
     job_lat: float,
     job_lon: float,
     job_type: str,
+    site_difficulty: float = 0.0,
 ) -> DriverScoreBreakdown:
     metric = get_or_create_metric(db, tanker.id)
 
@@ -159,24 +175,27 @@ def compute_driver_score(
     zone_key = build_zone_key(job_lat, job_lon)
     area_affinity = score_area_affinity(db, tanker.id, zone_key)
     fairness = score_fairness(metric)
+    site_compat = score_site_compatibility(metric, site_difficulty)
     availability_confidence = compute_availability_confidence(metric)
     penalty = compute_penalty(metric, area_affinity)
 
     if job_type == "priority":
         base = (
-            0.25 * reliability
-            + 0.20 * responsiveness
-            + 0.20 * proximity
-            + 0.15 * area_affinity
-            + 0.20 * fairness
+            0.23 * reliability
+            + 0.18 * responsiveness
+            + 0.18 * proximity
+            + 0.13 * area_affinity
+            + 0.18 * fairness
+            + 0.10 * site_compat
         )
     else:
         base = (
-            0.20 * reliability
-            + 0.10 * responsiveness
-            + 0.25 * proximity
-            + 0.15 * area_affinity
-            + 0.30 * fairness
+            0.18 * reliability
+            + 0.09 * responsiveness
+            + 0.23 * proximity
+            + 0.13 * area_affinity
+            + 0.27 * fairness
+            + 0.10 * site_compat
         )
 
     final_score = max(0.0, (base - penalty)) * availability_confidence
@@ -188,6 +207,7 @@ def compute_driver_score(
         responsiveness=round(responsiveness, 4),
         area_affinity=round(area_affinity, 4),
         fairness=round(fairness, 4),
+        site_compatibility=round(site_compat, 4),
         penalty=round(penalty, 4),
         availability_confidence=round(availability_confidence, 4),
         final_score=round(final_score * 100, 2),
