@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { type TankupTheme } from "@/components/ui/theme";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -377,9 +378,7 @@ export default function AdminDashboard() {
       )}
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={theme.primary} size="large" />
-        </View>
+        <AdminOverviewSkeleton theme={theme} />
       ) : (
         <ScrollView
           style={{ flex: 1 }}
@@ -1693,4 +1692,88 @@ function card(theme: TankupTheme) {
     padding: 14,
     gap: 4,
   };
+}
+
+// ── Admin overview skeleton ────────────────────────────────────────────────────
+
+function AdminOverviewSkeleton({ theme }: { theme: TankupTheme }) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, gap: 12 }}
+      scrollEnabled={false}
+    >
+      {/* Stat cards — 6 in 2-column wrap */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              minWidth: "45%",
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 14,
+              padding: 14,
+              gap: 8,
+            }}
+          >
+            <Skeleton height={10} width="55%" borderRadius={6} theme={theme} />
+            <Skeleton height={28} width="40%" borderRadius={6} theme={theme} />
+          </View>
+        ))}
+      </View>
+
+      {/* Revenue card */}
+      <View
+        style={{
+          backgroundColor: theme.card,
+          borderWidth: 1,
+          borderColor: theme.border,
+          borderRadius: 16,
+          padding: 16,
+          gap: 12,
+        }}
+      >
+        <Skeleton height={10} width="25%" borderRadius={6} theme={theme} />
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <View style={{ gap: 6 }}>
+            <Skeleton height={10} width={90} borderRadius={6} theme={theme} />
+            <Skeleton height={26} width={110} borderRadius={6} theme={theme} />
+          </View>
+          <View style={{ gap: 6, alignItems: "flex-end" }}>
+            <Skeleton height={10} width={90} borderRadius={6} theme={theme} />
+            <Skeleton height={26} width={110} borderRadius={6} theme={theme} />
+          </View>
+        </View>
+      </View>
+
+      {/* Alerts section */}
+      <View style={{ marginTop: 4, gap: 4 }}>
+        <Skeleton height={14} width="45%" borderRadius={6} theme={theme} />
+        <Skeleton height={11} width="30%" borderRadius={6} theme={theme} />
+      </View>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <View
+          key={i}
+          style={{
+            backgroundColor: theme.card,
+            borderWidth: 1,
+            borderColor: theme.border,
+            borderRadius: 14,
+            padding: 14,
+            gap: 8,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+            <Skeleton height={12} width="40%" borderRadius={6} theme={theme} />
+            <Skeleton height={20} width={50} borderRadius={8} theme={theme} />
+          </View>
+          <Skeleton height={10} width="85%" borderRadius={6} theme={theme} />
+          <Skeleton height={10} width="60%" borderRadius={6} theme={theme} />
+        </View>
+      ))}
+    </ScrollView>
+  );
 }

@@ -28,6 +28,9 @@ import {
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { type TankupTheme } from "@/components/ui/theme";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ToastMessage } from "@/components/ui/ToastMessage";
+import { useToast } from "@/hooks/useToast";
 import {
   clearFleetHeadToken,
   getFleetHeadLive,
@@ -352,17 +355,18 @@ function TankersTab({
   tankers,
   theme,
   onTankerAdded,
+  showToast,
 }: {
   tankers: TankerCard[];
   theme: TankupTheme;
   onTankerAdded: () => void;
+  showToast: (msg: string, ok?: boolean) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ driver_name: "", phone: "", tank_plate_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState(false);
 
   const statusOptions = ["all", "available", "assigned", "loading", "delivering", "arrived", "offline", "inactive"];
   const filtered = filter === "all" ? tankers : tankers.filter((t) => t.status === filter);
@@ -377,12 +381,12 @@ function TankersTab({
     try {
       await registerTanker(formData);
       setFormData({ driver_name: "", phone: "", tank_plate_number: "" });
-      setFormSuccess(true);
       setShowForm(false);
       onTankerAdded();
-      setTimeout(() => setFormSuccess(false), 3000);
+      showToast("Tanker registered successfully");
     } catch (err: any) {
       setFormError(err.message);
+      showToast(err.message, false);
     } finally {
       setSubmitting(false);
     }
@@ -431,13 +435,6 @@ function TankersTab({
           </Text>
         </Pressable>
       </View>
-
-      {/* Success banner */}
-      {formSuccess && (
-        <View style={{ backgroundColor: theme.successSoft, borderColor: theme.success, borderWidth: 1, borderRadius: 12, padding: 12 }}>
-          <Text style={{ color: theme.success, fontSize: 13, fontWeight: "600" }}>Tanker registered successfully.</Text>
-        </View>
-      )}
 
       {/* Register form */}
       {showForm && (
@@ -724,6 +721,7 @@ export default function FleetHeadScreen() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { toast, showToast } = useToast();
 
   useEffect(() => {
     getFleetHeadToken().then((tok) => {
@@ -819,6 +817,7 @@ export default function FleetHeadScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <ToastMessage toast={toast} theme={theme} />
       {/* Header */}
       <View style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
@@ -882,9 +881,7 @@ export default function FleetHeadScreen() {
 
       {/* Content */}
       {loading ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator color={VIOLET} size="large" />
-        </View>
+        <FleetHeadLiveSkeleton theme={theme} />
       ) : (
         <ScrollView
           style={{ flex: 1 }}
@@ -900,7 +897,12 @@ export default function FleetHeadScreen() {
         >
           {tab === "live" && <LiveTab live={live} theme={theme} />}
           {tab === "tankers" && (
-            <TankersTab tankers={tankers} theme={theme} onTankerAdded={() => token && fetchAll(token, true)} />
+            <TankersTab
+              tankers={tankers}
+              theme={theme}
+              onTankerAdded={() => token && fetchAll(token, true)}
+              showToast={showToast}
+            />
           )}
           {tab === "overview" && <OverviewTab overview={overview} theme={theme} />}
 
@@ -912,5 +914,94 @@ export default function FleetHeadScreen() {
         </ScrollView>
       )}
     </SafeAreaView>
+  );
+}
+
+// ── Fleet-head live skeleton ───────────────────────────────────────────────────
+
+function FleetHeadLiveSkeleton({ theme }: { theme: TankupTheme }) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 20 }}
+      scrollEnabled={false}
+    >
+      {/* Mini stats row */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 14,
+              padding: 12,
+              gap: 8,
+            }}
+          >
+            <Skeleton height={10} width="60%" borderRadius={6} theme={theme} />
+            <Skeleton height={22} width="45%" borderRadius={6} theme={theme} />
+          </View>
+        ))}
+      </View>
+
+      {/* Active Tankers section */}
+      <View style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Skeleton height={14} width="40%" borderRadius={6} theme={theme} />
+          <Skeleton height={18} width={28} borderRadius={8} theme={theme} />
+        </View>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 16,
+              padding: 16,
+              gap: 10,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Skeleton height={14} width="45%" borderRadius={6} theme={theme} />
+              <Skeleton height={22} width={70} borderRadius={8} theme={theme} />
+            </View>
+            <Skeleton height={10} width="35%" borderRadius={6} theme={theme} />
+            <Skeleton height={10} width="60%" borderRadius={6} theme={theme} />
+          </View>
+        ))}
+      </View>
+
+      {/* Active Batches section */}
+      <View style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Skeleton height={14} width="38%" borderRadius={6} theme={theme} />
+          <Skeleton height={18} width={28} borderRadius={8} theme={theme} />
+        </View>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <View
+            key={i}
+            style={{
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 16,
+              padding: 16,
+              gap: 8,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Skeleton height={13} width="40%" borderRadius={6} theme={theme} />
+              <Skeleton height={22} width={70} borderRadius={8} theme={theme} />
+            </View>
+            <Skeleton height={10} width="65%" borderRadius={6} theme={theme} />
+            <Skeleton height={6} borderRadius={4} theme={theme} />
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   );
 }

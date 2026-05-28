@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import type { DriverStep } from "@/types/driver";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
+import { useToast } from "@/hooks/useToast";
 import {
   acceptOffer,
   completeBatchDelivery,
@@ -36,6 +37,7 @@ export function useDriverFlow() {
   const [error, setError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { toast, showToast } = useToast();
 
   const goRoleHome = useCallback(async () => {
     await AsyncStorage.removeItem(ROLE_KEY);
@@ -182,12 +184,14 @@ export function useDriverFlow() {
       setJob(jobRes);
       setCurrentStop(null);
       setStep("loading");
+      showToast("Offer accepted — start loading!");
     } catch (e: any) {
       setError(e.message);
+      showToast(e.message, false);
     } finally {
       setActionLoading(false);
     }
-  }, [driver]);
+  }, [driver, showToast]);
 
   const handleRejectOffer = useCallback(async () => {
     if (!driver) return;
@@ -199,12 +203,14 @@ export function useDriverFlow() {
       await rejectOffer(driver.tankerId);
       setOffer(null);
       setStep("available");
+      showToast("Offer declined");
     } catch (e: any) {
       setError(e.message);
+      showToast(e.message, false);
     } finally {
       setActionLoading(false);
     }
-  }, [driver]);
+  }, [driver, showToast]);
 
   const handleLoaded = useCallback(async () => {
     if (!driver || !job) return;
@@ -224,12 +230,14 @@ export function useDriverFlow() {
       const res = await getCurrentStop(driver.tankerId);
       setCurrentStop(res);
       setStep("delivering");
+      showToast("Tanker loaded — begin deliveries");
     } catch (e: any) {
       setError(e.message);
+      showToast(e.message, false);
     } finally {
       setActionLoading(false);
     }
-  }, [driver, job]);
+  }, [driver, job, showToast]);
 
   const handleCompleteJob = useCallback(async () => {
     if (!driver || !job) return;
@@ -249,12 +257,14 @@ export function useDriverFlow() {
       setCurrentStop(null);
       setStep("available");
       setOffer(null);
+      showToast("Job complete — well done!");
     } catch (e: any) {
       setError(e.message);
+      showToast(e.message, false);
     } finally {
       setActionLoading(false);
     }
-  }, [driver, job]);
+  }, [driver, job, showToast]);
 
   const markCompletedAsAvailable = useCallback(() => {
     setStep("available");
@@ -281,6 +291,7 @@ export function useDriverFlow() {
     loading,
     actionLoading,
     error,
+    toast,
     titles,
     setError,
     setStep,
