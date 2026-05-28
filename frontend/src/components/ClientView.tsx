@@ -26,6 +26,11 @@ const ClientView = ({ onBack }: ClientViewProps) => {
     setStep,
     selectedSize,
     setSelectedSize,
+    selectedSiteId,
+    setSelectedSiteId,
+    userSites,
+    loadingSites,
+    refreshUserSites,
     requestMode,
     setRequestMode,
     priorityMode,
@@ -126,6 +131,12 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             onSetScheduledFor={setScheduledFor}
             onContinue={handleContinueToPayment}
             onCancel={handleCancelBeforePayment}
+            isLoggedIn={!!currentUser}
+            userSites={userSites}
+            selectedSiteId={selectedSiteId}
+            loadingSites={loadingSites}
+            onSelectSite={setSelectedSiteId}
+            onAddSite={() => setSitesOpen(true)}
           />
         );
 
@@ -450,7 +461,10 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         <SitesDialog
           open={sitesOpen}
           user={currentUser}
-          onClose={() => setSitesOpen(false)}
+          onClose={() => {
+            setSitesOpen(false);
+            void refreshUserSites(currentUser.id);
+          }}
         />
       )}
     </div>

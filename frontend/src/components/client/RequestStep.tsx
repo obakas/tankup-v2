@@ -1,4 +1,4 @@
-import { Droplets, Users, Zap, XCircle } from "lucide-react";
+import { Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   TANK_SIZES,
@@ -9,6 +9,7 @@ import {
 } from "@/constants/water";
 import type { RequestMode } from "@/types/client";
 import { formatScheduledDateTime } from "@/lib/utils";
+import type { SiteProfileResponse } from "@/lib/api";
 
 interface RequestStepProps {
   requestMode: RequestMode;
@@ -23,6 +24,13 @@ interface RequestStepProps {
   scheduledFor: string;
   onSelectPriorityMode: (mode: "asap" | "scheduled") => void;
   onSetScheduledFor: (value: string) => void;
+
+  isLoggedIn: boolean;
+  userSites: SiteProfileResponse[];
+  selectedSiteId: number | null;
+  loadingSites: boolean;
+  onSelectSite: (siteId: number) => void;
+  onAddSite: () => void;
 }
 
 const RequestStep = ({
@@ -37,6 +45,12 @@ const RequestStep = ({
   scheduledFor,
   onSelectPriorityMode,
   onSetScheduledFor,
+  isLoggedIn,
+  userSites,
+  selectedSiteId,
+  loadingSites,
+  onSelectSite,
+  onAddSite,
 }: RequestStepProps) => {
   const price =
     requestMode === "priority"
@@ -229,6 +243,83 @@ const RequestStep = ({
         </div>
       </div>
 
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-foreground">Delivery site</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Where should we deliver the water?
+            </p>
+          </div>
+          {isLoggedIn && (
+            <button
+              onClick={onAddSite}
+              className="flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add site
+            </button>
+          )}
+        </div>
+
+        {!isLoggedIn ? (
+          <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+            <MapPin className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+            Sign in to select your delivery site
+          </div>
+        ) : loadingSites ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : userSites.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-4 text-center">
+            <MapPin className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No sites saved yet.</p>
+            <button
+              onClick={onAddSite}
+              className="mt-2 text-sm text-primary hover:underline"
+            >
+              Add your first delivery site
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {userSites.map((site) => (
+              <button
+                key={site.id}
+                onClick={() => onSelectSite(site.id)}
+                className={`w-full rounded-xl border-2 p-3 text-left transition-all duration-200 ${
+                  selectedSiteId === site.id
+                    ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
+                    : "border-border bg-card hover:border-primary/30"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground text-sm">
+                      {site.label ?? "Unnamed site"}
+                    </p>
+                    {site.address && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {site.address}
+                      </p>
+                    )}
+                    {site.tank_capacity_liters != null && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Tank: {site.tank_capacity_liters.toLocaleString()}L
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {selectedSize && (
         <div className="bg-card rounded-xl border border-border p-5 space-y-3">
           <div className="flex justify-between text-sm">
@@ -237,6 +328,15 @@ const RequestStep = ({
               {requestMode === "batch" ? "Batch Saver" : "Priority Delivery"}
             </span>
           </div>
+
+          {selectedSiteId && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Delivery site</span>
+              <span className="font-medium text-foreground truncate max-w-[60%] text-right">
+                {userSites.find((s) => s.id === selectedSiteId)?.label ?? "Selected site"}
+              </span>
+            </div>
+          )}
 
           {requestMode === "priority" && (
             <div className="flex justify-between text-sm">

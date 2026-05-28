@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { ClientStep, RequestMode } from "@/types/client";
 import {
@@ -8,11 +8,12 @@ import {
   PLATFORM_BATCH_COMMISSION_RATE,
 } from "@/constants/water";
 import { useLiveBatch } from "@/hooks/useLiveBatch";
-// import { createWaterRequest, type UserResponse } from "@/lib/api";
 import {
   createWaterRequest,
   confirmPayment,
+  listUserSites,
   type UserResponse,
+  type SiteProfileResponse,
 } from "@/lib/api";
 import { leaveBatchMember } from "@/lib/batches";
 import { useLivePriorityRequest } from "@/hooks/useLivePriorityRequest";
@@ -31,6 +32,7 @@ interface ClientSession {
   paymentDeadline: string | null;
   requestMode: RequestMode;
   selectedSize: number | null;
+  selectedSiteId: number | null;
   priorityMode: "asap" | "scheduled";
   scheduledFor: string;
   otp: string;
@@ -71,9 +73,13 @@ async function getClientCoordinates(): Promise<{ latitude: number; longitude: nu
 export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [step, setStep] = useState<ClientStep>("request");
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [requestMode, setRequestMode] = useState<RequestMode>("batch");
   const [priorityMode, setPriorityMode] = useState<"asap" | "scheduled">("asap");
   const [scheduledFor, setScheduledFor] = useState<string>("");
+
+  const [userSites, setUserSites] = useState<SiteProfileResponse[]>([]);
+  const [loadingSites, setLoadingSites] = useState(false);
 
   const [showHelp, setShowHelp] = useState(false);
   const [showLeaveBatchWarning, setShowLeaveBatchWarning] = useState(false);
@@ -246,10 +252,11 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
   const canContinueToPayment = useMemo(() => {
     if (!selectedSize) return false;
+    if (currentUser && !selectedSiteId) return false;
     if (requestMode === "batch") return true;
     if (priorityMode === "asap") return true;
     return !!scheduledFor;
-  }, [selectedSize, requestMode, priorityMode, scheduledFor]);
+  }, [selectedSize, selectedSiteId, currentUser, requestMode, priorityMode, scheduledFor]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem(USER_KEY);
@@ -277,6 +284,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       setPaymentDeadline(parsed.paymentDeadline ?? null);
       setRequestMode(parsed.requestMode ?? "batch");
       setSelectedSize(parsed.selectedSize ?? null);
+      setSelectedSiteId(parsed.selectedSiteId ?? null);
       setPriorityMode(parsed.priorityMode ?? "asap");
       setScheduledFor(parsed.scheduledFor ?? "");
       setOtp(parsed.otp ?? "");
@@ -311,6 +319,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       paymentDeadline,
       requestMode,
       selectedSize,
+      selectedSiteId,
       priorityMode,
       scheduledFor,
       otp,
@@ -334,10 +343,32 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     paymentDeadline,
     requestMode,
     selectedSize,
+    selectedSiteId,
     priorityMode,
     scheduledFor,
     otp,
   ]);
+
+  const refreshUserSites = useCallback(async (userId: number) => {
+    setLoadingSites(true);
+    try {
+      const sites = await listUserSites(userId);
+      setUserSites(sites);
+    } catch {
+      // silently fail — user can retry via SitesDialog
+    } finally {
+      setLoadingSites(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      void refreshUserSites(currentUser.id);
+    } else {
+      setUserSites([]);
+      setSelectedSiteId(null);
+    }
+  }, [currentUser, refreshUserSites]);
 
   const copyOtp = async () => {
     if (!otp) {
@@ -422,17 +453,17 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setCurrentUser(user);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     setShowAuthModal(false);
-    toast.success(`Welcome, ${user.name}!`);
+    toast.success(`Welcome, ${user.name}! Please select a delivery site to continue.`);
 
     void recoverActivePriorityRequest(user);
-
-    setStep("payment");
+    // Stay on request step so user can pick a site before payment
   };
 
   const resetClientFlow = () => {
     localStorage.removeItem(CLIENT_SESSION_KEY);
     setStep("request");
     setSelectedSize(null);
+    setSelectedSiteId(null);
     setRequestMode("batch");
     setPriorityMode("asap");
     setScheduledFor("");
@@ -525,6 +556,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
         latitude: coords.latitude,
         longitude: coords.longitude,
         delivery_type: requestMode,
+        site_profile_id: selectedSiteId ?? undefined,
         ...(requestMode === "priority"
           ? priorityMode === "asap"
             ? { is_asap: true }
@@ -621,6 +653,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
   const handleCancelBeforePayment = () => {
     setSelectedSize(null);
+    setSelectedSiteId(null);
     setPriorityMode("asap");
     setScheduledFor("");
     setRequestMode("batch");
@@ -717,6 +750,13 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
     selectedSize,
     setSelectedSize,
+
+    selectedSiteId,
+    setSelectedSiteId,
+
+    userSites,
+    loadingSites,
+    refreshUserSites,
 
     requestMode,
     setRequestMode,
