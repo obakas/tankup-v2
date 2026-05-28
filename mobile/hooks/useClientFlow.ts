@@ -219,8 +219,8 @@ export function useClientFlow() {
   };
 
   const back = () => {
-    if (step === "auth") return router.back();
-    if (step === "request") return router.back();
+    if (step === "auth") return goRoleHome();
+    if (step === "request") return goRoleHome();
     if (step === "payment") return setStep("request");
 
     goRoleHome();

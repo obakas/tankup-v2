@@ -61,25 +61,26 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
         </View>
       )}
 
-      <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
-
-      {isNew && (
+      {isNew ? (
         <>
           <Input label="Full Name" value={name} onChangeText={setName} placeholder="Driver Name" />
+          <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
           <Input label="Plate Number" value={plate} onChangeText={setPlate} placeholder="ABC-123XY" />
         </>
+      ) : (
+        <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
       )}
 
       <Pressable
         onPress={isNew ? handleSignup : handleLogin}
         disabled={loading}
-        className="bg-primary rounded-xl py-4 items-center mt-2"
+        className="bg-success rounded-xl py-4 items-center mt-2"
       >
         {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">{isNew ? "Register" : "Sign In"}</Text>}
       </Pressable>
 
       <Pressable onPress={() => { setIsNew(!isNew); setError(null); }} className="items-center py-2">
-        <Text className="text-primary text-sm">{isNew ? "Already registered? Sign in" : "New driver? Register"}</Text>
+        <Text className="text-success text-sm">{isNew ? "Already registered? Sign in" : "New driver? Register"}</Text>
       </Pressable>
     </View>
   );

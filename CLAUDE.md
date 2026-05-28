@@ -42,7 +42,7 @@ python -m app.scripts.create_admin_user
 ```bash
 cd frontend
 
-npm run dev        # dev server on :5173
+npm run dev        # dev server on :8080
 npm run build      # production build
 npm run lint       # ESLint
 npm run test       # vitest (single run)
@@ -76,7 +76,7 @@ cd mobile && npx expo start --tunnel --clear
 
 **Config:** `app/core/config.py` — reads from `backend/.env`. Key vars:
 - `DATABASE_URL` — Supabase PostgreSQL in prod, SQLite for local fallback
-- `ADMIN_SECRET` — header secret required alongside Bearer token on all `/admin/*` routes
+- `ADMIN_SECRET` — intended `x-admin-secret` header value (enforcement is implemented but currently disabled at router level)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — credentials for `POST /admin/login`
 - `SECRET_KEY` — JWT signing key
 
@@ -91,14 +91,16 @@ cd mobile && npx expo start --tunnel --clear
 | `/deliveries` | Delivery record transitions |
 | `/payments`, `/refunds` | Payment lifecycle |
 | `/auth`, `/users` | Customer auth (phone-based) |
-| `/admin` | Admin read/write operations — requires Bearer JWT + `x-admin-secret` header |
+| `/sites` | Customer site profiles (tank size, fill level history) |
+| `/customers` | Customer-side delivery confirmation |
+| `/admin` | Admin read/write operations — requires Bearer JWT with `sub="admin"` |
 | `/admin/login` | Admin + fleet head login, returns JWT |
 | `/histories`, `/notifications`, `/healths` | Supporting endpoints |
 
 **Auth model — two separate systems:**
 
 1. **Customer users** — `POST /auth/login` with phone number, returns JWT stored client-side. Used for `/requests/`, `/batch-members/`, etc.
-2. **Admin / Fleet Head** — `POST /admin/login` with username/password, returns JWT where `sub = "admin"`. All `/admin/*` endpoints require this token via `Authorization: Bearer <token>` **and** `x-admin-secret` header. Validated by `require_admin` in `app/api/deps.py`.
+2. **Admin / Fleet Head** — `POST /admin/login` with username/password, returns JWT where `sub = "admin"`. All `/admin/*` endpoints require `Authorization: Bearer <token>` validated by `require_admin` in `app/api/deps.py` (checks `sub == "admin"`). Note: `x-admin-secret` header enforcement exists in `admins.py` but is currently commented out at the router level.
 
 Fleet heads currently use admin credentials (MVP simplification — no fleet-head-specific auth endpoint exists yet).
 
@@ -110,7 +112,9 @@ Fleet heads currently use admin credentials (MVP simplification — no fleet-hea
 - Batch health monitor — 60s
 - Delivery timeout — 5min
 
-**Delivery status machine:** `CREATED → ASSIGNED → LOADING → EN_ROUTE → ARRIVED → MEASURING → AWAITING_OTP → COMPLETED`. Terminal states: `COMPLETED`, `FAILED`, `SKIPPED`. All transitions are validated via `app/utils/status_rules.py`. Every successful transition writes a `DeliveryEvent` + `AuditLog` row.
+**Delivery status machine:** `pending → en_route → arrived → measuring → awaiting_otp → delivered`. Terminal states: `delivered`, `failed`, `skipped`. All transitions are validated via `app/utils/status_rules.py`. Every successful transition writes a `DeliveryEvent` + `AuditLog` row.
+
+**Timeout policy** (`app/utils/time_policy.py`): Offer accept: 60s. Loading: 45min. Priority assignment: 20min. Batch fill: 90min. Late arrival alert: 20min. Delivery timeout: 6h.
 
 **Models of note:**
 - `Tanker` — carries `pending_offer_type`, `pending_offer_id`, `offer_expires_at` for the offer-based dispatch flow
@@ -122,7 +126,7 @@ Fleet heads currently use admin credentials (MVP simplification — no fleet-hea
 
 ## Frontend Architecture
 
-**Entry:** `src/main.tsx` → `App.tsx` — `BrowserRouter` with two explicit routes:
+**Entry:** `src/main.tsx` → `App.tsx` — `BrowserRouter` wrapping TanStack Query `QueryClientProvider`, with two explicit routes:
 - `/` → `Index.tsx` (role selector + in-page view switching)
 - `/admin` → `AdminDashboard.tsx`
 
@@ -139,9 +143,12 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 
 **API libs:**
 - `src/lib/api.ts` — base `apiRequest` wrapper
-- `src/lib/admin.ts` — admin API calls (uses `x-admin-secret` + Bearer token)
-- `src/lib/fleetHeadApi.ts` — fleet head API calls (same pattern, token stored as `fleet_head_auth`)
+- `src/lib/adminAuth.ts` — admin token storage (`admin_access_token` in localStorage)
+- `src/lib/admin.ts` — admin API calls (Bearer token)
+- `src/lib/fleetHeadApi.ts` — fleet head API calls (token stored as `fleet_head_auth`)
 - `src/lib/driverApi.ts`, `src/lib/batches.ts`, `src/lib/requests.ts` etc. — domain-specific
+
+**Maps:** Leaflet (`import "leaflet/dist/leaflet.css"` in `main.tsx`). Used for driver location display in fleet/admin views.
 
 **Theme:** CSS custom properties in `src/index.css`, toggled via `document.documentElement.classList.toggle("dark", ...)`. `localStorage("tankup-theme")` persists the preference.
 
@@ -165,7 +172,9 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 
 Both patterns pass theme values as inline `style={{ color: theme.foreground }}` props since NativeWind doesn't support dynamic theming at runtime.
 
-**API libs:** `lib/api.ts` (base `apiRequest`), `lib/driverApi.ts`, `lib/fleetHeadApi.ts` (fleet head — uses `x-admin-secret` + Bearer, token stored in AsyncStorage as `fleet_head_auth`). All requests include `ngrok-skip-browser-warning: true` to bypass ngrok's interstitial when tunnelling.
+**API libs:** `lib/api.ts` (base `apiRequest`), `lib/driverApi.ts`, `lib/fleetHeadApi.ts` (fleet head — Bearer token stored in AsyncStorage as `fleet_head_auth`). All requests include `ngrok-skip-browser-warning: true` to bypass ngrok's interstitial when tunnelling.
+
+**Background polling:** `hooks/useAppStatePause.ts` — pauses polling hooks when the app enters the background (AppState `active` check). Use this in any hook that polls the backend on an interval.
 
 **API base URL:** Read from `Constants.expoConfig.extra.API_BASE_URL` (set in `mobile/app.json` → `extra.API_BASE_URL`). `scripts/dev.sh` patches this automatically with the current ngrok tunnel URL on every run. Don't rely on `EXPO_PUBLIC_API_BASE_URL` in `.env` — it doesn't inline reliably with Expo Go + `--tunnel`.
 

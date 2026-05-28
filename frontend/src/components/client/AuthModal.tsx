@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createUser, loginUser, type UserResponse } from "@/lib/api";
 
@@ -25,12 +26,12 @@ const AuthModal = ({
 
   const handleSubmit = async () => {
     if (!phone.trim()) {
-      alert("Phone number is required");
+      toast.error("Phone number is required");
       return;
     }
 
     if (isSignup && (!name.trim() || !address.trim())) {
-      alert("Name, phone number, and address are required");
+      toast.error("Name, phone number, and address are required");
       return;
     }
 
@@ -56,7 +57,7 @@ const AuthModal = ({
           ? "Failed to create account"
           : "Failed to log in";
 
-      alert(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

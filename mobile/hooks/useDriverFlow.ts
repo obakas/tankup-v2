@@ -45,8 +45,8 @@ export function useDriverFlow() {
   }, []);
 
   const back = useCallback(() => {
-    router.back();
-  }, []);
+    goRoleHome();
+  }, [goRoleHome]);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {

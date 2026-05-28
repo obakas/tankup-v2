@@ -102,37 +102,12 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
 
       <form className="space-y-4" onSubmit={handleSubmit}>
         {!isLogin && (
-          <>
-            <input
-              className="w-full rounded-md border bg-background px-3 py-2"
-              placeholder="Full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-
-            <input
-              className="w-full rounded-md border bg-background px-3 py-2"
-              placeholder="Tank plate number"
-              value={tankPlateNumber}
-              onChange={(e) => setTankPlateNumber(e.target.value)}
-            />
-
-            {/* <input
-              className="w-full rounded-md border bg-background px-3 py-2"
-              placeholder="Latitude (optional for now)"
-              value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
-              inputMode="decimal"
-            /> */}
-
-            {/* <input
-              className="w-full rounded-md border bg-background px-3 py-2"
-              placeholder="Longitude (optional for now)"
-              value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
-              inputMode="decimal"
-            /> */}
-          </>
+          <input
+            className="w-full rounded-md border bg-background px-3 py-2"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         )}
 
         <input
@@ -141,6 +116,15 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
+
+        {!isLogin && (
+          <input
+            className="w-full rounded-md border bg-background px-3 py-2"
+            placeholder="Tank plate number"
+            value={tankPlateNumber}
+            onChange={(e) => setTankPlateNumber(e.target.value)}
+          />
+        )}
 
         <Button className="w-full" type="submit" disabled={loading}>
           {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
