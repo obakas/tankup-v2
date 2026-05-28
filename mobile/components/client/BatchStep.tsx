@@ -1,5 +1,6 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { AlertCircle, Copy, RefreshCw, Truck } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import * as Clipboard from "expo-clipboard";
 
 import type { BatchLiveResponse, CreateRequestResponse } from "@/lib/api";
@@ -96,6 +97,7 @@ function getOtp(liveData: any) {
 }
 
 export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, onLeave, onRefresh, onViewTanker }: Props) {
+  const { theme } = useAppTheme();
   const batch = normalizeBatchData(liveData);
   const status = batch?.status ?? "forming";
   // const otp = getOtp(liveData);
@@ -145,7 +147,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
             <Text className="mt-1 text-sm leading-5 text-muted-foreground">Share this with the driver only after measurement is complete.</Text>
           </View>
           <Pressable onPress={copyOtp} disabled={!otp} className="flex-row items-center gap-2 rounded-xl border border-border px-3 py-2 opacity-100 disabled:opacity-40">
-            <Copy color="#7c8aa6" size={15} />
+            <Copy color={theme.mutedForeground} size={15} />
             <Text className="text-sm font-semibold text-foreground">Copy</Text>
           </Pressable>
         </View>
@@ -163,7 +165,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
 
       {liveError && (
         <View className="rounded-3xl border border-red-200/40 bg-red-500/10 p-4 shadow-sm flex-row items-start gap-3">
-          <AlertCircle color="#ef4444" size={20} />
+          <AlertCircle color={theme.destructive} size={20} />
           <View className="flex-1">
             <Text className="font-bold text-red-500">Could not refresh batch status</Text>
             <Text className="mt-1 text-sm text-muted-foreground">{liveError}</Text>
@@ -176,7 +178,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
 
       {batch?.tanker_id && (
         <View className="rounded-3xl border border-border bg-card p-5 shadow-sm flex-row items-start gap-3">
-          <Truck color="#3b82f6" size={20} />
+          <Truck color={theme.primary} size={20} />
           <View className="flex-1">
             <Text className="font-bold text-foreground">Assigned Tanker</Text>
             <Text className="mt-1 text-sm text-muted-foreground">Tanker #{batch.tanker_id}{batch.driver_name ? ` • Driver: ${batch.driver_name}` : ""}</Text>
@@ -193,7 +195,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
       </View>
 
       <Pressable onPress={onRefresh} className="flex-row items-center justify-center gap-2 border border-border rounded-xl py-3">
-        <RefreshCw color="#7c8aa6" size={16} />
+        <RefreshCw color={theme.mutedForeground} size={16} />
         <Text className="text-muted-foreground font-medium">{liveLoading ? "Refreshing..." : "Refresh Status"}</Text>
       </Pressable>
 

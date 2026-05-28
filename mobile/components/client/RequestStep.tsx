@@ -142,7 +142,7 @@ export function RequestStep({
     <View className="gap-6">
       <View className="items-center py-4">
         <View style={{ backgroundColor: theme.primarySoft }} className="w-16 h-16 rounded-2xl items-center justify-center mb-3">
-          <Droplets size={34} color="#1e88ff" />
+          <Droplets size={34} color={theme.primary} />
         </View>
 
         <Text style={text} className="text-xl font-bold text-center">
@@ -162,7 +162,7 @@ export function RequestStep({
         >
           <View className="flex-row gap-3 items-start">
             <View style={{ backgroundColor: theme.primarySoft }} className="w-11 h-11 rounded-xl items-center justify-center">
-              <Users size={22} color="#1e88ff" />
+              <Users size={22} color={theme.primary} />
             </View>
 
             <View className="flex-1">
@@ -193,7 +193,7 @@ export function RequestStep({
         >
           <View className="flex-row gap-3 items-start">
             <View style={{ backgroundColor: theme.warningSoft }} className="w-11 h-11 rounded-xl items-center justify-center">
-              <Zap size={22} color="#f59e0b" />
+              <Zap size={22} color={theme.warning} />
             </View>
 
             <View className="flex-1">
@@ -258,7 +258,7 @@ export function RequestStep({
           {priorityMode === "scheduled" && (
             <View style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-xl border p-4 gap-3">
               <View className="flex-row items-center gap-2">
-                <CalendarClock size={18} color="#1e88ff" />
+                <CalendarClock size={18} color={theme.primary} />
                 <Text style={text} className="font-semibold">
                   {formatPrettyDateTime(scheduledFor)}
                 </Text>
@@ -404,7 +404,7 @@ export function RequestStep({
             onPress={onCancel}
             style={cardStyle} className="rounded-xl py-4 items-center border flex-row justify-center gap-2"
           >
-            <XCircle size={18} color="#ef4444" />
+            <XCircle size={18} color={theme.destructive} />
             <Text style={text} className="font-semibold">
               Cancel Request
             </Text>
@@ -552,7 +552,7 @@ export function RequestStep({
 //     <View className="gap-6">
 //       <View className="items-center py-4">
 //         <View className="w-16 h-16 rounded-2xl bg-primary/10 items-center justify-center mb-3">
-//           <Droplets size={34} color="#1e88ff" />
+//           <Droplets size={34} color={theme.primary} />
 //         </View>
 
 //         <Text className="text-foreground text-xl font-bold text-center">
@@ -575,7 +575,7 @@ export function RequestStep({
 //         >
 //           <View className="flex-row gap-3 items-start">
 //             <View className="w-11 h-11 rounded-xl bg-primary/10 items-center justify-center">
-//               <Users size={22} color="#1e88ff" />
+//               <Users size={22} color={theme.primary} />
 //             </View>
 
 //             <View className="flex-1">
@@ -609,7 +609,7 @@ export function RequestStep({
 //         >
 //           <View className="flex-row gap-3 items-start">
 //             <View className="w-11 h-11 rounded-xl bg-warning/10 items-center justify-center">
-//               <Zap size={22} color="#f59e0b" />
+//               <Zap size={22} color={theme.warning} />
 //             </View>
 
 //             <View className="flex-1">
@@ -680,7 +680,7 @@ export function RequestStep({
 //           {priorityMode === "scheduled" && (
 //             <View className="rounded-xl border border-border bg-background p-4 gap-3">
 //               <View className="flex-row items-center gap-2">
-//                 <CalendarClock size={18} color="#1e88ff" />
+//                 <CalendarClock size={18} color={theme.primary} />
 //                 <Text className="text-foreground font-semibold">
 //                   {formatPrettyDateTime(scheduledFor)}
 //                 </Text>
@@ -830,7 +830,7 @@ export function RequestStep({
 //             onPress={onCancel}
 //             className="rounded-xl py-4 items-center border border-border bg-card flex-row justify-center gap-2"
 //           >
-//             <XCircle size={18} color="#ef4444" />
+//             <XCircle size={18} color={theme.destructive} />
 //             <Text className="text-foreground font-semibold">
 //               Cancel Request
 //             </Text>

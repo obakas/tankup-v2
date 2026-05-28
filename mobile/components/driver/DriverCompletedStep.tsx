@@ -1,13 +1,23 @@
 import { Pressable, Text, View } from "react-native";
+import { CheckCircle2 } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export function DriverCompletedStep({ onBackOnline }: { onBackOnline: () => void }) {
+  const { theme } = useAppTheme();
   return (
-    <View className="gap-4 items-center py-8">
-      <View className="w-20 h-20 rounded-full bg-success/20 items-center justify-center">
-        <Text className="text-success text-3xl">✓</Text>
+    <View className="gap-5 items-center py-8">
+      <View
+        className="w-24 h-24 rounded-full items-center justify-center"
+        style={{ backgroundColor: theme.successSoft }}
+      >
+        <CheckCircle2 color={theme.success} size={48} />
       </View>
-      <Text className="text-foreground text-2xl font-bold">Job Complete!</Text>
-      <Text className="text-muted-foreground text-center">All stops delivered successfully.</Text>
+      <View className="items-center gap-2">
+        <Text className="text-foreground text-2xl font-bold">Job Complete!</Text>
+        <Text className="text-muted-foreground text-center text-sm leading-5">
+          All stops have been delivered. Great work — go back online when you're ready for your next job.
+        </Text>
+      </View>
       <Pressable onPress={onBackOnline} className="w-full bg-primary rounded-xl py-4 items-center">
         <Text className="text-white font-semibold">Back Online</Text>
       </Pressable>

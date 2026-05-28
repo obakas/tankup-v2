@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { MapPin } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
   offer: any;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props) {
+  const { theme } = useAppTheme();
   const [secondsLeft, setSecondsLeft] = useState<number>(offer.seconds_left ?? 60);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
           </View>
           {stop.address && (
             <View className="flex-row items-center gap-2 mt-1">
-              <MapPin color="#7c8aa6" size={12} />
+              <MapPin color={theme.mutedForeground} size={12} />
               <Text className="text-muted-foreground text-xs">{stop.address}</Text>
             </View>
           )}

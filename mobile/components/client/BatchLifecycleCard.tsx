@@ -6,6 +6,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export type BatchLiveResponse = {
   batch_id?: number | null;
@@ -105,10 +106,12 @@ function getHint(batch: BatchLiveResponse) {
 }
 
 function StatusBadge({ status }: { status?: string | null }) {
+  const { theme } = useAppTheme();
+
   if (status === "expired" || status === "failed") {
     return (
       <View className="flex-row items-center gap-2 rounded-full border border-red-200/40 bg-red-500/10 px-3 py-1">
-        <XCircle color="#ef4444" size={14} />
+        <XCircle color={theme.destructive} size={14} />
         <Text className="text-xs font-semibold text-red-500">
           {stepLabels[status] ?? "Expired"}
         </Text>
@@ -119,7 +122,7 @@ function StatusBadge({ status }: { status?: string | null }) {
   if (status === "completed") {
     return (
       <View className="flex-row items-center gap-2 rounded-full border border-blue-300/30 bg-blue-500/10 px-3 py-1">
-        <CheckCircle2 color="#3b82f6" size={14} />
+        <CheckCircle2 color={theme.primary} size={14} />
         <Text className="text-xs font-semibold text-blue-500">Completed</Text>
       </View>
     );
@@ -127,7 +130,7 @@ function StatusBadge({ status }: { status?: string | null }) {
 
   return (
     <View className="flex-row items-center gap-2 rounded-full border border-border bg-muted px-3 py-1">
-      <Clock3 color="#64748b" size={14} />
+      <Clock3 color={theme.mutedForeground} size={14} />
       <Text className="text-xs font-semibold text-foreground">
         {stepLabels[status ?? "forming"] ?? status ?? "Forming"}
       </Text>
@@ -136,6 +139,7 @@ function StatusBadge({ status }: { status?: string | null }) {
 }
 
 export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
+  const { theme } = useAppTheme();
   const status = batch.status ?? "forming";
   const currentIndex = getCurrentIndex(status);
 
@@ -148,7 +152,7 @@ export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
         </View>
 
         <View className="items-end gap-2">
-          {isLoading && <Loader2 color="#64748b" size={16} />}
+          {isLoading && <Loader2 color={theme.mutedForeground} size={16} />}
           <StatusBadge status={status} />
         </View>
       </View>
@@ -162,9 +166,9 @@ export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
             return (
               <View key={step} className="flex-row items-center gap-3">
                 {isComplete ? (
-                  <CheckCircle2 color="#3b82f6" size={20} />
+                  <CheckCircle2 color={theme.primary} size={20} />
                 ) : (
-                  <Circle color="#94a3b8" size={20} />
+                  <Circle color={theme.mutedForeground} size={20} />
                 )}
 
                 <Text

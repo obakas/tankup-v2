@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { X } from "lucide-react-native";
+import { ClipboardList, X } from "lucide-react-native";
 
 import { fetchClientHistory, type ClientHistoryItem } from "@/lib/api";
 import type { CurrentUser } from "@/types/client";
@@ -132,14 +132,22 @@ export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {
           {!loading && !error && items.length === 0 && (
             <View
               style={{ backgroundColor: theme.card, borderColor: theme.border }}
-              className="rounded-2xl border p-5"
+              className="rounded-2xl border p-8 items-center gap-4"
             >
-              <Text style={{ color: theme.foreground }} className="font-bold text-base">
-                No orders yet
-              </Text>
-              <Text style={{ color: theme.mutedForeground }} className="mt-1 text-sm">
-                Your completed and active requests will appear here.
-              </Text>
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center"
+                style={{ backgroundColor: theme.cardSoft }}
+              >
+                <ClipboardList color={theme.mutedForeground} size={30} />
+              </View>
+              <View className="items-center gap-1">
+                <Text style={{ color: theme.foreground }} className="font-bold text-base">
+                  No orders yet
+                </Text>
+                <Text style={{ color: theme.mutedForeground }} className="text-sm text-center leading-5">
+                  Your completed and active requests will appear here once you place your first order.
+                </Text>
+              </View>
             </View>
           )}
 

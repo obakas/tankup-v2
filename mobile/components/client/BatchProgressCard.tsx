@@ -1,5 +1,6 @@
 import { View, Text } from "react-native";
 import { CreditCard, Droplets, Truck, Users } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export type BatchProgressData = {
   batch_id?: number | string | null;
@@ -66,6 +67,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }: Props) {
+  const { theme } = useAppTheme();
   const currentVolume = toNumber(batch?.current_volume, requestedLiters);
   const targetVolume = toNumber(batch?.target_volume, 12000);
   const fallbackProgress = targetVolume > 0 ? (currentVolume / targetVolume) * 100 : 0;
@@ -92,7 +94,7 @@ export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }
         </View>
 
         <View className="rounded-2xl bg-primary/10 p-3">
-          <Droplets color="#3b82f6" size={22} />
+          <Droplets color={theme.primary} size={22} />
         </View>
       </View>
 
@@ -128,7 +130,7 @@ export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }
 
       <View className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
         <View className="mb-2 flex-row items-center gap-2">
-          <Truck color="#3b82f6" size={17} />
+          <Truck color={theme.primary} size={17} />
           <Text className="font-bold text-foreground">Tanker Info</Text>
         </View>
 
@@ -139,7 +141,7 @@ export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }
 
       <View className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
         <View className="mb-2 flex-row items-center gap-2">
-          <Users color="#3b82f6" size={17} />
+          <Users color={theme.primary} size={17} />
           <Text className="font-bold text-foreground">Membership</Text>
         </View>
 
@@ -150,7 +152,7 @@ export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }
 
       <View className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
         <View className="mb-2 flex-row items-center gap-2">
-          <CreditCard color="#3b82f6" size={17} />
+          <CreditCard color={theme.primary} size={17} />
           <Text className="font-bold text-foreground">Refund</Text>
         </View>
 

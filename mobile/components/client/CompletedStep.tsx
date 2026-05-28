@@ -1,4 +1,6 @@
 import { View, Text, Pressable } from "react-native";
+import { CheckCircle2 } from "lucide-react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Row } from "@/components/ui/Row";
 
 type Props = {
@@ -9,17 +11,22 @@ type Props = {
 };
 
 export function CompletedStep({ size, price, onHome }: Props) {
+  const { theme } = useAppTheme();
   return (
-    <View className="gap-4 items-center py-8">
-      <View className="w-20 h-20 rounded-full bg-success/20 items-center justify-center">
-        <Text className="text-success text-3xl">✓</Text>
+    <View className="gap-5 items-center py-8">
+      <View
+        className="w-24 h-24 rounded-full items-center justify-center"
+        style={{ backgroundColor: theme.successSoft }}
+      >
+        <CheckCircle2 color={theme.success} size={48} />
       </View>
 
-      <Text className="text-foreground text-2xl font-bold">Water Delivered!</Text>
-
-      <Text className="text-muted-foreground">
-        {size.toLocaleString()}L delivered to your tank
-      </Text>
+      <View className="items-center gap-2">
+        <Text className="text-foreground text-2xl font-bold">Water Delivered!</Text>
+        <Text className="text-muted-foreground text-center text-sm leading-5">
+          {size.toLocaleString()}L has been delivered to your tank successfully.
+        </Text>
+      </View>
 
       <View className="w-full bg-card border border-border rounded-2xl p-5">
         <Row label="Volume" value={`${size.toLocaleString()} L`} />
