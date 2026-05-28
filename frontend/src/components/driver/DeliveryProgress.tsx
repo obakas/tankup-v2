@@ -8,7 +8,7 @@ export const DeliveryProgress = ({ deliveredCount, totalCount }: DeliveryProgres
     <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-foreground">Delivery Progress</span>
-        <span className="text-sm font-bold text-primary">
+        <span className="text-sm font-bold text-success">
           {deliveredCount}/{totalCount}
         </span>
       </div>

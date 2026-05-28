@@ -19,28 +19,28 @@ const DriverHelpModal = ({ onClose }: DriverHelpModalProps) => {
                 </div>
 
                 <div className="space-y-3 text-sm">
-                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-primary/30 transition-colors">
+                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-success/30 transition-colors">
                         <p className="font-medium text-foreground">Payment Issue</p>
                         <p className="text-muted-foreground mt-1">
                             Report a failed charge or payment confirmation problem
                         </p>
                     </button>
 
-                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-primary/30 transition-colors">
+                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-success/30 transition-colors">
                         <p className="font-medium text-foreground">Delivery Delay</p>
                         <p className="text-muted-foreground mt-1">
                             Get help if your delivery is taking too long
                         </p>
                     </button>
 
-                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-primary/30 transition-colors">
+                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-success/30 transition-colors">
                         <p className="font-medium text-foreground">OTP / Driver Issue</p>
                         <p className="text-muted-foreground mt-1">
                             Resolve issues with delivery confirmation or the assigned driver
                         </p>
                     </button>
 
-                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-primary/30 transition-colors">
+                    <button className="w-full text-left rounded-xl border border-border p-4 hover:border-success/30 transition-colors">
                         <p className="font-medium text-foreground">Cancellation Question</p>
                         <p className="text-muted-foreground mt-1">
                             Learn more about refunds, penalties, and leaving a batch

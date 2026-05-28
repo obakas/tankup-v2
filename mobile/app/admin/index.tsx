@@ -21,6 +21,9 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
+const RED = "#ef4444";
+const RED_SOFT = "rgba(239,68,68,0.12)";
+
 const POLL_LIVE_MS = 10_000;
 const POLL_HIST_MS = 30_000;
 const ADMIN_SECRET =
@@ -354,14 +357,14 @@ export default function AdminDashboard() {
               paddingHorizontal: 14,
               paddingVertical: 12,
               borderBottomWidth: 2,
-              borderBottomColor: tab === t.key ? theme.primary : "transparent",
+              borderBottomColor: tab === t.key ? RED : "transparent",
             }}
           >
             <Text
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: tab === t.key ? theme.primary : theme.mutedForeground,
+                color: tab === t.key ? RED : theme.mutedForeground,
               }}
             >
               {t.label}
@@ -399,7 +402,7 @@ export default function AdminDashboard() {
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, gap: 12 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={RED} />
           }
         >
           {error && (
@@ -587,7 +590,7 @@ export default function AdminDashboard() {
                 disabled={actionLoading}
                 style={{
                   flex: 1,
-                  backgroundColor: theme.primary,
+                  backgroundColor: RED,
                   borderRadius: 10,
                   paddingVertical: 11,
                   alignItems: "center",
@@ -815,7 +818,7 @@ function LoginScreen({
           onPress={handleLogin}
           disabled={loading}
           style={{
-            backgroundColor: theme.primary,
+            backgroundColor: RED,
             borderRadius: 12,
             paddingVertical: 14,
             alignItems: "center",
@@ -1240,8 +1243,8 @@ function PaymentsTab({
               <ActionBtn
                 theme={theme}
                 label="Reset"
-                color={theme.primary}
-                soft={theme.primarySoft}
+                color={RED}
+                soft={RED_SOFT}
                 onPress={() => onReset(t.id)}
                 disabled={actionLoading}
               />
@@ -1300,7 +1303,7 @@ function EmergencyTab({
       <ECard theme={theme} title="Force offer priority to tanker">
         <NumInput theme={theme} placeholder="Priority Request ID" value={prioReqId} onChange={setPrioReqId} />
         <NumInput theme={theme} placeholder="Tanker ID" value={prioTnkId} onChange={setPrioTnkId} />
-        <EBtn theme={theme} label="Send priority offer" color={theme.primary}
+        <EBtn theme={theme} label="Send priority offer" color={RED}
           disabled={actionLoading || !prioReqId || !prioTnkId}
           onPress={() => onForceOfferPriority(Number(prioReqId), Number(prioTnkId))} />
       </ECard>
@@ -1315,7 +1318,7 @@ function EmergencyTab({
       <ECard theme={theme} title="Force offer batch to tanker">
         <NumInput theme={theme} placeholder="Batch ID" value={batchId} onChange={setBatchId} />
         <NumInput theme={theme} placeholder="Tanker ID" value={batchTnkId} onChange={setBatchTnkId} />
-        <EBtn theme={theme} label="Send batch offer" color={theme.primary}
+        <EBtn theme={theme} label="Send batch offer" color={RED}
           disabled={actionLoading || !batchId || !batchTnkId}
           onPress={() => onForceOfferBatch(Number(batchId), Number(batchTnkId))} />
       </ECard>
@@ -1329,7 +1332,7 @@ function EmergencyTab({
 
       <ECard theme={theme} title="Reset tanker to available">
         <NumInput theme={theme} placeholder="Tanker ID" value={resetTnkId} onChange={setResetTnkId} />
-        <EBtn theme={theme} label="Reset tanker" color={theme.primary}
+        <EBtn theme={theme} label="Reset tanker" color={RED}
           disabled={actionLoading || !resetTnkId}
           onPress={() => onResetTanker(Number(resetTnkId))} />
       </ECard>
@@ -1338,7 +1341,7 @@ function EmergencyTab({
         <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
           Triggers the expired-member cleanup job immediately. Normally runs on a schedule.
         </Text>
-        <EBtn theme={theme} label="Run cleanup now" color={theme.primary}
+        <EBtn theme={theme} label="Run cleanup now" color={RED}
           disabled={actionLoading} onPress={onCleanup} />
       </ECard>
     </>
@@ -1420,16 +1423,16 @@ function AlertCard({
             onPress={() => onReassign(alert.id)}
             disabled={actionLoading}
             style={{
-              backgroundColor: theme.primarySoft,
+              backgroundColor: RED_SOFT,
               borderWidth: 1,
-              borderColor: theme.primary,
+              borderColor: RED,
               borderRadius: 8,
               paddingHorizontal: 10,
               paddingVertical: 5,
               opacity: actionLoading ? 0.5 : 1,
             }}
           >
-            <Text style={{ color: theme.primary, fontSize: 12, fontWeight: "600" }}>Reassign</Text>
+            <Text style={{ color: RED, fontSize: 12, fontWeight: "600" }}>Reassign</Text>
           </Pressable>
         )}
       </Row>

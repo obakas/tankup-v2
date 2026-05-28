@@ -132,9 +132,11 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-background p-4 sm:p-6">
         <div className="mx-auto max-w-xl space-y-6 rounded-3xl border bg-card p-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Shield className="h-4 w-4" />
-              Admin gate
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-red-500/10 p-2">
+                <Shield className="h-5 w-5 text-red-500" />
+              </div>
+              <span className="text-sm font-medium text-red-500">Admin gate</span>
             </div>
             <h1 className="text-2xl font-bold text-foreground">Unlock admin dashboard</h1>
             <p className="text-sm text-muted-foreground">
@@ -161,7 +163,7 @@ export default function AdminDashboard() {
             </div>
           )}
           <div className="flex gap-3">
-            <Button onClick={connectAdmin}>Unlock</Button>
+            <Button onClick={connectAdmin} className="bg-red-500 hover:bg-red-600 text-white">Unlock</Button>
             <Button variant="outline" asChild>
               <Link to="/">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -182,7 +184,7 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex flex-col gap-4 rounded-3xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="mb-1 flex items-center gap-2 text-sm text-red-500">
               <Shield className="h-4 w-4" />
               Operations control room
             </div>
@@ -216,12 +218,12 @@ export default function AdminDashboard() {
 
         {/* Tab layout */}
         <Tabs defaultValue="overview">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="live">Live</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="payments">Payments &amp; Tankers</TabsTrigger>
-            <TabsTrigger value="emergency">Emergency</TabsTrigger>
+          <TabsList className="w-full justify-start border bg-card">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Overview</TabsTrigger>
+            <TabsTrigger value="live" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Live</TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">History</TabsTrigger>
+            <TabsTrigger value="payments" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Payments &amp; Tankers</TabsTrigger>
+            <TabsTrigger value="emergency" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Emergency</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">

@@ -49,8 +49,8 @@ export const DriverAvailableStep = ({
   return (
     <div className="space-y-6">
       <div className="py-4 text-center">
-        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-          <Truck className="h-8 w-8 text-primary" />
+        <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+          <Truck className="h-8 w-8 text-success" />
         </div>
 
         <h2 className="text-xl font-bold text-foreground">
@@ -67,7 +67,7 @@ export const DriverAvailableStep = ({
           <span
             className={`rounded-full px-2 py-1 text-xs font-medium ${
               job.jobType === "batch"
-                ? "bg-primary/10 text-primary"
+                ? "bg-success/10 text-success"
                 : "bg-destructive/10 text-destructive"
             }`}
           >

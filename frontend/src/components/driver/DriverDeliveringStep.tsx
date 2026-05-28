@@ -104,8 +104,8 @@ export const DriverDeliveringStep = ({
     return (
       <div className="space-y-6">
         <div className="rounded-2xl border bg-card p-6 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <CheckCircle2 className="h-8 w-8 text-primary" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
           </div>
 
           <h2 className="text-2xl font-bold text-foreground">Delivery Completed</h2>
@@ -177,7 +177,7 @@ export const DriverDeliveringStep = ({
               <p className="font-medium text-foreground">Phone</p>
               <a
                 href={`tel:${currentDelivery.phone}`}
-                className="text-sm text-primary underline-offset-4 hover:underline"
+                className="text-sm text-success underline-offset-4 hover:underline"
               >
                 {currentDelivery.phone}
               </a>

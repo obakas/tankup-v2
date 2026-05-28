@@ -35,7 +35,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
       {offer.stops?.map((stop: any, idx: number) => (
         <View key={stop.id ?? idx} className="bg-card border border-border rounded-xl p-4">
           <View className="flex-row items-center gap-2">
-            <View className="w-6 h-6 rounded-full bg-primary items-center justify-center">
+            <View className="w-6 h-6 rounded-full bg-success items-center justify-center">
               <Text className="text-white text-xs font-bold">{idx + 1}</Text>
             </View>
             <Text className="text-foreground font-semibold flex-1">{stop.name ?? `Stop ${idx + 1}`}</Text>
@@ -54,7 +54,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
         <Pressable onPress={onDecline} disabled={loading} className="flex-1 border border-border rounded-xl py-4 items-center">
           <Text className="text-foreground font-medium">Decline</Text>
         </Pressable>
-        <Pressable onPress={onAccept} disabled={loading} className="flex-1 bg-primary rounded-xl py-4 items-center">
+        <Pressable onPress={onAccept} disabled={loading} className="flex-1 bg-success rounded-xl py-4 items-center">
           {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Accept</Text>}
         </Pressable>
       </View>

@@ -23,9 +23,9 @@ export const CurrentDeliveryCard = ({
   showOtpInput = true,
 }: CurrentDeliveryCardProps) => {
   return (
-    <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4">
+    <div className="rounded-xl border border-success/20 bg-success/5 p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
+        <span className="rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success">
           Current Delivery
         </span>
         <span className="text-sm font-medium text-foreground">

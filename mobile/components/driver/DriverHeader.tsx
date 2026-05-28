@@ -52,8 +52,8 @@ export function DriverHeader({
           <Switch
             value={online}
             onValueChange={onToggleOnline}
-            trackColor={{ true: theme.primary, false: theme.border }}
-            thumbColor={online ? theme.primaryForeground : theme.muted}
+            trackColor={{ true: theme.success, false: theme.border }}
+            thumbColor={online ? "#fff" : theme.muted}
           />
         </View>
       ) : (

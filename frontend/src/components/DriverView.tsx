@@ -75,7 +75,7 @@ function NextStepCard({
 
       <div className="flex gap-3">
         <button
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center rounded-xl bg-success px-4 text-sm font-medium text-success-foreground disabled:opacity-60"
           onClick={onPrimary}
           disabled={isLoading}
         >
@@ -186,7 +186,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
+            <div className="rounded-full bg-success/10 p-2 text-success">
               <BellRing className="h-5 w-5" />
             </div>
 
@@ -211,7 +211,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
             className={
               alertsEnabled
                 ? "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium"
-                : "inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground"
+                : "inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-success px-4 text-sm font-medium text-success-foreground"
             }
           >
             {alertsEnabled ? (
@@ -234,7 +234,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
             className={
               webPushSubscribed
                 ? "inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-medium disabled:opacity-50"
-                : "inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                : "inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-success px-4 text-sm font-medium text-success-foreground disabled:opacity-50"
             }
           >
             {webPushSubscribed ? (
@@ -460,7 +460,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === "dashboard"
-                ? "bg-primary text-primary-foreground"
+                ? "bg-success text-success-foreground"
                 : "text-foreground"
               }`}
           >
@@ -470,7 +470,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
           <button
             onClick={() => setActiveTab("history")}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === "history"
-                ? "bg-primary text-primary-foreground"
+                ? "bg-success text-success-foreground"
                 : "text-foreground"
               }`}
           >

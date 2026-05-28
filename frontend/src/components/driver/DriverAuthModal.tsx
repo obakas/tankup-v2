@@ -148,7 +148,7 @@ const DriverAuthModal = ({ onLogin }: DriverAuthModalProps) => {
 
         <button
           type="button"
-          className="text-sm text-primary underline"
+          className="text-sm text-success underline"
           onClick={() => setMode((prev) => (prev === "login" ? "signup" : "login"))}
         >
           {isLogin ? "No account? Sign up" : "Already have an account? Login"}

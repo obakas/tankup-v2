@@ -19,7 +19,7 @@ export const DeliveryList = ({
           <div
             key={d.id}
             className={`flex items-center justify-between rounded-lg p-2 text-sm ${
-              i === activeDeliveryIdx && !d.delivered ? "bg-primary/5" : ""
+              i === activeDeliveryIdx && !d.delivered ? "bg-success/5" : ""
             }`}
           >
             <div className="flex items-center gap-2">
@@ -28,7 +28,7 @@ export const DeliveryList = ({
                   d.delivered
                     ? "bg-success"
                     : i === activeDeliveryIdx
-                    ? "bg-primary"
+                    ? "bg-success"
                     : "bg-secondary"
                 }`}
               >
@@ -38,7 +38,7 @@ export const DeliveryList = ({
                   <span
                     className={`text-xs font-bold ${
                       i === activeDeliveryIdx
-                        ? "text-primary-foreground"
+                        ? "text-success-foreground"
                         : "text-muted-foreground"
                     }`}
                   >

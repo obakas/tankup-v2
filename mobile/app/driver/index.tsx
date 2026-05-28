@@ -42,7 +42,7 @@ export default function DriverFlow() {
 
         {flow.loading && (
           <View className="items-center py-8">
-            <ActivityIndicator color={theme.primary} size="large" />
+            <ActivityIndicator color={theme.success} size="large" />
           </View>
         )}
 
