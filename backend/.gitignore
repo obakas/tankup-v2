@@ -39,3 +39,5 @@ public_key.pem
 alembic/__pycache__/
 
 CLAUDE.md
+
+scripts/

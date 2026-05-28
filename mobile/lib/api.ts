@@ -25,6 +25,7 @@ export async function apiRequest<T>(
     method,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,

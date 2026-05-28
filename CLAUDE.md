@@ -21,12 +21,13 @@ mobile/     React Native Expo + NativeWind
 ### Backend
 ```bash
 cd backend
+source .venv/bin/activate   # always activate venv first
 
 # Install dependencies
 pip install -r app/requirements.txt
 
-# Run dev server (from backend/ dir)
-uvicorn app.main:app --reload
+# Run dev server — must use --host 0.0.0.0 for phone access
+uvicorn app.main:app --reload --host 0.0.0.0
 
 # Database migrations
 alembic upgrade head
@@ -52,10 +53,19 @@ npm run test:watch # vitest watch mode
 ```bash
 cd mobile
 
-npx expo start           # Expo dev server (scan QR with Expo Go)
-npx expo start --android # open Android emulator
-npx expo start --ios     # open iOS simulator
-npm run lint             # expo lint
+npx expo start --tunnel --clear  # physical device (router has AP isolation — LAN doesn't reach phone)
+npx expo start --android         # open Android emulator
+npx expo start --ios             # open iOS simulator
+npm run lint                     # expo lint
+```
+
+### Combined dev (backend + ngrok + mobile env — recommended for physical device)
+```bash
+# Terminal 1 — starts backend with venv, ngrok tunnel, patches mobile/app.json automatically
+bash scripts/dev.sh
+
+# Terminal 2
+cd mobile && npx expo start --tunnel --clear
 ```
 
 ---
@@ -149,7 +159,15 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 
 **Auth + theme storage:** `AsyncStorage` (not localStorage). Keys mirror the web: `tankup_active_role`, `driver_auth`, `water_user`, `water_client_session`, `fleet_head_auth`, `tankup-theme`.
 
-**Theme:** NativeWind (Tailwind for RN) + inline `style={}` props sourced from `constants/tankupTheme.ts`. Because NativeWind doesn't fully support dynamic theming, components use `const c = isDark ? darkColors : colors` and pass `c.foreground`, `c.primary` etc. as inline style values.
+**Theme:** Two patterns coexist — prefer `useAppTheme()`:
+- `hooks/useAppTheme.ts` → returns `{ theme, themeMode, isDark, toggleTheme }` where `theme` is a `TankupTheme` object (from `components/ui/theme.ts`). Has richer tokens: `successSoft`, `destructiveSoft`, `warningSoft`, `cardSoft`, `input`, `shadow`, etc. Used by driver, fleet-head, client, and admin screens.
+- `constants/tankupTheme.ts` → simpler `colors` / `darkColors` objects. Only used by the home screen (`app/index.tsx`). Don't use for new screens.
+
+Both patterns pass theme values as inline `style={{ color: theme.foreground }}` props since NativeWind doesn't support dynamic theming at runtime.
+
+**API libs:** `lib/api.ts` (base `apiRequest`), `lib/driverApi.ts`, `lib/fleetHeadApi.ts` (fleet head — uses `x-admin-secret` + Bearer, token stored in AsyncStorage as `fleet_head_auth`). All requests include `ngrok-skip-browser-warning: true` to bypass ngrok's interstitial when tunnelling.
+
+**API base URL:** Read from `Constants.expoConfig.extra.API_BASE_URL` (set in `mobile/app.json` → `extra.API_BASE_URL`). `scripts/dev.sh` patches this automatically with the current ngrok tunnel URL on every run. Don't rely on `EXPO_PUBLIC_API_BASE_URL` in `.env` — it doesn't inline reliably with Expo Go + `--tunnel`.
 
 **Admin access:** 5 rapid taps on the logo within 2 seconds → `router.push("/admin")`.
 
