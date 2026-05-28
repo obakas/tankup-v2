@@ -31,7 +31,12 @@ export function DriverHeader({
       style={{ backgroundColor: theme.background, borderBottomColor: theme.border }}
       className="flex-row items-center justify-between px-4 py-3 border-b"
     >
-      <Pressable onPress={onBack} className="p-2">
+      <Pressable
+        onPress={onBack}
+        accessibilityLabel="Go back"
+        accessibilityRole="button"
+        className="p-2"
+      >
         <ArrowLeft color={iconColor} size={20} />
       </Pressable>
 
@@ -58,7 +63,12 @@ export function DriverHeader({
       )}
 
       <View className="flex-row items-center gap-2">
-        <Pressable onPress={onToggleTheme} className="p-2">
+        <Pressable
+          onPress={onToggleTheme}
+          accessibilityLabel={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          accessibilityRole="button"
+          className="p-2"
+        >
           {themeMode === "dark" ? (
             <Sun color={iconColor} size={20} />
           ) : (
@@ -68,6 +78,8 @@ export function DriverHeader({
 
         <Pressable
           onPress={() => Alert.alert("Help", "Driver support: 0800-DRIVER")}
+          accessibilityLabel="Help"
+          accessibilityRole="button"
           className="p-2"
         >
           <HelpCircle color={iconColor} size={20} />

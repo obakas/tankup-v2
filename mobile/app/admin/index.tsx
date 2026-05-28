@@ -308,17 +308,32 @@ export default function AdminDashboard() {
           borderBottomColor: theme.border,
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ padding: 6 }}>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          style={{ padding: 6 }}
+        >
           <ArrowLeft color={theme.mutedForeground} size={20} />
         </Pressable>
         <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 15 }}>
           Admin Dashboard
         </Text>
         <View style={{ flexDirection: "row", gap: 4 }}>
-          <Pressable onPress={() => token && Promise.all([fetchLive(token), fetchHistory(token)])} style={{ padding: 6 }}>
+          <Pressable
+            onPress={() => token && Promise.all([fetchLive(token), fetchHistory(token)])}
+            accessibilityLabel="Refresh data"
+            accessibilityRole="button"
+            style={{ padding: 6 }}
+          >
             <RefreshCw color={theme.mutedForeground} size={18} />
           </Pressable>
-          <Pressable onPress={handleLogout} style={{ padding: 6 }}>
+          <Pressable
+            onPress={handleLogout}
+            accessibilityLabel="Log out"
+            accessibilityRole="button"
+            style={{ padding: 6 }}
+          >
             <LogOut color={theme.mutedForeground} size={18} />
           </Pressable>
         </View>

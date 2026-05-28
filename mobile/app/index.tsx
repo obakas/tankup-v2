@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { Droplets, Truck, Users, Moon, Sun } from "lucide-react-native";
@@ -15,9 +15,40 @@ const FLEET_HEAD_AUTH_KEY = "fleet_head_auth";
 
 type Role = "client" | "driver" | "fleet_head";
 
+const ALL_ROLES: Array<{
+  role: Role;
+  title: string;
+  subtitle: string;
+  iconBg: (theme: TankupTheme) => string;
+  icon: (theme: TankupTheme) => ReactNode;
+}> = [
+  {
+    role: "client",
+    title: "I Need Water",
+    subtitle: "Request water delivery to your tank",
+    iconBg: (t) => t.primarySoft,
+    icon: (t) => <Droplets color={t.primary} size={28} />,
+  },
+  {
+    role: "driver",
+    title: "I'm a Tanker Driver",
+    subtitle: "Accept jobs, deliver water, & get paid",
+    iconBg: (t) => t.successSoft,
+    icon: (t) => <Truck color={t.success} size={28} />,
+  },
+  {
+    role: "fleet_head",
+    title: "Manage My Fleet",
+    subtitle: "Coordinate drivers, tankers & operations",
+    iconBg: () => "rgba(139,92,246,0.12)",
+    icon: () => <Users color="#8b5cf6" size={28} />,
+  },
+];
+
 export default function RoleSelect() {
   const { theme, isDark, toggleTheme } = useAppTheme();
   const [hydrated, setHydrated] = useState(false);
+  const [authedRoles, setAuthedRoles] = useState<Set<Role>>(new Set());
   const logoTapCount = useRef(0);
   const logoTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,14 +66,19 @@ export default function RoleSelect() {
         ]);
 
       if (!mounted) return;
+
+      const credentialed = new Set<Role>();
+      if (driverAuth) credentialed.add("driver");
+      if (clientUser || clientSession) credentialed.add("client");
+      if (fleetHeadAuth) credentialed.add("fleet_head");
+
+      setAuthedRoles(credentialed);
       setHydrated(true);
 
+      // Auto-route only when savedRole + matching auth are both present
       if (savedRole === "driver" && driverAuth) { router.replace("/driver"); return; }
       if (savedRole === "client" && (clientUser || clientSession)) { router.replace("/client"); return; }
       if (savedRole === "fleet_head" && fleetHeadAuth) { router.replace("/fleet-head"); return; }
-      if (driverAuth) { router.replace("/driver"); return; }
-      if (clientUser || clientSession) { router.replace("/client"); return; }
-      if (fleetHeadAuth) { router.replace("/fleet-head"); return; }
     }
 
     hydrate();
@@ -51,9 +87,9 @@ export default function RoleSelect() {
 
   const selectRole = async (role: Role) => {
     await AsyncStorage.setItem(ROLE_KEY, role);
-    if (role === "client") router.push("/client");
-    else if (role === "driver") router.push("/driver");
-    else router.push("/fleet-head");
+    if (role === "client") router.replace("/client");
+    else if (role === "driver") router.replace("/driver");
+    else router.replace("/fleet-head");
   };
 
   // 5 rapid taps on the logo within 2 seconds opens the admin panel
@@ -90,6 +126,8 @@ export default function RoleSelect() {
           <View className="items-end mb-6">
             <Pressable
               onPress={toggleTheme}
+              accessibilityLabel={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              accessibilityRole="button"
               style={{ borderColor: theme.border, backgroundColor: theme.card }}
               className="h-11 w-11 rounded-full border items-center justify-center active:scale-95"
             >
@@ -116,30 +154,17 @@ export default function RoleSelect() {
           </View>
 
           <View className="gap-4">
-            <RoleCard
-              theme={theme}
-              iconBg={theme.primarySoft}
-              icon={<Droplets color={theme.primary} size={28} />}
-              title="I Need Water"
-              subtitle="Request water delivery to your tank"
-              onPress={() => selectRole("client")}
-            />
-            <RoleCard
-              theme={theme}
-              iconBg={theme.successSoft}
-              icon={<Truck color={theme.success} size={28} />}
-              title="I'm a Tanker Driver"
-              subtitle="Accept jobs, deliver water, & get paid"
-              onPress={() => selectRole("driver")}
-            />
-            <RoleCard
-              theme={theme}
-              iconBg="rgba(139,92,246,0.12)"
-              icon={<Users color="#8b5cf6" size={28} />}
-              title="Manage My Fleet"
-              subtitle="Coordinate drivers, tankers & operations"
-              onPress={() => selectRole("fleet_head")}
-            />
+            {ALL_ROLES.filter((r) => authedRoles.size === 0 || authedRoles.has(r.role)).map((r) => (
+              <RoleCard
+                key={r.role}
+                theme={theme}
+                iconBg={r.iconBg(theme)}
+                icon={r.icon(theme)}
+                title={r.title}
+                subtitle={r.subtitle}
+                onPress={() => selectRole(r.role)}
+              />
+            ))}
           </View>
 
         </View>
@@ -156,7 +181,7 @@ function RoleCard({
   theme,
   iconBg,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   subtitle: string;
   onPress: () => void;

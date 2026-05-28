@@ -53,7 +53,12 @@ export function ClientHeader({
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center flex-1 mr-2">
-          <Pressable onPress={onBack} className="p-2 -ml-2">
+          <Pressable
+            onPress={onBack}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+            className="p-2 -ml-2"
+          >
             <ArrowLeft color={iconColor} size={21} />
           </Pressable>
 
@@ -67,7 +72,12 @@ export function ClientHeader({
         </View>
 
         <View className="flex-row items-center gap-1">
-          <Pressable onPress={onToggleTheme} className="p-2">
+          <Pressable
+            onPress={onToggleTheme}
+            accessibilityLabel={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            accessibilityRole="button"
+            className="p-2"
+          >
             {themeMode === "dark" ? (
               <Sun color={iconColor} size={19} />
             ) : (
@@ -75,7 +85,12 @@ export function ClientHeader({
             )}
           </Pressable>
 
-          <Pressable onPress={onToggleAlerts} className="p-2">
+          <Pressable
+            onPress={onToggleAlerts}
+            accessibilityLabel={alertsEnabled ? "Disable alerts" : "Enable alerts"}
+            accessibilityRole="button"
+            className="p-2"
+          >
             {alertsEnabled ? (
               <BellOff color={iconColor} size={19} />
             ) : (
@@ -85,17 +100,24 @@ export function ClientHeader({
 
           <Pressable
             onPress={() => Alert.alert("Help", "Contact support: 0800-TANKUP")}
+            accessibilityLabel="Help"
+            accessibilityRole="button"
             className="p-2"
           >
             <HelpCircle color={iconColor} size={19} />
           </Pressable>
 
           {user && (
-            <Pressable onPress={onLogout} className="p-2">
+            <Pressable
+              onPress={onLogout}
+              accessibilityLabel="Log out"
+              accessibilityRole="button"
+              className="p-2"
+            >
               <LogOut color={iconColor} size={19} />
             </Pressable>
           )}
-          
+
         </View>
       </View>
 
@@ -128,11 +150,13 @@ export function ClientHeader({
               </Text>
             )}
           </View>
-         
+
         </View>
          {user && (
             <Pressable
               onPress={onOpenHistory}
+              accessibilityLabel="Order history"
+              accessibilityRole="button"
               style={{
                 borderColor: theme.border,
                 backgroundColor: theme.background,

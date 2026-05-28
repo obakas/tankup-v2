@@ -631,7 +631,12 @@ function LoginScreen({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
-        <Pressable onPress={onBack} style={{ padding: 8, borderRadius: 10 }}>
+        <Pressable
+          onPress={onBack}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+          style={{ padding: 8, borderRadius: 10 }}
+        >
           <ArrowLeft color={theme.foreground} size={20} />
         </Pressable>
         <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 16, marginLeft: 8 }}>Fleet Dashboard</Text>
@@ -822,7 +827,12 @@ export default function FleetHeadScreen() {
       <View style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Pressable onPress={handleBack} style={{ padding: 8, borderRadius: 10 }}>
+            <Pressable
+              onPress={handleBack}
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+              style={{ padding: 8, borderRadius: 10 }}
+            >
               <ArrowLeft color={theme.foreground} size={20} />
             </Pressable>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -836,6 +846,8 @@ export default function FleetHeadScreen() {
             <Pressable
               onPress={handleRefresh}
               disabled={refreshing}
+              accessibilityLabel="Refresh data"
+              accessibilityRole="button"
               style={{ padding: 9, borderRadius: 10, opacity: refreshing ? 0.5 : 1 }}
             >
               {refreshing ? (
@@ -844,7 +856,12 @@ export default function FleetHeadScreen() {
                 <RefreshCw color={theme.mutedForeground} size={18} />
               )}
             </Pressable>
-            <Pressable onPress={handleLogout} style={{ padding: 9, borderRadius: 10 }}>
+            <Pressable
+              onPress={handleLogout}
+              accessibilityLabel="Log out"
+              accessibilityRole="button"
+              style={{ padding: 9, borderRadius: 10 }}
+            >
               <LogOut color={theme.mutedForeground} size={18} />
             </Pressable>
           </View>
