@@ -16,6 +16,7 @@ import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { type TankupTheme } from "@/components/ui/theme";
+import { useAppStatePause } from "@/hooks/useAppStatePause";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -217,6 +218,22 @@ export default function AdminDashboard() {
       if (histRef.current) clearInterval(histRef.current);
     };
   }, [token, fetchLive, fetchHistory]);
+
+  const stopAllPolling = useCallback(() => {
+    if (liveRef.current) { clearInterval(liveRef.current); liveRef.current = null; }
+    if (histRef.current) { clearInterval(histRef.current); histRef.current = null; }
+  }, []);
+
+  const restartAllPolling = useCallback(() => {
+    if (!token) return;
+    stopAllPolling();
+    fetchLive(token);
+    fetchHistory(token);
+    liveRef.current = setInterval(() => fetchLive(token), POLL_LIVE_MS);
+    histRef.current = setInterval(() => fetchHistory(token), POLL_HIST_MS);
+  }, [token, fetchLive, fetchHistory, stopAllPolling]);
+
+  useAppStatePause(stopAllPolling, restartAllPolling);
 
   useEffect(() => {
     if (!token) return;

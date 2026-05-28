@@ -26,6 +26,7 @@ import {
   Users,
 } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { type TankupTheme } from "@/components/ui/theme";
 import {
   clearFleetHeadToken,
@@ -764,6 +765,19 @@ export default function FleetHeadScreen() {
     pollRef.current = setInterval(() => fetchAll(token, true), POLL_MS);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [token, fetchAll]);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  }, []);
+
+  const restartPolling = useCallback(() => {
+    if (!token) return;
+    stopPolling();
+    fetchAll(token, true);
+    pollRef.current = setInterval(() => fetchAll(token, true), POLL_MS);
+  }, [token, fetchAll, stopPolling]);
+
+  useAppStatePause(stopPolling, restartPolling);
 
   const handleLogin = async (tok: string) => {
     await setFleetHeadToken(tok);

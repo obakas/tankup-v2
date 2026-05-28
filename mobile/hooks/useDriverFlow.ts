@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import type { DriverStep } from "@/types/driver";
+import { useAppStatePause } from "@/hooks/useAppStatePause";
 import {
   acceptOffer,
   completeBatchDelivery,
@@ -100,6 +101,20 @@ export function useDriverFlow() {
 
     return stopPolling;
   }, [driver, online, step, pollOffer, pollJob, stopPolling]);
+
+  const restartPolling = useCallback(() => {
+    stopPolling();
+    if (!driver || !online) return;
+    if (step === "available") {
+      pollOffer();
+      pollRef.current = setInterval(pollOffer, POLL_INTERVAL_MS);
+    } else if (["loading", "delivering"].includes(step)) {
+      pollJob();
+      pollRef.current = setInterval(pollJob, POLL_INTERVAL_MS);
+    }
+  }, [driver, online, step, pollOffer, pollJob, stopPolling]);
+
+  useAppStatePause(stopPolling, restartPolling);
 
   const refreshJob = useCallback(async (d: DriverResponse) => {
     setLoading(true);

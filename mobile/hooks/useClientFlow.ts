@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppStatePause } from "@/hooks/useAppStatePause";
 
 import {
   BATCH_PRICE_PER_LITER,
@@ -120,14 +121,10 @@ export function useClientFlow() {
     }
   }, [requestResp]);
 
-  useEffect(() => {
-    const pollingSteps: Array<ClientStep | "auth"> = [
-      "batch",
-      "tanker",
-      "delivery",
-    ];
+  const POLLING_STEPS: Array<ClientStep | "auth"> = ["batch", "tanker", "delivery"];
 
-    if (pollingSteps.includes(step) && requestResp) {
+  useEffect(() => {
+    if (POLLING_STEPS.includes(step) && requestResp) {
       fetchLive();
       pollRef.current = setInterval(fetchLive, POLL_INTERVAL_MS);
     } else {
@@ -136,6 +133,16 @@ export function useClientFlow() {
 
     return stopPolling;
   }, [step, requestResp, fetchLive, stopPolling]);
+
+  const restartPolling = useCallback(() => {
+    stopPolling();
+    if (POLLING_STEPS.includes(step) && requestResp) {
+      fetchLive();
+      pollRef.current = setInterval(fetchLive, POLL_INTERVAL_MS);
+    }
+  }, [step, requestResp, fetchLive, stopPolling]);
+
+  useAppStatePause(stopPolling, restartPolling);
 
   const handleAuthComplete = (u: CurrentUser) => {
     setUser(u);
