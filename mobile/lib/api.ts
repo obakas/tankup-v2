@@ -246,6 +246,59 @@ export interface ClientHistoryResponse {
 export function fetchClientHistory(userId: number) {
   return apiRequest<ClientHistoryResponse>(`/history/users/${userId}`);
 }
+
+// ── Driver auth ───────────────────────────────────────────────────────────────
+
+export interface DriverResponse {
+  id: number;
+  name: string;
+  phone: string;
+  tankerId: number;
+  status: string;
+  is_available: boolean;
+  is_online: boolean;
+}
+
+export const driverLogin = (p: { phone: string }) =>
+  apiRequest<DriverResponse>("/auth/driver-login", { method: "POST", body: p });
+
+export const driverSignup = (p: { name: string; phone: string; tank_plate_number: string }) =>
+  apiRequest<DriverResponse>("/auth/driver-signup", { method: "POST", body: p });
+
+export const driverLogout = (tankerId: number) =>
+  apiRequest(`/auth/driver-logout/${tankerId}`, { method: "POST" });
+
+// ── Driver job flow ───────────────────────────────────────────────────────────
+
+export const getIncomingOffer = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/incoming-offer`);
+
+export const acceptOffer = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/offers/accept`, { method: "POST" });
+
+export const rejectOffer = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/offers/reject`, { method: "POST" });
+
+export const getCurrentJob = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/current-job`);
+
+export const markBatchLoaded = (tankerId: number, batchId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/loaded/${batchId}`, { method: "POST" });
+
+export const markPriorityLoaded = (tankerId: number, requestId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/loaded-priority/${requestId}`, { method: "POST" });
+
+export const completeBatchDelivery = (tankerId: number, batchId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/complete/${batchId}`, { method: "POST" });
+
+export const completePriorityDelivery = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/complete-priority`, { method: "POST" });
+
+// ── Delivery stop ─────────────────────────────────────────────────────────────
+
+export const getCurrentStop = (tankerId: number) =>
+  apiRequest<any>(`/deliveries/tankers/${tankerId}/current-stop`);
+
 // type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 // interface RequestOptions {

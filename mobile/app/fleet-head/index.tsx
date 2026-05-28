@@ -19,9 +19,11 @@ import {
   CheckCircle2,
   ChevronUp,
   LogOut,
+  Moon,
   Package,
   Plus,
   RefreshCw,
+  Sun,
   Truck,
   Users,
 } from "lucide-react-native";
@@ -602,10 +604,14 @@ function OverviewTab({ overview, theme }: { overview: OverviewData | null; theme
 
 function LoginScreen({
   theme,
+  isDark,
+  onToggleTheme,
   onLogin,
   onBack,
 }: {
   theme: TankupTheme;
+  isDark: boolean;
+  onToggleTheme: () => void;
   onLogin: (token: string) => void;
   onBack: () => void;
 }) {
@@ -630,16 +636,26 @@ function LoginScreen({
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Pressable
+            onPress={onBack}
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
+            style={{ padding: 8, borderRadius: 10 }}
+          >
+            <ArrowLeft color={theme.foreground} size={20} />
+          </Pressable>
+          <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 16, marginLeft: 8 }}>Fleet Dashboard</Text>
+        </View>
         <Pressable
-          onPress={onBack}
-          accessibilityLabel="Go back"
+          onPress={onToggleTheme}
+          accessibilityLabel={isDark ? "Switch to light mode" : "Switch to dark mode"}
           accessibilityRole="button"
-          style={{ padding: 8, borderRadius: 10 }}
+          style={{ padding: 9, borderRadius: 10 }}
         >
-          <ArrowLeft color={theme.foreground} size={20} />
+          {isDark ? <Sun color={theme.mutedForeground} size={18} /> : <Moon color={theme.mutedForeground} size={18} />}
         </Pressable>
-        <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 16, marginLeft: 8 }}>Fleet Dashboard</Text>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -714,7 +730,7 @@ function LoginScreen({
 const TABS: Tab[] = ["live", "tankers", "overview"];
 
 export default function FleetHeadScreen() {
-  const { theme } = useAppTheme();
+  const { theme, isDark, toggleTheme } = useAppTheme();
   const [token, setToken] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [tab, setTab] = useState<Tab>("live");
@@ -817,7 +833,7 @@ export default function FleetHeadScreen() {
   }
 
   if (!token) {
-    return <LoginScreen theme={theme} onLogin={handleLogin} onBack={handleBack} />;
+    return <LoginScreen theme={theme} isDark={isDark} onToggleTheme={toggleTheme} onLogin={handleLogin} onBack={handleBack} />;
   }
 
   return (
@@ -855,6 +871,14 @@ export default function FleetHeadScreen() {
               ) : (
                 <RefreshCw color={theme.mutedForeground} size={18} />
               )}
+            </Pressable>
+            <Pressable
+              onPress={toggleTheme}
+              accessibilityLabel={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              accessibilityRole="button"
+              style={{ padding: 9, borderRadius: 10 }}
+            >
+              {isDark ? <Sun color={theme.mutedForeground} size={18} /> : <Moon color={theme.mutedForeground} size={18} />}
             </Pressable>
             <Pressable
               onPress={handleLogout}

@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { AlertTriangle, ArrowLeft, LogOut, RefreshCw, Zap } from "lucide-react-native";
+import { AlertTriangle, ArrowLeft, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
 import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -135,7 +135,7 @@ type Tab = "overview" | "live" | "history" | "payments" | "emergency";
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const { theme } = useAppTheme();
+  const { theme, isDark, toggleTheme } = useAppTheme();
   const [token, setToken] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
     setTankers([]);
   };
 
-  if (!token) return <LoginScreen theme={theme} onLogin={setToken} />;
+  if (!token) return <LoginScreen theme={theme} isDark={isDark} onToggleTheme={toggleTheme} onLogin={setToken} />;
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "overview", label: alerts.length ? `Overview (${alerts.length})` : "Overview" },
@@ -330,6 +330,14 @@ export default function AdminDashboard() {
             style={{ padding: 6 }}
           >
             <RefreshCw color={theme.mutedForeground} size={18} />
+          </Pressable>
+          <Pressable
+            onPress={toggleTheme}
+            accessibilityLabel={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            accessibilityRole="button"
+            style={{ padding: 6 }}
+          >
+            {isDark ? <Sun color={theme.mutedForeground} size={18} /> : <Moon color={theme.mutedForeground} size={18} />}
           </Pressable>
           <Pressable
             onPress={handleLogout}
@@ -710,9 +718,13 @@ export default function AdminDashboard() {
 
 function LoginScreen({
   theme,
+  isDark,
+  onToggleTheme,
   onLogin,
 }: {
   theme: TankupTheme;
+  isDark: boolean;
+  onToggleTheme: () => void;
   onLogin: (token: string) => void;
 }) {
   const [username, setUsername] = useState("");
@@ -755,6 +767,14 @@ function LoginScreen({
         <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 15, marginLeft: 8 }}>
           Admin Login
         </Text>
+        <Pressable
+          onPress={onToggleTheme}
+          accessibilityLabel={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          accessibilityRole="button"
+          style={{ padding: 6, marginLeft: "auto" }}
+        >
+          {isDark ? <Sun color={theme.mutedForeground} size={18} /> : <Moon color={theme.mutedForeground} size={18} />}
+        </Pressable>
       </View>
 
       <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 48, gap: 16 }}>
