@@ -41,6 +41,20 @@ import {
   ROLE_KEY,
 } from "@/constants/clientConstants";
 
+const CLIENT_USER_KEY = "water_user";
+const CLIENT_FLOW_KEY = "tankup_client_flow";
+
+type ClientFlowSession = {
+  user: CurrentUser | null;
+  step: ClientStep | "auth";
+  mode: RequestMode;
+  size: number | null;
+  priorityMode: PriorityMode;
+  scheduledFor: string;
+  requestResp: CreateRequestResponse | null;
+  otp: string;
+};
+
 const CLIENT_STATUS_MESSAGES: Record<string, string> = {
   assigned: "Tanker assigned — loading water",
   loading: "Tanker loading water",
@@ -73,8 +87,10 @@ export function useClientFlow() {
   const [requestResp, setRequestResp] =
     useState<CreateRequestResponse | null>(null);
 
+  const [otp, setOtp] = useState<string>("");
   const [liveData, setLiveData] = useState<any>(null);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,7 +98,86 @@ export function useClientFlow() {
   const prevStatusRef = useRef<string>("");
   const [scheduledFor, setScheduledFor] = useState("");
 
+  // Tracks whether the initial AsyncStorage hydration has completed. The
+  // persistence effect must not write before hydration so it doesn't
+  // overwrite a saved session with the default empty state.
+  const hydratedRef = useRef(false);
 
+  // ── Session hydration ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    async function hydrate() {
+      try {
+        const raw = await AsyncStorage.getItem(CLIENT_FLOW_KEY);
+        if (!raw) return;
+
+        const session: ClientFlowSession = JSON.parse(raw);
+
+        if (session.user) setUser(session.user);
+        if (session.mode) setMode(session.mode);
+        if (session.size != null) setSize(session.size);
+        if (session.priorityMode) setPriorityMode(session.priorityMode);
+        if (session.scheduledFor) setScheduledFor(session.scheduledFor);
+        if (session.requestResp) setRequestResp(session.requestResp);
+        if (session.otp) setOtp(session.otp);
+
+        // Only restore a mid-flow step so we don't re-enter a terminal state
+        const restorable: Array<ClientStep | "auth"> = [
+          "request", "payment", "batch", "tanker", "delivery",
+        ];
+        if (session.step && restorable.includes(session.step)) {
+          // Require a user to be present before restoring past "request"
+          const needsUser: Array<ClientStep | "auth"> = [
+            "payment", "batch", "tanker", "delivery",
+          ];
+          if (needsUser.includes(session.step) && !session.user) {
+            setStep("request");
+          } else {
+            setStep(session.step);
+          }
+        }
+      } catch {
+        // Corrupted session — start fresh
+      } finally {
+        hydratedRef.current = true;
+      }
+    }
+
+    hydrate();
+  }, []);
+
+  // ── Session persistence ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+
+    const session: ClientFlowSession = {
+      user,
+      step,
+      mode,
+      size,
+      priorityMode,
+      scheduledFor,
+      requestResp,
+      otp,
+    };
+
+    AsyncStorage.setItem(CLIENT_FLOW_KEY, JSON.stringify(session)).catch(() => {});
+  }, [user, step, mode, size, priorityMode, scheduledFor, requestResp, otp]);
+
+  // ── OTP sync from live data ───────────────────────────────────────────────
+
+  useEffect(() => {
+    const batchOtp =
+      liveData?.member_delivery_code ?? liveData?.delivery_code ?? liveData?.otp;
+    if (mode === "batch" && batchOtp) setOtp(batchOtp);
+  }, [liveData?.member_delivery_code, liveData?.delivery_code, liveData?.otp, mode]);
+
+  useEffect(() => {
+    if (mode === "priority" && liveData?.otp) setOtp(liveData.otp);
+  }, [liveData?.otp, mode]);
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   const price =
     mode === "priority"
@@ -90,7 +185,10 @@ export function useClientFlow() {
       : (size ?? 0) * BATCH_PRICE_PER_LITER + (size ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
 
   const goRoleHome = useCallback(async () => {
-    await AsyncStorage.removeItem(ROLE_KEY);
+    await Promise.all([
+      AsyncStorage.removeItem(ROLE_KEY),
+      AsyncStorage.removeItem(CLIENT_FLOW_KEY),
+    ]);
     router.replace("/");
   }, []);
 
@@ -119,6 +217,7 @@ export function useClientFlow() {
         );
 
         setLiveData(data);
+        setLiveError(null);
 
         const batchStatus = data?.status ?? "";
         const effectiveStatus = (data?.member_delivery_status as string) || batchStatus;
@@ -140,6 +239,7 @@ export function useClientFlow() {
         const data = await getPriorityRequestLive(requestResp.request_id);
 
         setLiveData(data);
+        setLiveError(null);
 
         const reqStatus = data?.status ?? "";
 
@@ -156,8 +256,8 @@ export function useClientFlow() {
           setStep("tanker");
         else if (reqStatus === "failed") setStep("failed");
       }
-    } catch {
-      // polling should not crash UI
+    } catch (e: any) {
+      setLiveError(e?.message ?? "Could not refresh status");
     } finally {
       setLiveLoading(false);
     }
@@ -203,6 +303,8 @@ export function useClientFlow() {
     setStep("request");
     loadSites(u.id);
     toast.success(`Welcome, ${u.name}!`);
+    // Write water_user so app/index.tsx shows the client card on next launch
+    AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
   };
 
   const handleSubmitRequest = async () => {
@@ -221,6 +323,8 @@ export function useClientFlow() {
         delivery_type: mode,
         site_profile_id: selectedSiteId,
         is_asap: mode === "priority" ? priorityMode === "asap" : undefined,
+        scheduled_for:
+          mode === "priority" && priorityMode === "scheduled" ? scheduledFor : undefined,
       });
 
       setRequestResp(resp);
@@ -256,6 +360,22 @@ export function useClientFlow() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeliveryConfirmed = () => {
+    toast.success("Delivery confirmed! Thank you.");
+    setStep("completed");
+  };
+
+  const handleCancelBeforePayment = () => {
+    setRequestResp(null);
+    setSize(null);
+    setMode("batch");
+    setPriorityMode("asap");
+    setScheduledFor("");
+    setSelectedSiteId(null);
+    toast.success("Request cancelled before payment");
+    setStep("request");
   };
 
   const handleLeave = async () => {
@@ -315,8 +435,10 @@ export function useClientFlow() {
     priorityMode,
     setPriorityMode,
     requestResp,
+    otp,
     liveData,
     liveLoading,
+    liveError,
     loading,
     error,
     price,
@@ -328,11 +450,13 @@ export function useClientFlow() {
     loadSites,
 
     back,
+    handleCancelBeforePayment,
     goRoleHome,
     fetchLive,
     handleAuthComplete,
     handleSubmitRequest,
     handleConfirmPayment,
+    handleDeliveryConfirmed,
     handleLeave,
     setStep,
     setUser,
