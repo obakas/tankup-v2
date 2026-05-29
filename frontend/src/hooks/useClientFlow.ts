@@ -23,7 +23,6 @@ interface UseClientFlowParams {
   onBack: () => void;
 }
 
-type AuthMode = "signup" | "login";
 
 interface ClientSession {
   requestId: number | null;
@@ -71,7 +70,7 @@ async function getClientCoordinates(): Promise<{ latitude: number; longitude: nu
 }
 
 export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
-  const [step, setStep] = useState<ClientStep>("request");
+  const [step, setStep] = useState<ClientStep>("auth");
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
   const [requestMode, setRequestMode] = useState<RequestMode>("batch");
@@ -92,8 +91,6 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [paymentDeadline, setPaymentDeadline] = useState<string | null>(null);
 
   const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [activeTab, setActiveTab] = useState<"request" | "history">("request");
   const [isRecoveringPriorityRequest, setIsRecoveringPriorityRequest] = useState(false);
   const {
@@ -265,6 +262,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     try {
       const parsedUser: UserResponse = JSON.parse(savedUser);
       setCurrentUser(parsedUser);
+      setStep("request");
       void recoverActivePriorityRequest(parsedUser);
     } catch {
       localStorage.removeItem(USER_KEY);
@@ -443,8 +441,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     }
 
     if (!currentUser) {
-      setAuthMode("login");
-      setShowAuthModal(true);
+      setStep("auth");
       return;
     }
     setStep("payment");
@@ -453,11 +450,9 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const handleAuthSuccess = (user: UserResponse) => {
     setCurrentUser(user);
     localStorage.setItem(USER_KEY, JSON.stringify(user));
-    setShowAuthModal(false);
+    setStep("request");
     toast.success(`Welcome, ${user.name}! Please select a delivery site to continue.`);
-
     void recoverActivePriorityRequest(user);
-    // Stay on request step so user can pick a site before payment
   };
 
   const resetClientFlow = () => {
@@ -483,10 +478,11 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     localStorage.removeItem(USER_KEY);
     toast.success("Logged out");
     resetClientFlow();
+    setStep("auth");
   };
 
   const goBack = () => {
-    if (resolvedStep === "request") {
+    if (resolvedStep === "auth" || resolvedStep === "request") {
       onBack();
       return;
     }
@@ -540,8 +536,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
     if (!currentUser) {
       toast.error("Please sign up or log in before making payment");
-      setAuthMode("signup");
-      setShowAuthModal(true);
+      setStep("auth");
       return;
     }
 
@@ -698,8 +693,10 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   };
 
   const pageTitle =
-    resolvedStep === "request"
-      ? "Request Water"
+    resolvedStep === "auth"
+      ? "Get Started"
+      : resolvedStep === "request"
+        ? "Request Water"
       : resolvedStep === "payment"
         ? "Confirm Payment"
         : resolvedStep === "batch"
@@ -801,10 +798,6 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
     currentUser,
     setCurrentUser,
-    showAuthModal,
-    setShowAuthModal,
-    authMode,
-    setAuthMode,
     handleAuthSuccess,
     handleLogout,
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, MapPin, UserCircle2, UserPen } from "lucide-react";
+import AuthStep from "@/components/client/AuthStep";
 import RequestStep from "@/components/client/RequestStep";
 import PaymentStep from "@/components/client/PaymentStep";
 import BatchStep from "@/components/client/BatchStep";
@@ -10,7 +11,6 @@ import ExpiredBatchStep from "@/components/client/ExpiredBatchStep";
 import DeliveryOutcomeStep from "@/components/client/DeliveryOutcomeStep";
 import HelpModal from "@/components/client/HelpModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
-import AuthModal from "@/components/client/AuthModal";
 import { ProfileDialog } from "@/components/client/ProfileDialog";
 import { SitesDialog } from "@/components/client/SitesDialog";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -66,10 +66,6 @@ const ClientView = ({ onBack }: ClientViewProps) => {
 
     currentUser,
     setCurrentUser,
-    showAuthModal,
-    setShowAuthModal,
-    authMode,
-    setAuthMode,
     handleAuthSuccess,
     handleLogout,
 
@@ -117,6 +113,16 @@ const ClientView = ({ onBack }: ClientViewProps) => {
 
   const renderLiveStep = () => {
     switch (step) {
+      case "auth":
+        return (
+          <AuthStep
+            onComplete={(user, isSignup) => {
+              handleAuthSuccess(user);
+              if (isSignup) setSitesOpen(true);
+            }}
+          />
+        );
+
       case "request":
         return (
           <RequestStep
@@ -131,7 +137,6 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             onSetScheduledFor={setScheduledFor}
             onContinue={handleContinueToPayment}
             onCancel={handleCancelBeforePayment}
-            isLoggedIn={!!currentUser}
             userSites={userSites}
             selectedSiteId={selectedSiteId}
             loadingSites={loadingSites}
@@ -326,10 +331,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
                 </>
               ) : (
                 <button
-                  onClick={() => {
-                    setAuthMode("login");
-                    setShowAuthModal(true);
-                  }}
+                  onClick={() => setStep("auth")}
                   className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-muted"
                 >
                   Sign In
@@ -432,19 +434,6 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         <LeaveBatchWarningModal
           onClose={() => setShowLeaveBatchWarning(false)}
           onConfirmLeave={handleLeaveBatch}
-        />
-      )}
-
-      {showAuthModal && (
-        <AuthModal
-          mode={authMode}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={(user) => {
-            const wasSignup = authMode === "signup";
-            handleAuthSuccess(user);
-            if (wasSignup) setSitesOpen(true);
-          }}
-          onModeChange={setAuthMode}
         />
       )}
 

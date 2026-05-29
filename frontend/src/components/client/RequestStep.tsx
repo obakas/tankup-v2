@@ -25,7 +25,6 @@ interface RequestStepProps {
   onSelectPriorityMode: (mode: "asap" | "scheduled") => void;
   onSetScheduledFor: (value: string) => void;
 
-  isLoggedIn: boolean;
   userSites: SiteProfileResponse[];
   selectedSiteId: number | null;
   loadingSites: boolean;
@@ -45,7 +44,6 @@ const RequestStep = ({
   scheduledFor,
   onSelectPriorityMode,
   onSetScheduledFor,
-  isLoggedIn,
   userSites,
   selectedSiteId,
   loadingSites,
@@ -251,23 +249,16 @@ const RequestStep = ({
               Where should we deliver the water?
             </p>
           </div>
-          {isLoggedIn && (
-            <button
-              onClick={onAddSite}
-              className="flex items-center gap-1 text-sm text-primary hover:underline"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add site
-            </button>
-          )}
+          <button
+            onClick={onAddSite}
+            className="flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add site
+          </button>
         </div>
 
-        {!isLoggedIn ? (
-          <div className="rounded-xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-            <MapPin className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-            Sign in to select your delivery site
-          </div>
-        ) : loadingSites ? (
+        {loadingSites ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>

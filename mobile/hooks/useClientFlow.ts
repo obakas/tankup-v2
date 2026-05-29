@@ -9,7 +9,9 @@ import { useAppStatePause } from "@/hooks/useAppStatePause";
 
 import {
   BATCH_PRICE_PER_LITER,
-  PRIORITY_PRICE_PER_LITER,
+  PRIORITY_FULL_TANKER_PRICE,
+  PLATFORM_BATCH_COMMISSION_RATE,
+  PLATFORM_PRIORITY_COMMISSION_RATE,
 } from "@/constants/water";
 
 import type {
@@ -83,10 +85,9 @@ export function useClientFlow() {
 
 
   const price =
-    (size ?? 0) *
-    (mode === "batch"
-      ? BATCH_PRICE_PER_LITER
-      : PRIORITY_PRICE_PER_LITER);
+    mode === "priority"
+      ? PRIORITY_FULL_TANKER_PRICE + PRIORITY_FULL_TANKER_PRICE * PLATFORM_PRIORITY_COMMISSION_RATE
+      : (size ?? 0) * BATCH_PRICE_PER_LITER + (size ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
 
   const goRoleHome = useCallback(async () => {
     await AsyncStorage.removeItem(ROLE_KEY);

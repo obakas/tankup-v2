@@ -12,7 +12,9 @@ import { Droplets, MapPin, Plus, Users, Zap, XCircle, CalendarClock } from "luci
 import {
   TANK_SIZES,
   BATCH_PRICE_PER_LITER,
-  PRIORITY_PRICE_PER_LITER,
+  PRIORITY_FULL_TANKER_PRICE,
+  PLATFORM_BATCH_COMMISSION_RATE,
+  PLATFORM_PRIORITY_COMMISSION_RATE,
 } from "@/constants/water";
 
 import type { RequestMode, PriorityMode } from "@/types/client";
@@ -116,8 +118,9 @@ export function RequestStep({
   }, []);
 
   const price =
-    (size ?? 0) *
-    (mode === "batch" ? BATCH_PRICE_PER_LITER : PRIORITY_PRICE_PER_LITER);
+    mode === "priority"
+      ? PRIORITY_FULL_TANKER_PRICE + PRIORITY_FULL_TANKER_PRICE * PLATFORM_PRIORITY_COMMISSION_RATE
+      : (size ?? 0) * BATCH_PRICE_PER_LITER + (size ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
 
   const canContinue =
     !!size &&
@@ -459,16 +462,21 @@ export function RequestStep({
             </Text>
           </View>
 
-          <View className="flex-row justify-between">
-            <Text style={mutedText} className="text-sm">Rate</Text>
-            <Text style={text} className="text-sm font-medium">
-              ₦
-              {mode === "batch"
-                ? BATCH_PRICE_PER_LITER
-                : PRIORITY_PRICE_PER_LITER}
-              /liter
-            </Text>
-          </View>
+          {mode === "batch" ? (
+            <View className="flex-row justify-between">
+              <Text style={mutedText} className="text-sm">Rate</Text>
+              <Text style={text} className="text-sm font-medium">
+                ₦{BATCH_PRICE_PER_LITER}/liter
+              </Text>
+            </View>
+          ) : (
+            <View style={{ backgroundColor: theme.warningSoft, borderColor: theme.warning }} className="rounded-lg border p-3">
+              <Text style={text} className="text-sm font-medium">Priority reserves the whole tanker</Text>
+              <Text style={mutedText} className="text-xs mt-1">
+                You pay the full tanker fee regardless of tank size.
+              </Text>
+            </View>
+          )}
 
           <View style={{ borderTopColor: theme.border }} className="border-t pt-3 flex-row justify-between items-center">
             <Text style={text} className="font-semibold">Total</Text>

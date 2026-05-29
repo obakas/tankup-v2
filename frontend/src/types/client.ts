@@ -1,4 +1,5 @@
 export type ClientStep =
+  | "auth"
   | "request"
   | "payment"
   | "batch"
