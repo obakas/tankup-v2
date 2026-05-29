@@ -75,6 +75,7 @@ export function useClientFlow() {
 
   const [liveData, setLiveData] = useState<any>(null);
   const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,8 +157,8 @@ export function useClientFlow() {
           setStep("tanker");
         else if (reqStatus === "failed") setStep("failed");
       }
-    } catch {
-      // polling should not crash UI
+    } catch (e: any) {
+      setLiveError(e?.message ?? "Could not refresh status");
     } finally {
       setLiveLoading(false);
     }
@@ -283,6 +284,17 @@ export function useClientFlow() {
     ]);
   };
 
+  const handleCancelBeforePayment = () => {
+    setRequestResp(null);
+    setSize(null);
+    setMode("batch");
+    setPriorityMode("asap");
+    setScheduledFor("");
+    setSelectedSiteId(null);
+    toast.success("Request cancelled before payment");
+    setStep("request");
+  };
+
   const back = () => {
     if (step === "auth") return goRoleHome();
     if (step === "request") return goRoleHome();
@@ -317,6 +329,7 @@ export function useClientFlow() {
     requestResp,
     liveData,
     liveLoading,
+    liveError,
     loading,
     error,
     price,
@@ -328,6 +341,7 @@ export function useClientFlow() {
     loadSites,
 
     back,
+    handleCancelBeforePayment,
     goRoleHome,
     fetchLive,
     handleAuthComplete,

@@ -89,7 +89,7 @@ export default function ClientFlow() {
             priorityMode={flow.priorityMode}
             scheduledFor={flow.scheduledFor}
             onPay={flow.handleConfirmPayment}
-            onCancel={() => flow.setStep("request")}
+            onCancel={flow.handleCancelBeforePayment}
             loading={flow.loading}
           />
         )}
@@ -99,8 +99,10 @@ export default function ClientFlow() {
             requestResp={flow.requestResp}
             liveData={flow.liveData}
             liveLoading={flow.liveLoading}
+            liveError={flow.liveError}
             size={flow.size!}
             price={flow.price}
+            paymentDeadline={flow.requestResp.payment_deadline}
             onLeave={flow.handleLeave}
             onRefresh={flow.fetchLive}
             onViewTanker={() => flow.setStep("tanker")}
@@ -112,6 +114,11 @@ export default function ClientFlow() {
             mode={flow.mode}
             liveData={flow.liveData}
             requestResp={flow.requestResp}
+            liveLoading={flow.liveLoading}
+            liveError={flow.liveError}
+            size={flow.size}
+            onArrived={() => flow.setStep("delivery")}
+            onRefresh={flow.fetchLive}
           />
         )}
 
@@ -120,6 +127,9 @@ export default function ClientFlow() {
             mode={flow.mode}
             liveData={flow.liveData}
             requestResp={flow.requestResp}
+            liveLoading={flow.liveLoading}
+            liveError={flow.liveError}
+            onConfirm={() => flow.setStep("completed")}
           />
         )}
 
