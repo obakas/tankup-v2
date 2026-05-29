@@ -13,12 +13,10 @@ import * as Clipboard from "expo-clipboard";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { toast } from "@/lib/toast";
 import type { RequestMode } from "@/types/client";
-import type { CreateRequestResponse } from "@/lib/api";
 
 type Props = {
   mode: RequestMode;
   liveData: any;
-  requestResp: CreateRequestResponse;
   otp?: string;
   liveLoading?: boolean;
   liveError?: string | null;

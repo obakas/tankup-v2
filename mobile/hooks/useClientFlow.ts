@@ -233,6 +233,8 @@ export function useClientFlow() {
           setStep("delivery");
         else if (["assigned", "loading"].includes(batchStatus))
           setStep("tanker");
+
+        if (data?.otp) setOtp(data.otp);
       }
 
       if (requestResp.delivery_type === "priority" && requestResp.request_id) {
@@ -248,6 +250,8 @@ export function useClientFlow() {
           if (msg && prevStatusRef.current !== "") toast.info(msg);
           prevStatusRef.current = reqStatus;
         }
+
+        if (data?.otp) setOtp(data.otp);
 
         if (reqStatus === "completed") setStep("completed");
         else if (["delivering", "arrived"].includes(reqStatus))
@@ -401,17 +405,6 @@ export function useClientFlow() {
         },
       },
     ]);
-  };
-
-  const handleCancelBeforePayment = () => {
-    setRequestResp(null);
-    setSize(null);
-    setMode("batch");
-    setPriorityMode("asap");
-    setScheduledFor("");
-    setSelectedSiteId(null);
-    toast.success("Request cancelled before payment");
-    setStep("request");
   };
 
   const back = () => {

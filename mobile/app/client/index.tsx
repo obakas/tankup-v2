@@ -126,7 +126,6 @@ export default function ClientFlow() {
           <DeliveryStep
             mode={flow.mode}
             liveData={flow.liveData}
-            requestResp={flow.requestResp}
             liveLoading={flow.liveLoading}
             liveError={flow.liveError}
             onConfirm={() => flow.setStep("completed")}
@@ -136,8 +135,11 @@ export default function ClientFlow() {
         {flow.step === "completed" && (
           <CompletedStep
             size={flow.size!}
+            requestMode={flow.mode}
+            priorityMode={flow.priorityMode}
+            scheduledFor={flow.scheduledFor}
             price={flow.price}
-            liveData={flow.liveData}
+            otp={flow.otp}
             onHome={flow.goRoleHome}
           />
         )}
