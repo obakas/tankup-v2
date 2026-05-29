@@ -1,5 +1,5 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { AlertCircle, Copy, RefreshCw, Truck } from "lucide-react-native";
+import { AlertCircle, Clock3, Copy, RefreshCw, Truck } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import * as Clipboard from "expo-clipboard";
 
@@ -18,6 +18,7 @@ type Props = {
   liveError?: string | null;
   size: number;
   price: number;
+  paymentDeadline?: string | null;
   onLeave: () => void;
   onRefresh: () => void | Promise<void>;
   onViewTanker?: () => void;
@@ -81,6 +82,8 @@ function getBatchSubtext(status?: string | null) {
     case "completed": return "This delivery has been completed successfully.";
     case "expired": return "This batch could not be completed in time.";
     case "assignment_failed": return "The system tried to assign a tanker but could not secure one. Operations/admin should retry or intervene.";
+    case "partially_completed": return "The batch was resolved, but not every stop completed successfully.";
+    case "failed": return "This batch could not be completed successfully.";
     default: return "Track your batch progress here.";
   }
 }
@@ -89,7 +92,7 @@ function canViewTanker(status?: string | null) {
   return ["assigned", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(status ?? "");
 }
 
-export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, onLeave, onRefresh, onViewTanker }: Props) {
+export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, paymentDeadline, onLeave, onRefresh, onViewTanker }: Props) {
   const { theme } = useAppTheme();
   const batch = normalizeBatchData(liveData);
   const status = batch?.status ?? "forming";
@@ -145,6 +148,21 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
             <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>₦{price.toLocaleString()}</Text>
           </View>
         </View>
+
+        {paymentDeadline && batch?.member_payment_status !== "paid" && (
+          <View
+            className="mt-4 flex-row items-start gap-3 rounded-2xl p-3"
+            style={{ backgroundColor: "#fffbeb", borderWidth: 1, borderColor: "#fcd34d" }}
+          >
+            <Clock3 color="#92400e" size={16} style={{ marginTop: 2 }} />
+            <View className="flex-1">
+              <Text className="text-sm font-semibold" style={{ color: "#92400e" }}>Payment deadline</Text>
+              <Text className="text-sm" style={{ color: "#92400e" }}>
+                {new Date(paymentDeadline).toLocaleString()}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       <View

@@ -3,6 +3,7 @@ import { CreditCard, XCircle } from "lucide-react-native";
 import type { RequestMode, PriorityMode } from "@/types/client";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { BATCH_PRICE_PER_LITER } from "@/constants/water";
+import { formatScheduledDateTime } from "@/lib/utils";
 
 type Props = {
   price: number;
@@ -68,7 +69,9 @@ export function PaymentStep({
               <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
                 {priorityMode === "asap"
                   ? "ASAP"
-                  : scheduledFor || "Not selected"}
+                  : scheduledFor
+                  ? formatScheduledDateTime(scheduledFor)
+                  : "Not selected"}
               </Text>
             </View>
           )}
