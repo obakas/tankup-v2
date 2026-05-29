@@ -15,7 +15,7 @@ export type BatchLiveResponse = {
   target_volume?: number | null;
   progress_percent?: number | null;
   member_count?: number | null;
-  
+
   tanker_id?: number | null;
   driver_name?: string | null;
   tanker_plate_number?: string | null;
@@ -110,9 +110,12 @@ function StatusBadge({ status }: { status?: string | null }) {
 
   if (status === "expired" || status === "failed") {
     return (
-      <View className="flex-row items-center gap-2 rounded-full border border-red-200/40 bg-red-500/10 px-3 py-1">
+      <View
+        className="flex-row items-center gap-2 rounded-full px-3 py-1"
+        style={{ backgroundColor: theme.destructiveSoft, borderWidth: 1, borderColor: theme.destructive + "66" }}
+      >
         <XCircle color={theme.destructive} size={14} />
-        <Text className="text-xs font-semibold text-red-500">
+        <Text className="text-xs font-semibold" style={{ color: theme.destructive }}>
           {stepLabels[status] ?? "Expired"}
         </Text>
       </View>
@@ -121,17 +124,23 @@ function StatusBadge({ status }: { status?: string | null }) {
 
   if (status === "completed") {
     return (
-      <View className="flex-row items-center gap-2 rounded-full border border-blue-300/30 bg-blue-500/10 px-3 py-1">
+      <View
+        className="flex-row items-center gap-2 rounded-full px-3 py-1"
+        style={{ backgroundColor: theme.primarySoft, borderWidth: 1, borderColor: theme.primary + "4d" }}
+      >
         <CheckCircle2 color={theme.primary} size={14} />
-        <Text className="text-xs font-semibold text-blue-500">Completed</Text>
+        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Completed</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-row items-center gap-2 rounded-full border border-border bg-muted px-3 py-1">
+    <View
+      className="flex-row items-center gap-2 rounded-full px-3 py-1"
+      style={{ backgroundColor: theme.muted, borderWidth: 1, borderColor: theme.border }}
+    >
       <Clock3 color={theme.mutedForeground} size={14} />
-      <Text className="text-xs font-semibold text-foreground">
+      <Text className="text-xs font-semibold" style={{ color: theme.foreground }}>
         {stepLabels[status ?? "forming"] ?? status ?? "Forming"}
       </Text>
     </View>
@@ -144,11 +153,14 @@ export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
   const currentIndex = getCurrentIndex(status);
 
   return (
-    <View className="rounded-2xl border border-border bg-card p-5 gap-5">
+    <View
+      className="rounded-2xl p-5 gap-5"
+      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+    >
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1 gap-2">
-          <Text className="text-lg font-bold text-foreground">Batch Lifecycle</Text>
-          <Text className="text-sm leading-5 text-muted-foreground">{getHint(batch)}</Text>
+          <Text className="text-lg font-bold" style={{ color: theme.foreground }}>Batch Lifecycle</Text>
+          <Text className="text-sm leading-5" style={{ color: theme.mutedForeground }}>{getHint(batch)}</Text>
         </View>
 
         <View className="items-end gap-2">
@@ -172,13 +184,11 @@ export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
                 )}
 
                 <Text
-                  className={`flex-1 text-sm ${
-                    isCurrent
-                      ? "font-bold text-foreground"
-                      : isComplete
-                        ? "text-foreground"
-                        : "text-muted-foreground"
-                  }`}
+                  className="flex-1 text-sm"
+                  style={{
+                    color: isCurrent || isComplete ? theme.foreground : theme.mutedForeground,
+                    fontWeight: isCurrent ? "700" : "400",
+                  }}
                 >
                   {stepLabels[step]}
                 </Text>
@@ -189,20 +199,24 @@ export function BatchLifecycleCard({ batch, isLoading = false }: Props) {
       )}
 
       {(status === "expired" || status === "failed") && (
-        <View className="rounded-xl border border-red-200/40 bg-red-500/10 p-4">
-          <Text className="text-sm font-semibold text-red-500">
+        <View
+          className="rounded-xl p-4"
+          style={{ backgroundColor: theme.destructiveSoft, borderWidth: 1, borderColor: theme.destructive + "66" }}
+        >
+          <Text className="text-sm font-semibold" style={{ color: theme.destructive }}>
             {status === "failed"
               ? "This batch could not be completed successfully."
               : "This batch expired before a tanker was dispatched."}
           </Text>
           {batch.refund_eligible && (
-            <Text className="mt-2 text-sm text-muted-foreground">
+            <Text className="mt-2 text-sm" style={{ color: theme.mutedForeground }}>
               Your membership appears eligible for refund.
             </Text>
           )}
           {batch.refund_status && (
-            <Text className="mt-2 text-sm text-muted-foreground">
-              Refund status: <Text className="font-semibold text-foreground">{batch.refund_status}</Text>
+            <Text className="mt-2 text-sm" style={{ color: theme.mutedForeground }}>
+              Refund status:{" "}
+              <Text className="font-semibold" style={{ color: theme.foreground }}>{batch.refund_status}</Text>
             </Text>
           )}
         </View>

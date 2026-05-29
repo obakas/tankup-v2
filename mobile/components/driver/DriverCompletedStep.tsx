@@ -13,13 +13,17 @@ export function DriverCompletedStep({ onBackOnline }: { onBackOnline: () => void
         <CheckCircle2 color={theme.success} size={48} />
       </View>
       <View className="items-center gap-2">
-        <Text className="text-foreground text-2xl font-bold">Job Complete!</Text>
-        <Text className="text-muted-foreground text-center text-sm leading-5">
+        <Text className="text-2xl font-bold" style={{ color: theme.foreground }}>Job Complete!</Text>
+        <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
           All stops have been delivered. Great work — go back online when you're ready for your next job.
         </Text>
       </View>
-      <Pressable onPress={onBackOnline} className="w-full bg-primary rounded-xl py-4 items-center">
-        <Text className="text-white font-semibold">Back Online</Text>
+      <Pressable
+        onPress={onBackOnline}
+        className="w-full rounded-xl py-4 items-center"
+        style={{ backgroundColor: theme.primary }}
+      >
+        <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Back Online</Text>
       </Pressable>
     </View>
   );

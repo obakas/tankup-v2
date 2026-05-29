@@ -1,6 +1,7 @@
 import { View, Text } from "react-native";
 import type { RequestMode } from "@/types/client";
 import type { CreateRequestResponse } from "@/lib/api";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
   mode: RequestMode;
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function DeliveryStep({ mode, liveData }: Props) {
+  const { theme } = useAppTheme();
   const myStop = liveData?.your_stop ?? liveData?.member ?? liveData;
   const otp = myStop?.delivery_code ?? "—";
   const stopStatus = myStop?.delivery_status ?? myStop?.status ?? "";
@@ -18,34 +20,36 @@ export function DeliveryStep({ mode, liveData }: Props) {
   return (
     <View className="gap-4">
       {mode === "batch" && position != null && (
-        <View className="bg-card border border-primary/40 rounded-2xl p-5">
-          <Text className="text-muted-foreground text-xs uppercase tracking-wider">
+        <View
+          className="rounded-2xl p-5"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary + "66" }}
+        >
+          <Text className="text-xs uppercase tracking-wider" style={{ color: theme.mutedForeground }}>
             Batch queue
           </Text>
-
-          <Text className="text-foreground text-xl font-bold mt-1">
+          <Text className="text-xl font-bold mt-1" style={{ color: theme.foreground }}>
             {position === 1 ? "You're up now!" : `Stop #${position}`}
           </Text>
-
           {totalStops && (
-            <Text className="text-muted-foreground text-sm mt-1">
+            <Text className="text-sm mt-1" style={{ color: theme.mutedForeground }}>
               Position {position} of {totalStops} stops
             </Text>
           )}
         </View>
       )}
 
-      <View className="bg-card border border-border rounded-2xl p-5 items-center">
-        <Text className="text-muted-foreground text-sm">
+      <View
+        className="rounded-2xl p-5 items-center"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
+        <Text className="text-sm" style={{ color: theme.mutedForeground }}>
           Your OTP — share with driver
         </Text>
-
-        <Text className="text-foreground text-4xl font-bold tracking-widest mt-2">
+        <Text className="text-4xl font-bold tracking-widest mt-2" style={{ color: theme.foreground }}>
           {otp}
         </Text>
-
         {stopStatus && (
-          <Text className="text-muted-foreground text-xs mt-3 capitalize">
+          <Text className="text-xs mt-3 capitalize" style={{ color: theme.mutedForeground }}>
             Stop status: {stopStatus.replace(/_/g, " ")}
           </Text>
         )}

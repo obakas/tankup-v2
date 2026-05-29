@@ -14,17 +14,18 @@ export function FailedStep({ onHome }: { onHome: () => void }) {
       </View>
 
       <View className="items-center gap-2">
-        <Text className="text-foreground text-2xl font-bold">Delivery Failed</Text>
-        <Text className="text-muted-foreground text-center text-sm leading-5">
+        <Text className="text-2xl font-bold" style={{ color: theme.foreground }}>Delivery Failed</Text>
+        <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
           Your delivery could not be completed. If you were charged, a refund will be processed. Contact support if you need help.
         </Text>
       </View>
 
       <Pressable
         onPress={onHome}
-        className="w-full bg-primary rounded-xl py-4 items-center"
+        className="w-full rounded-xl py-4 items-center"
+        style={{ backgroundColor: theme.primary }}
       >
-        <Text className="text-white font-semibold">Back to Home</Text>
+        <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Back to Home</Text>
       </Pressable>
     </View>
   );

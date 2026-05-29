@@ -41,9 +41,6 @@ function normalizeBatchData(liveData: any): BatchProgressData | null {
       liveData.progress_percent ?? liveData.fill_percentage ?? batch.progress_percent,
     fill_percentage: liveData.fill_percentage ?? batch.fill_percentage,
     member_count: liveData.member_count ?? batch.member_count,
-    // paid_member_count: liveData.paid_member_count ?? batch.paid_member_count,
-    // unpaid_member_count: liveData.unpaid_member_count ?? batch.unpaid_member_count,
-    // payment_ratio: liveData.payment_ratio ?? batch.payment_ratio,
     tanker_id: liveData.tanker_id ?? batch.tanker_id ?? tanker.id,
     tanker_status: liveData.tanker_status ?? batch.tanker_status ?? tanker.status,
     driver_name: liveData.driver_name ?? batch.driver_name ?? tanker.driver_name,
@@ -56,7 +53,7 @@ function normalizeBatchData(liveData: any): BatchProgressData | null {
 
 function getBatchHeadline(status?: string | null) {
   switch (status) {
-    case "forming": return "We’re building your batch";
+    case "forming": return "We're building your batch";
     case "near_ready": return "Your batch is almost full";
     case "ready_for_assignment": return "Your batch is ready for tanker assignment";
     case "assigned": return "A tanker has been assigned";
@@ -74,7 +71,7 @@ function getBatchHeadline(status?: string | null) {
 
 function getBatchSubtext(status?: string | null) {
   switch (status) {
-    case "forming": return "We’re waiting for more nearby customers to join so the tanker can dispatch efficiently.";
+    case "forming": return "We're waiting for more nearby customers to join so the tanker can dispatch efficiently.";
     case "near_ready": return "Good news — this batch is getting close to dispatch.";
     case "ready_for_assignment": return "Your batch is full enough and waiting for the best tanker match.";
     case "assigned": return "A driver has been matched to your batch.";
@@ -92,19 +89,14 @@ function canViewTanker(status?: string | null) {
   return ["assigned", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(status ?? "");
 }
 
-function getOtp(liveData: any) {
-  return liveData?.member_delivery_code ?? liveData?.member?.delivery_code ?? liveData?.delivery_code ?? liveData?.otp ?? "";
-}
-
 export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, onLeave, onRefresh, onViewTanker }: Props) {
   const { theme } = useAppTheme();
   const batch = normalizeBatchData(liveData);
   const status = batch?.status ?? "forming";
-  // const otp = getOtp(liveData);
   const otp =
-  liveData?.otp ||
-  liveData?.member?.otp ||
-  liveData?.delivery?.otp;
+    liveData?.otp ||
+    liveData?.member?.otp ||
+    liveData?.delivery?.otp;
 
   async function copyOtp() {
     if (!otp) return;
@@ -113,62 +105,98 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
 
   return (
     <View className="gap-5">
-      <View className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-        <Text className="text-xl font-bold text-foreground">{getBatchHeadline(status)}</Text>
-        <Text className="mt-1 text-sm leading-5 text-muted-foreground">{getBatchSubtext(status)}</Text>
+      <View
+        className="rounded-3xl p-5 shadow-sm"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
+        <Text className="text-xl font-bold" style={{ color: theme.foreground }}>{getBatchHeadline(status)}</Text>
+        <Text className="mt-1 text-sm leading-5" style={{ color: theme.mutedForeground }}>{getBatchSubtext(status)}</Text>
 
         <View className="mt-4 flex-row gap-3">
-          <View className="flex-1 rounded-2xl border border-border bg-background/40 p-4">
-            <Text className="text-[11px] uppercase tracking-widest text-muted-foreground">Request ID</Text>
-            <Text className="mt-1 font-bold text-foreground">{requestResp.request_id ?? "—"}</Text>
+          <View
+            className="flex-1 rounded-2xl p-4"
+            style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+          >
+            <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Request ID</Text>
+            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>{requestResp.request_id ?? "—"}</Text>
           </View>
-          <View className="flex-1 rounded-2xl border border-border bg-background/40 p-4">
-            <Text className="text-[11px] uppercase tracking-widest text-muted-foreground">Batch ID</Text>
-            <Text className="mt-1 font-bold text-foreground">{requestResp.batch_id ?? batch?.batch_id ?? "—"}</Text>
+          <View
+            className="flex-1 rounded-2xl p-4"
+            style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+          >
+            <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Batch ID</Text>
+            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>{requestResp.batch_id ?? batch?.batch_id ?? "—"}</Text>
           </View>
         </View>
 
         <View className="mt-3 flex-row gap-3">
-          <View className="flex-1 rounded-2xl border border-border bg-background/40 p-4">
-            <Text className="text-[11px] uppercase tracking-widest text-muted-foreground">Quantity</Text>
-            <Text className="mt-1 font-bold text-foreground">{size.toLocaleString()}L</Text>
+          <View
+            className="flex-1 rounded-2xl p-4"
+            style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+          >
+            <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Quantity</Text>
+            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>{size.toLocaleString()}L</Text>
           </View>
-          <View className="flex-1 rounded-2xl border border-border bg-background/40 p-4">
-            <Text className="text-[11px] uppercase tracking-widest text-muted-foreground">Amount Paid</Text>
-            <Text className="mt-1 font-bold text-foreground">₦{price.toLocaleString()}</Text>
+          <View
+            className="flex-1 rounded-2xl p-4"
+            style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+          >
+            <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Amount Paid</Text>
+            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>₦{price.toLocaleString()}</Text>
           </View>
         </View>
       </View>
 
-      <View className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <View
+        className="rounded-3xl p-5 shadow-sm"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
-            <Text className="text-base font-bold text-foreground">Your Delivery OTP</Text>
-            <Text className="mt-1 text-sm leading-5 text-muted-foreground">Share this with the driver only after measurement is complete.</Text>
+            <Text className="text-base font-bold" style={{ color: theme.foreground }}>Your Delivery OTP</Text>
+            <Text className="mt-1 text-sm leading-5" style={{ color: theme.mutedForeground }}>
+              Share this with the driver only after measurement is complete.
+            </Text>
           </View>
-          <Pressable onPress={copyOtp} disabled={!otp} className="flex-row items-center gap-2 rounded-xl border border-border px-3 py-2 opacity-100 disabled:opacity-40">
+          <Pressable
+            onPress={copyOtp}
+            disabled={!otp}
+            className="flex-row items-center gap-2 rounded-xl px-3 py-2"
+            style={{ borderWidth: 1, borderColor: theme.border, opacity: otp ? 1 : 0.4 }}
+          >
             <Copy color={theme.mutedForeground} size={15} />
-            <Text className="text-sm font-semibold text-foreground">Copy</Text>
+            <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>Copy</Text>
           </Pressable>
         </View>
-        <View className="mt-4 rounded-2xl border border-border bg-background/40 p-6 items-center">
-          <Text className="text-4xl font-extrabold tracking-widest text-foreground">{otp || "----"}</Text>
+        <View
+          className="mt-4 rounded-2xl p-6 items-center"
+          style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+        >
+          <Text className="text-4xl font-extrabold tracking-widest" style={{ color: theme.foreground }}>
+            {otp || "----"}
+          </Text>
         </View>
       </View>
 
       {liveLoading && !batch && (
-        <View className="rounded-3xl border border-border bg-card p-5 shadow-sm flex-row items-center gap-3">
+        <View
+          className="rounded-3xl p-5 shadow-sm flex-row items-center gap-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
           <ActivityIndicator />
-          <Text className="text-sm text-muted-foreground">Syncing your batch status...</Text>
+          <Text className="text-sm" style={{ color: theme.mutedForeground }}>Syncing your batch status...</Text>
         </View>
       )}
 
       {liveError && (
-        <View className="rounded-3xl border border-red-200/40 bg-red-500/10 p-4 shadow-sm flex-row items-start gap-3">
+        <View
+          className="rounded-3xl p-4 shadow-sm flex-row items-start gap-3"
+          style={{ backgroundColor: theme.destructiveSoft, borderWidth: 1, borderColor: theme.destructive + "66" }}
+        >
           <AlertCircle color={theme.destructive} size={20} />
           <View className="flex-1">
-            <Text className="font-bold text-red-500">Could not refresh batch status</Text>
-            <Text className="mt-1 text-sm text-muted-foreground">{liveError}</Text>
+            <Text className="font-bold" style={{ color: theme.destructive }}>Could not refresh batch status</Text>
+            <Text className="mt-1 text-sm" style={{ color: theme.mutedForeground }}>{liveError}</Text>
           </View>
         </View>
       )}
@@ -177,16 +205,24 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
       {batch && <BatchLifecycleCard batch={batch as any} isLoading={liveLoading} />}
 
       {batch?.tanker_id && (
-        <View className="rounded-3xl border border-border bg-card p-5 shadow-sm flex-row items-start gap-3">
+        <View
+          className="rounded-3xl p-5 shadow-sm flex-row items-start gap-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
           <Truck color={theme.primary} size={20} />
           <View className="flex-1">
-            <Text className="font-bold text-foreground">Assigned Tanker</Text>
-            <Text className="mt-1 text-sm text-muted-foreground">Tanker #{batch.tanker_id}{batch.driver_name ? ` • Driver: ${batch.driver_name}` : ""}</Text>
+            <Text className="font-bold" style={{ color: theme.foreground }}>Assigned Tanker</Text>
+            <Text className="mt-1 text-sm" style={{ color: theme.mutedForeground }}>
+              Tanker #{batch.tanker_id}{batch.driver_name ? ` • Driver: ${batch.driver_name}` : ""}
+            </Text>
           </View>
         </View>
       )}
 
-      <View className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <View
+        className="rounded-3xl p-5 shadow-sm"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
         <Row label="Volume" value={`${size.toLocaleString()} L`} />
         <Row label="Paid" value={`₦${price.toLocaleString()}`} />
         <Row label="Batch #" value={String(requestResp.batch_id ?? batch?.batch_id ?? "—")} />
@@ -194,18 +230,33 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
         <Row label="Status" value={String(status).replace(/_/g, " ")} />
       </View>
 
-      <Pressable onPress={onRefresh} className="flex-row items-center justify-center gap-2 border border-border rounded-xl py-3">
+      <Pressable
+        onPress={onRefresh}
+        className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+        style={{ borderWidth: 1, borderColor: theme.border }}
+      >
         <RefreshCw color={theme.mutedForeground} size={16} />
-        <Text className="text-muted-foreground font-medium">{liveLoading ? "Refreshing..." : "Refresh Status"}</Text>
+        <Text className="font-medium" style={{ color: theme.mutedForeground }}>
+          {liveLoading ? "Refreshing..." : "Refresh Status"}
+        </Text>
       </Pressable>
 
-      <Pressable onPress={onViewTanker} disabled={!canViewTanker(status) || !onViewTanker} className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3 disabled:opacity-40">
-        <Truck color="#ffffff" size={16} />
-        <Text className="font-bold text-white">View Tanker Status</Text>
+      <Pressable
+        onPress={onViewTanker}
+        disabled={!canViewTanker(status) || !onViewTanker}
+        className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+        style={{ backgroundColor: theme.primary, opacity: canViewTanker(status) && onViewTanker ? 1 : 0.4 }}
+      >
+        <Truck color={theme.primaryForeground} size={16} />
+        <Text className="font-bold" style={{ color: theme.primaryForeground }}>View Tanker Status</Text>
       </Pressable>
 
-      <Pressable onPress={onLeave} className="border border-red-200/40 rounded-xl py-3 items-center">
-        <Text className="text-red-600 font-medium">Leave Batch</Text>
+      <Pressable
+        onPress={onLeave}
+        className="rounded-xl py-3 items-center"
+        style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
+      >
+        <Text className="font-medium" style={{ color: theme.destructive }}>Leave Batch</Text>
       </Pressable>
     </View>
   );

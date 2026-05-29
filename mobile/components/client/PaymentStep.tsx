@@ -2,6 +2,7 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import type { RequestMode } from "@/types/client";
 import type { CreateRequestResponse } from "@/lib/api";
 import { Row } from "@/components/ui/Row";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
   price: number;
@@ -13,18 +14,14 @@ type Props = {
   loading: boolean;
 };
 
-export function PaymentStep({
-  price,
-  size,
-  mode,
-  requestResp,
-  onPay,
-  onCancel,
-  loading,
-}: Props) {
+export function PaymentStep({ price, size, mode, requestResp, onPay, onCancel, loading }: Props) {
+  const { theme } = useAppTheme();
   return (
     <View className="gap-4">
-      <View className="bg-card border border-border rounded-2xl p-5">
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
         <Row label="Mode" value={mode === "batch" ? "Batch Saver" : "Priority"} />
         <Row label="Volume" value={`${size.toLocaleString()} L`} />
         <Row label="Total" value={`₦${price.toLocaleString()}`} bold />
@@ -41,8 +38,11 @@ export function PaymentStep({
         )}
       </View>
 
-      <View className="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
-        <Text className="text-amber-400 text-sm">
+      <View
+        className="rounded-xl p-4"
+        style={{ backgroundColor: theme.warningSoft, borderWidth: 1, borderColor: theme.warning + "4d" }}
+      >
+        <Text className="text-sm" style={{ color: theme.warning }}>
           Payment is currently manual. Confirm once you've transferred the amount.
         </Text>
       </View>
@@ -50,10 +50,13 @@ export function PaymentStep({
       <Pressable
         onPress={onPay}
         disabled={loading}
-        className="bg-primary rounded-xl py-4 items-center"
+        className="rounded-xl py-4 items-center"
+        style={{ backgroundColor: theme.primary }}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : (
-          <Text className="text-white font-semibold">
+        {loading ? (
+          <ActivityIndicator color={theme.primaryForeground} />
+        ) : (
+          <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
             Confirm Payment — ₦{price.toLocaleString()}
           </Text>
         )}
@@ -61,9 +64,10 @@ export function PaymentStep({
 
       <Pressable
         onPress={onCancel}
-        className="border border-border rounded-xl py-4 items-center"
+        className="rounded-xl py-4 items-center"
+        style={{ borderWidth: 1, borderColor: theme.border }}
       >
-        <Text className="text-foreground font-medium">Cancel</Text>
+        <Text className="font-medium" style={{ color: theme.foreground }}>Cancel</Text>
       </Pressable>
     </View>
   );

@@ -185,7 +185,7 @@ export function RequestStep({
                 </Text>
 
                 <View style={{ backgroundColor: theme.primarySoft }} className="px-2 py-1 rounded-full">
-                  <Text className="text-primary text-xs font-medium">
+                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
                     Lower Cost
                   </Text>
                 </View>
@@ -216,7 +216,7 @@ export function RequestStep({
                 </Text>
 
                 <View style={{ backgroundColor: theme.warningSoft }} className="px-2 py-1 rounded-full">
-                  <Text className="text-warning text-xs font-medium">
+                  <Text className="text-xs font-medium" style={{ color: theme.warning }}>
                     Premium
                   </Text>
                 </View>
@@ -489,7 +489,7 @@ export function RequestStep({
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white font-semibold text-base">
+            <Text className="font-semibold text-base" style={{ color: theme.primaryForeground }}>
               {!size
                 ? "Select a tank size"
                 : !selectedSiteId

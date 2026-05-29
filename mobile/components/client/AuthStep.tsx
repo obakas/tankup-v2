@@ -5,8 +5,7 @@ import { createUser, loginUser, createSite } from "@/lib/api";
 import { Input } from "@/components/ui/Input";
 import { CurrentUser } from "@/types/client";
 import { DEFAULT_LAT, DEFAULT_LNG } from "@/constants/clientConstants";
-
-const PRIMARY = "#0084ff";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 interface SiteFormData {
   label: string;
@@ -29,6 +28,7 @@ type AuthStepProps = {
 };
 
 export function AuthStep({ onComplete }: AuthStepProps) {
+  const { theme } = useAppTheme();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -102,28 +102,42 @@ export function AuthStep({ onComplete }: AuthStepProps) {
     <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <View className="gap-4">
         {/* Mode tabs */}
-        <View className="flex-row rounded-xl border border-border p-1 bg-muted/30">
+        <View
+          className="flex-row rounded-xl p-1"
+          style={{ borderWidth: 1, borderColor: theme.border, backgroundColor: theme.muted + "4d" }}
+        >
           <Pressable
             onPress={() => setMode("signup")}
-            className={`flex-1 rounded-lg py-3 items-center ${isSignup ? "bg-background" : ""}`}
+            className="flex-1 rounded-lg py-3 items-center"
+            style={isSignup ? { backgroundColor: theme.background } : undefined}
           >
-            <Text className={isSignup ? "text-foreground font-semibold" : "text-muted"}>
+            <Text
+              className="font-semibold"
+              style={{ color: isSignup ? theme.foreground : theme.mutedForeground }}
+            >
               Sign Up
             </Text>
           </Pressable>
           <Pressable
             onPress={() => setMode("login")}
-            className={`flex-1 rounded-lg py-3 items-center ${!isSignup ? "bg-background" : ""}`}
+            className="flex-1 rounded-lg py-3 items-center"
+            style={!isSignup ? { backgroundColor: theme.background } : undefined}
           >
-            <Text className={!isSignup ? "text-foreground font-semibold" : "text-muted"}>
+            <Text
+              className="font-semibold"
+              style={{ color: !isSignup ? theme.foreground : theme.mutedForeground }}
+            >
               Log In
             </Text>
           </Pressable>
         </View>
 
         {error && (
-          <View className="bg-red-50 border border-red-200 rounded-xl p-3">
-            <Text className="text-red-600 text-sm">{error}</Text>
+          <View
+            className="rounded-xl p-3"
+            style={{ backgroundColor: theme.destructiveSoft, borderWidth: 1, borderColor: theme.destructive + "4d" }}
+          >
+            <Text className="text-sm" style={{ color: theme.destructive }}>{error}</Text>
           </View>
         )}
 
@@ -153,26 +167,27 @@ export function AuthStep({ onComplete }: AuthStepProps) {
           <View className="gap-3">
             {/* Section separator */}
             <View className="flex-row items-center gap-2">
-              <View className="flex-1 h-px bg-border" />
-              <Text className="text-xs font-medium text-muted-foreground">Delivery Sites</Text>
-              <View className="flex-1 h-px bg-border" />
+              <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              <Text className="text-xs font-medium" style={{ color: theme.mutedForeground }}>Delivery Sites</Text>
+              <View className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
             </View>
 
             {sites.map((site, i) => (
               <View
                 key={i}
-                className="gap-3 rounded-xl border border-border p-3"
+                className="gap-3 rounded-xl p-3"
+                style={{ borderWidth: 1, borderColor: theme.border }}
               >
                 {/* Site card header */}
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-semibold text-muted-foreground">Site {i + 1}</Text>
+                  <Text className="text-xs font-semibold" style={{ color: theme.mutedForeground }}>Site {i + 1}</Text>
                   {sites.length > 1 && (
                     <Pressable
                       onPress={() => removeSite(i)}
                       accessibilityLabel={`Remove site ${i + 1}`}
                       className="h-6 w-6 items-center justify-center rounded-md"
                     >
-                      <X size={14} color="#ef4444" />
+                      <X size={14} color={theme.destructive} />
                     </Pressable>
                   )}
                 </View>
@@ -199,13 +214,16 @@ export function AuthStep({ onComplete }: AuthStepProps) {
                   keyboardType="phone-pad"
                 />
 
-                <View className="flex-row items-center justify-between rounded-xl border border-border px-4 py-3">
-                  <Text className="text-foreground text-sm">Has gate / barrier?</Text>
+                <View
+                  className="flex-row items-center justify-between rounded-xl px-4 py-3"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
+                >
+                  <Text className="text-sm" style={{ color: theme.foreground }}>Has gate / barrier?</Text>
                   <Switch
                     value={site.hasGate}
                     onValueChange={(v) => updateSite(i, { hasGate: v, gateNotes: v ? site.gateNotes : "" })}
-                    trackColor={{ false: "#d1d5db", true: PRIMARY }}
-                    thumbColor="#fff"
+                    trackColor={{ false: theme.border, true: theme.primary }}
+                    thumbColor={theme.primaryForeground}
                   />
                 </View>
 
@@ -223,10 +241,11 @@ export function AuthStep({ onComplete }: AuthStepProps) {
             {/* Add another site */}
             <Pressable
               onPress={addSite}
-              className="flex-row items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3"
+              className="flex-row items-center justify-center gap-2 rounded-xl border-dashed py-3"
+              style={{ borderWidth: 1, borderColor: theme.border }}
             >
-              <Plus size={16} color="#6b7280" />
-              <Text className="text-sm font-medium text-muted-foreground">Add Another Site</Text>
+              <Plus size={16} color={theme.mutedForeground} />
+              <Text className="text-sm font-medium" style={{ color: theme.mutedForeground }}>Add Another Site</Text>
             </Pressable>
           </View>
         )}
@@ -234,12 +253,13 @@ export function AuthStep({ onComplete }: AuthStepProps) {
         <Pressable
           onPress={handleSubmit}
           disabled={loading}
-          className="bg-primary rounded-xl py-4 items-center mt-2 disabled:opacity-60"
+          className="rounded-xl py-4 items-center mt-2"
+          style={{ backgroundColor: theme.primary, opacity: loading ? 0.6 : 1 }}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.primaryForeground} />
           ) : (
-            <Text className="text-white font-semibold">
+            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
               {isSignup ? "Create Account" : "Log In"}
             </Text>
           )}

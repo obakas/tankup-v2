@@ -1,6 +1,7 @@
 import { View, Text } from "react-native";
 import { CreditCard, Droplets, Truck, Users } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import type { TankupTheme } from "@/components/ui/theme";
 
 export type BatchProgressData = {
   batch_id?: number | string | null;
@@ -48,20 +49,23 @@ function formatLiters(value: number) {
   return `${Math.round(value).toLocaleString()}L`;
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function MiniStat({ label, value, theme }: { label: string; value: string; theme: TankupTheme }) {
   return (
-    <View className="flex-1 rounded-xl border border-border bg-background/40 p-3">
-      <Text className="text-[11px] uppercase tracking-widest text-muted-foreground">{label}</Text>
-      <Text className="mt-1 text-sm font-bold text-foreground">{value}</Text>
+    <View
+      className="flex-1 rounded-xl p-3"
+      style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+    >
+      <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>{label}</Text>
+      <Text className="mt-1 text-sm font-bold" style={{ color: theme.foreground }}>{value}</Text>
     </View>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, value, theme }: { label: string; value: string; theme: TankupTheme }) {
   return (
     <View className="flex-row items-center justify-between gap-3 py-2">
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="flex-1 text-right text-sm font-semibold text-foreground">{value}</Text>
+      <Text className="text-sm" style={{ color: theme.mutedForeground }}>{label}</Text>
+      <Text className="flex-1 text-right text-sm font-semibold" style={{ color: theme.foreground }}>{value}</Text>
     </View>
   );
 }
@@ -83,84 +87,99 @@ export function BatchProgressCard({ batch, requestedLiters = 0, amountPaid = 0 }
     toNumber(batch?.payment_ratio, memberCount > 0 ? (paidMembers / memberCount) * 100 : 0)
   );
 
+  void unpaidMembers;
+  void paymentRatio;
+
   return (
-    <View className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+    <View
+      className="rounded-3xl p-5 shadow-sm"
+      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+    >
       <View className="flex-row items-start justify-between gap-3">
         <View className="flex-1">
-          <Text className="text-xl font-bold text-foreground">Batch Progress</Text>
-          <Text className="mt-1 text-sm leading-5 text-muted-foreground">
+          <Text className="text-xl font-bold" style={{ color: theme.foreground }}>Batch Progress</Text>
+          <Text className="mt-1 text-sm leading-5" style={{ color: theme.mutedForeground }}>
             Live view of how full this shared tanker batch is before dispatch.
           </Text>
         </View>
-
-        <View className="rounded-2xl bg-primary/10 p-3">
+        <View className="rounded-2xl p-3" style={{ backgroundColor: theme.primarySoft }}>
           <Droplets color={theme.primary} size={22} />
         </View>
       </View>
 
-      <View className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
+      <View
+        className="mt-5 rounded-2xl p-4"
+        style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+      >
         <View className="flex-row items-end justify-between gap-4">
           <View>
-            <Text className="text-xs uppercase tracking-widest text-muted-foreground">Filled</Text>
-            <Text className="mt-1 text-4xl font-extrabold text-foreground">{Math.round(progress)}%</Text>
+            <Text className="text-xs uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Filled</Text>
+            <Text className="mt-1 text-4xl font-extrabold" style={{ color: theme.foreground }}>{Math.round(progress)}%</Text>
           </View>
-          <Text className="text-right text-sm font-semibold text-muted-foreground">
+          <Text className="text-right text-sm font-semibold" style={{ color: theme.mutedForeground }}>
             {formatLiters(currentVolume)} / {formatLiters(targetVolume)}
           </Text>
         </View>
 
-        <View className="mt-4 h-3 overflow-hidden rounded-full bg-border">
-          <View className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+        <View className="mt-4 h-3 overflow-hidden rounded-full" style={{ backgroundColor: theme.border }}>
+          <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: theme.primary }} />
         </View>
 
-        <Text className="mt-3 text-sm text-muted-foreground">
+        <Text className="mt-3 text-sm" style={{ color: theme.mutedForeground }}>
           {formatLiters(remaining)} remaining before this batch reaches target volume.
         </Text>
       </View>
 
       <View className="mt-4 flex-row gap-3">
-        <MiniStat label="Members" value={memberCount ? String(memberCount) : "—"} />
-        <MiniStat label="Paid" value={`${paidMembers}/${memberCount || "—"}`} />
+        <MiniStat label="Members" value={memberCount ? String(memberCount) : "—"} theme={theme} />
+        <MiniStat label="Paid" value={`${paidMembers}/${memberCount || "—"}`} theme={theme} />
       </View>
 
       <View className="mt-3 flex-row gap-3">
-        {/* <MiniStat label="Payment Health" value={paymentRatio ? `${Math.round(paymentRatio)}%` : "—"} /> */}
-        <MiniStat label="Amount" value={amountPaid ? `₦${amountPaid.toLocaleString()}` : "—"} />
+        {/* <MiniStat label="Payment Health" value={paymentRatio ? `${Math.round(paymentRatio)}%` : "—"} theme={theme} /> */}
+        <MiniStat label="Amount" value={amountPaid ? `₦${amountPaid.toLocaleString()}` : "—"} theme={theme} />
       </View>
 
-      <View className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
+      <View
+        className="mt-5 rounded-2xl p-4"
+        style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+      >
         <View className="mb-2 flex-row items-center gap-2">
           <Truck color={theme.primary} size={17} />
-          <Text className="font-bold text-foreground">Tanker Info</Text>
+          <Text className="font-bold" style={{ color: theme.foreground }}>Tanker Info</Text>
         </View>
-
-        <InfoRow label="Assigned Tanker" value={batch?.tanker_id ? `#${batch.tanker_id}` : "Not assigned yet"} />
-        <InfoRow label="Driver" value={batch?.driver_name ?? "—"} />
-        <InfoRow label="Tanker Status" value={titleCase(batch?.tanker_status)} />
+        <InfoRow label="Assigned Tanker" value={batch?.tanker_id ? `#${batch.tanker_id}` : "Not assigned yet"} theme={theme} />
+        <InfoRow label="Driver" value={batch?.driver_name ?? "—"} theme={theme} />
+        <InfoRow label="Tanker Status" value={titleCase(batch?.tanker_status)} theme={theme} />
       </View>
 
-      <View className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
+      <View
+        className="mt-4 rounded-2xl p-4"
+        style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+      >
         <View className="mb-2 flex-row items-center gap-2">
           <Users color={theme.primary} size={17} />
-          <Text className="font-bold text-foreground">Membership</Text>
+          <Text className="font-bold" style={{ color: theme.foreground }}>Membership</Text>
         </View>
-
-        <InfoRow label="Your Status" value={titleCase(batch?.member_status)} />
-        <InfoRow label="Payment" value={titleCase(batch?.member_payment_status)} />
-        {/* <InfoRow label="Unpaid Members" value={String(unpaidMembers || 0)} /> */}
+        <InfoRow label="Your Status" value={titleCase(batch?.member_status)} theme={theme} />
+        <InfoRow label="Payment" value={titleCase(batch?.member_payment_status)} theme={theme} />
+        {/* <InfoRow label="Unpaid Members" value={String(unpaidMembers || 0)} theme={theme} /> */}
       </View>
 
-      <View className="mt-4 rounded-2xl border border-border bg-background/40 p-4">
+      <View
+        className="mt-4 rounded-2xl p-4"
+        style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
+      >
         <View className="mb-2 flex-row items-center gap-2">
           <CreditCard color={theme.primary} size={17} />
-          <Text className="font-bold text-foreground">Refund</Text>
+          <Text className="font-bold" style={{ color: theme.foreground }}>Refund</Text>
         </View>
-
         <InfoRow
           label="Refund Eligible"
           value={typeof batch?.refund_eligible === "boolean" ? (batch.refund_eligible ? "Yes" : "No") : "—"}
+          theme={theme}
         />
-        <InfoRow label="Refund Status" value={titleCase(batch?.refund_status)} />
+        <InfoRow label="Refund Status" value={titleCase(batch?.refund_status)} theme={theme} />
       </View>
     </View>
   );

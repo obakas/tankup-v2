@@ -61,7 +61,10 @@ export function DriverDeliveringStep({
   if (totalCount === 0 && !stop) {
     return (
       <View className="gap-4">
-        <View className="bg-card border border-border rounded-2xl p-8 items-center gap-4">
+        <View
+          className="rounded-2xl p-8 items-center gap-4"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
           <View
             className="w-20 h-20 rounded-full items-center justify-center"
             style={{ backgroundColor: theme.primarySoft }}
@@ -69,15 +72,19 @@ export function DriverDeliveringStep({
             <Navigation color={theme.primary} size={36} />
           </View>
           <View className="items-center gap-1">
-            <Text className="text-foreground font-bold text-xl">No stops yet</Text>
-            <Text className="text-muted-foreground text-center text-sm leading-5">
+            <Text className="font-bold text-xl" style={{ color: theme.foreground }}>No stops yet</Text>
+            <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
               Stops will appear here once the job is dispatched. Refresh to check for updates.
             </Text>
           </View>
         </View>
-        <Pressable onPress={onRefresh} className="flex-row items-center justify-center gap-2 border border-border rounded-xl py-3">
+        <Pressable
+          onPress={onRefresh}
+          className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+          style={{ borderWidth: 1, borderColor: theme.border }}
+        >
           <RefreshCw color={theme.mutedForeground} size={16} />
-          <Text className="text-muted-foreground font-medium">Refresh</Text>
+          <Text className="font-medium" style={{ color: theme.mutedForeground }}>Refresh</Text>
         </Pressable>
       </View>
     );
@@ -86,13 +93,22 @@ export function DriverDeliveringStep({
   return (
     <View className="gap-4">
       {totalCount > 0 && (
-        <View className="bg-card border border-border rounded-2xl p-4">
+        <View
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
           <View className="flex-row justify-between mb-2">
-            <Text className="text-foreground font-semibold">Progress</Text>
-            <Text className="text-primary font-bold">{deliveredCount}/{totalCount}</Text>
+            <Text className="font-semibold" style={{ color: theme.foreground }}>Progress</Text>
+            <Text className="font-bold" style={{ color: theme.primary }}>{deliveredCount}/{totalCount}</Text>
           </View>
-          <View className="h-2 bg-border rounded-full overflow-hidden">
-            <View className="h-full bg-success" style={{ width: `${totalCount > 0 ? (deliveredCount / totalCount) * 100 : 0}%` }} />
+          <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+            <View
+              className="h-full"
+              style={{
+                backgroundColor: theme.success,
+                width: `${totalCount > 0 ? (deliveredCount / totalCount) * 100 : 0}%`,
+              }}
+            />
           </View>
         </View>
       )}
@@ -100,82 +116,125 @@ export function DriverDeliveringStep({
       {summary.map((s: any, idx: number) => (
         <View
           key={s.delivery_id ?? idx}
-          className={`bg-card border rounded-xl p-3 ${s.delivery_id === stop?.id ? "border-primary" : "border-border"} ${s.status === "delivered" ? "opacity-50" : ""}`}
+          className="rounded-xl p-3"
+          style={{
+            backgroundColor: theme.card,
+            borderWidth: 1,
+            borderColor: s.delivery_id === stop?.id ? theme.primary : theme.border,
+            opacity: s.status === "delivered" ? 0.5 : 1,
+          }}
         >
           <View className="flex-row items-center gap-2">
-            <View className={`w-6 h-6 rounded-full items-center justify-center ${s.status === "delivered" ? "bg-success" : "bg-primary"}`}>
-              <Text className="text-white text-xs font-bold">{s.status === "delivered" ? "✓" : idx + 1}</Text>
+            <View
+              className="w-6 h-6 rounded-full items-center justify-center"
+              style={{ backgroundColor: s.status === "delivered" ? theme.success : theme.primary }}
+            >
+              <Text className="text-xs font-bold" style={{ color: theme.primaryForeground }}>
+                {s.status === "delivered" ? "✓" : idx + 1}
+              </Text>
             </View>
-            <Text className="text-foreground font-medium flex-1">{s.customer_name ?? `Stop ${idx + 1}`}</Text>
-            <Text className="text-muted-foreground text-xs capitalize">{s.status?.replace(/_/g, " ")}</Text>
+            <Text className="font-medium flex-1" style={{ color: theme.foreground }}>
+              {s.customer_name ?? `Stop ${idx + 1}`}
+            </Text>
+            <Text className="text-xs capitalize" style={{ color: theme.mutedForeground }}>
+              {s.status?.replace(/_/g, " ")}
+            </Text>
           </View>
         </View>
       ))}
 
       {stop && !allDone && (
-        <View className="bg-card border border-primary/40 rounded-2xl p-5 gap-3">
-          <Text className="text-foreground font-semibold">Current stop: {stop.customer_name ?? "—"}</Text>
+        <View
+          className="rounded-2xl p-5 gap-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary + "66" }}
+        >
+          <Text className="font-semibold" style={{ color: theme.foreground }}>
+            Current stop: {stop.customer_name ?? "—"}
+          </Text>
 
           {stop.address && (
             <View className="flex-row items-center gap-2">
               <MapPin color={theme.mutedForeground} size={14} />
-              <Text className="text-muted-foreground text-sm">{stop.address}</Text>
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>{stop.address}</Text>
             </View>
           )}
 
-          <Text className="text-muted-foreground text-xs capitalize">Status: {stopStatus.replace(/_/g, " ")}</Text>
+          <Text className="text-xs capitalize" style={{ color: theme.mutedForeground }}>
+            Status: {stopStatus.replace(/_/g, " ")}
+          </Text>
 
           {(stopStatus === "en_route" || stopStatus === "pending") && (
-            <Pressable disabled={stopLoading} onPress={() => doAction(() => arriveAtStop(stop.id, driver.tankerId))} className="bg-primary rounded-xl py-3 items-center">
-              {stopLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">I've Arrived</Text>}
+            <Pressable
+              disabled={stopLoading}
+              onPress={() => doAction(() => arriveAtStop(stop.id, driver.tankerId))}
+              className="rounded-xl py-3 items-center"
+              style={{ backgroundColor: theme.primary }}
+            >
+              {stopLoading ? (
+                <ActivityIndicator color={theme.primaryForeground} />
+              ) : (
+                <Text className="font-semibold" style={{ color: theme.primaryForeground }}>I've Arrived</Text>
+              )}
             </Pressable>
           )}
 
           {stopStatus === "arrived" && (
             <View className="gap-2">
-              <Text className="text-muted-foreground text-sm">Meter start reading</Text>
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>Meter start reading</Text>
               <TextInput
                 value={meterStart}
                 onChangeText={setMeterStart}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={theme.mutedForeground}
-                className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                className="rounded-xl px-4 py-3"
+                style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, color: theme.foreground }}
               />
               <Pressable
                 disabled={stopLoading || !meterStart}
                 onPress={() => doAction(() => startMeasurement(stop.id, driver.tankerId, parseFloat(meterStart)))}
-                className="bg-primary rounded-xl py-3 items-center"
+                className="rounded-xl py-3 items-center"
+                style={{ backgroundColor: theme.primary }}
               >
-                {stopLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Start Measurement</Text>}
+                {stopLoading ? (
+                  <ActivityIndicator color={theme.primaryForeground} />
+                ) : (
+                  <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Start Measurement</Text>
+                )}
               </Pressable>
             </View>
           )}
 
           {stopStatus === "measuring" && (
             <View className="gap-2">
-              <Text className="text-muted-foreground text-sm">Meter end reading</Text>
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>Meter end reading</Text>
               <TextInput
                 value={meterEnd}
                 onChangeText={setMeterEnd}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={theme.mutedForeground}
-                className="bg-background border border-border rounded-xl px-4 py-3 text-foreground"
+                className="rounded-xl px-4 py-3"
+                style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, color: theme.foreground }}
               />
               <Pressable
                 disabled={stopLoading || !meterEnd}
                 onPress={() => doAction(() => finishMeasurement(stop.id, driver.tankerId, parseFloat(meterEnd)))}
-                className="bg-primary rounded-xl py-3 items-center"
+                className="rounded-xl py-3 items-center"
+                style={{ backgroundColor: theme.primary }}
               >
-                {stopLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Finish Measurement</Text>}
+                {stopLoading ? (
+                  <ActivityIndicator color={theme.primaryForeground} />
+                ) : (
+                  <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Finish Measurement</Text>
+                )}
               </Pressable>
             </View>
           )}
 
           {stopStatus === "awaiting_otp" && !stop.otp_verified && (
             <View className="gap-2">
-              <Text className="text-muted-foreground text-sm">Customer OTP</Text>
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>Customer OTP</Text>
               <TextInput
                 value={otpInput}
                 onChangeText={setOtpInput}
@@ -183,11 +242,26 @@ export function DriverDeliveringStep({
                 placeholder="0000"
                 placeholderTextColor={theme.mutedForeground}
                 maxLength={6}
-                className="bg-background border border-border rounded-xl px-4 py-3 text-center text-2xl font-bold text-foreground"
-                style={{ letterSpacing: 8 }}
+                className="rounded-xl px-4 py-3 text-center text-2xl font-bold"
+                style={{
+                  backgroundColor: theme.background,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  color: theme.foreground,
+                  letterSpacing: 8,
+                }}
               />
-              <Pressable disabled={stopLoading || otpInput.length < 4} onPress={() => doAction(() => confirmOtp(stop.id, driver.tankerId, otpInput))} className="bg-success rounded-xl py-3 items-center">
-                {stopLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Verify OTP</Text>}
+              <Pressable
+                disabled={stopLoading || otpInput.length < 4}
+                onPress={() => doAction(() => confirmOtp(stop.id, driver.tankerId, otpInput))}
+                className="rounded-xl py-3 items-center"
+                style={{ backgroundColor: theme.success }}
+              >
+                {stopLoading ? (
+                  <ActivityIndicator color={theme.primaryForeground} />
+                ) : (
+                  <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Verify OTP</Text>
+                )}
               </Pressable>
 
               <View className="flex-row gap-2">
@@ -198,9 +272,10 @@ export function DriverDeliveringStep({
                       if (r?.trim()) doAction(() => skipStop(stop.id, driver.tankerId, r.trim()));
                     });
                   }}
-                  className="flex-1 border border-border rounded-xl py-3 items-center"
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
                 >
-                  <Text className="text-muted-foreground font-medium">Skip</Text>
+                  <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
                 </Pressable>
 
                 <Pressable
@@ -210,30 +285,53 @@ export function DriverDeliveringStep({
                       if (r?.trim()) doAction(() => failStop(stop.id, driver.tankerId, r.trim()));
                     });
                   }}
-                  className="flex-1 border border-red-200/40 rounded-xl py-3 items-center"
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
                 >
-                  <Text className="text-red-600 font-medium">Fail</Text>
+                  <Text className="font-medium" style={{ color: theme.destructive }}>Fail</Text>
                 </Pressable>
               </View>
             </View>
           )}
 
           {stopStatus === "awaiting_otp" && stop.otp_verified && (
-            <Pressable disabled={stopLoading} onPress={() => doAction(() => completeStop(stop.id, driver.tankerId))} className="bg-success rounded-xl py-3 items-center">
-              {stopLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Complete Delivery</Text>}
+            <Pressable
+              disabled={stopLoading}
+              onPress={() => doAction(() => completeStop(stop.id, driver.tankerId))}
+              className="rounded-xl py-3 items-center"
+              style={{ backgroundColor: theme.success }}
+            >
+              {stopLoading ? (
+                <ActivityIndicator color={theme.primaryForeground} />
+              ) : (
+                <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Complete Delivery</Text>
+              )}
             </Pressable>
           )}
         </View>
       )}
 
-      <Pressable onPress={onRefresh} className="flex-row items-center justify-center gap-2 border border-border rounded-xl py-3">
+      <Pressable
+        onPress={onRefresh}
+        className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+        style={{ borderWidth: 1, borderColor: theme.border }}
+      >
         <RefreshCw color={theme.mutedForeground} size={16} />
-        <Text className="text-muted-foreground font-medium">Refresh</Text>
+        <Text className="font-medium" style={{ color: theme.mutedForeground }}>Refresh</Text>
       </Pressable>
 
       {allDone && (
-        <Pressable onPress={onCompleteJob} disabled={actionLoading} className="bg-success rounded-xl py-4 items-center">
-          {actionLoading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Complete Job</Text>}
+        <Pressable
+          onPress={onCompleteJob}
+          disabled={actionLoading}
+          className="rounded-xl py-4 items-center"
+          style={{ backgroundColor: theme.success }}
+        >
+          {actionLoading ? (
+            <ActivityIndicator color={theme.primaryForeground} />
+          ) : (
+            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Complete Job</Text>
+          )}
         </Pressable>
       )}
     </View>

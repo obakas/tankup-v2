@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
   job: any;
@@ -7,6 +8,7 @@ type Props = {
 };
 
 export function DriverLoadingStep({ job, onLoaded, loading }: Props) {
+  const { theme } = useAppTheme();
   const totalVol =
     job?.active_job?.total_volume_liters ??
     job?.total_volume_liters ??
@@ -17,15 +19,31 @@ export function DriverLoadingStep({ job, onLoaded, loading }: Props) {
 
   return (
     <View className="gap-4">
-      <View className="bg-card border border-border rounded-2xl p-5">
-        <Text className="text-foreground font-semibold capitalize">{jobType} job — Load tanker</Text>
-        <Text className="text-muted-foreground mt-2">
+      <View
+        className="rounded-2xl p-5"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
+        <Text className="font-semibold capitalize" style={{ color: theme.foreground }}>
+          {jobType} job — Load tanker
+        </Text>
+        <Text className="mt-2" style={{ color: theme.mutedForeground }}>
           Fill {typeof totalVol === "number" ? totalVol.toLocaleString() : totalVol}L at the depot before heading out.
         </Text>
       </View>
 
-      <Pressable onPress={onLoaded} disabled={loading} className="bg-primary rounded-xl py-4 items-center">
-        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Loaded — Start Delivery</Text>}
+      <Pressable
+        onPress={onLoaded}
+        disabled={loading}
+        className="rounded-xl py-4 items-center"
+        style={{ backgroundColor: theme.primary }}
+      >
+        {loading ? (
+          <ActivityIndicator color={theme.primaryForeground} />
+        ) : (
+          <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
+            Loaded — Start Delivery
+          </Text>
+        )}
       </Pressable>
     </View>
   );
