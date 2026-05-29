@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import { router } from "expo-router";
+import { toast } from "@/lib/toast";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 
@@ -166,6 +167,7 @@ export function useClientFlow() {
     setUser(u);
     setStep("request");
     loadSites(u.id);
+    toast.success(`Welcome, ${u.name}!`);
   };
 
   const handleSubmitRequest = async () => {
@@ -190,6 +192,7 @@ export function useClientFlow() {
       setStep("payment");
     } catch (e: any) {
       setError(e.message);
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -206,9 +209,15 @@ export function useClientFlow() {
 
     try {
       await confirmPayment(requestResp.member_id);
+      toast.success(
+        mode === "batch"
+          ? "Payment confirmed — batch request created!"
+          : "Priority request confirmed!"
+      );
       setStep(mode === "batch" ? "batch" : "tanker");
     } catch (e: any) {
       setError(e.message);
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -227,9 +236,10 @@ export function useClientFlow() {
 
           try {
             await leaveBatchMember(requestResp.member_id!);
+            toast.success("You left the batch. Your payment was forfeited.");
             goRoleHome();
           } catch (e: any) {
-            Alert.alert("Error", e.message);
+            toast.error(e.message);
           } finally {
             setLoading(false);
           }

@@ -116,15 +116,47 @@ Fleet heads currently use admin credentials (MVP simplification — no fleet-hea
 - Batch health monitor — 60s
 - Delivery timeout — 5min
 
-**Delivery status machine:** `pending → en_route → arrived → measuring → awaiting_otp → delivered`. Terminal states: `delivered`, `failed`, `skipped`. All transitions are validated via `app/utils/status_rules.py`. Every successful transition writes a `DeliveryEvent` + `AuditLog` row.
+**Status machines** — all defined in `app/utils/status_rules.py`. Every transition must go through `ensure_valid_transition()`.
+
+| Entity | Status flow |
+|--------|-------------|
+| Tanker | `available → assigned → loading → delivering → arrived → completed → available` |
+| Batch | `forming ↔ near_ready → ready_for_assignment → assigned → loading → delivering → arrived → completed/partially_completed/failed/expired` |
+| Request | `pending → searching_driver → assigned → loading → delivering → arrived → completed/partially_completed/failed` |
+| DeliveryRecord | `pending → en_route → arrived → measuring → awaiting_otp → delivered` |
+
+Terminal states: `completed`, `partially_completed`, `failed`, `expired`, `assignment_failed`, `cancelled` (batch/request); `delivered`, `failed`, `skipped` (delivery). Every successful transition writes a `DeliveryEvent` + `AuditLog` row.
 
 **Timeout policy** (`app/utils/time_policy.py`): Offer accept: 60s. Loading: 45min. Priority assignment: 20min. Batch fill: 90min. Late arrival alert: 20min. Delivery timeout: 6h.
 
 **Models of note:**
 - `Tanker` — carries `pending_offer_type`, `pending_offer_id`, `offer_expires_at` for the offer-based dispatch flow
 - `Batch` — groups multiple customer requests onto one tanker; has fill percentage and health scoring
-- `DeliveryRecord` — one row per customer stop; tracks OTP, meter readings, and timestamps
+- `DeliveryRecord` (`models/DeliveryRecord.py` — note PascalCase, unlike all other model files) — one row per customer stop; tracks OTP, meter readings, and timestamps
 - `DriverMetric` — per-zone scoring used by the assignment service to rank tankers
+
+**Schemas** (`app/schemas/`): Pydantic models for request/response validation. Separate from SQLAlchemy models. Named after their domain: `batch.py`, `delivery.py`, `tanker.py`, etc. `DeliveryOut.py` is the exception (PascalCase) and mirrors the model file naming.
+
+**Service layer** (`app/services/`): Routes are thin — all business logic lives in services. Key services:
+
+| Service | Responsibility |
+|---------|---------------|
+| `assignment_service.py` | Tanker ranking + `JobOffer` creation for both batch and priority |
+| `priority_service.py` | Priority-mode assignment flow + retry logic |
+| `batch_orchestration_service.py` | Batch state machine orchestration |
+| `batch_monitor_service.py` | Scheduler-driven batch health checks |
+| `batch_scoring_service.py` | Batch fill-level and priority scoring |
+| `driver_flow_service.py` | Driver offer accept/reject, loading, delivery step transitions |
+| `driver_scoring_service.py` | Zone-based `DriverMetric` updates after each delivery |
+| `delivery_service.py` | `DeliveryRecord` state transitions (arrive, measure, OTP, complete) |
+| `delivery_timeout_service.py` | Scheduler-driven delivery timeout enforcement |
+| `loading_timeout_service.py` | Scheduler-driven loading timeout enforcement |
+| `late_arrival_service.py` | Flags tankers that haven't arrived within the SLA |
+| `payment_service.py` | Payment creation and status transitions |
+| `payout_service.py` | Driver payout calculations |
+| `client_flow_service.py` | Customer-facing request lifecycle helpers |
+| `site_intelligence_service.py` | Site difficulty scoring from delivery history |
+| `admin_audit_service.py` | `AuditLog` writes for all admin mutations |
 
 ---
 
@@ -158,7 +190,19 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 
 **UI components:** `src/components/ui/` contains shadcn/ui primitives. Don't modify these directly — they're generated. Use them via import.
 
-**Hooks:** Business logic lives in hooks under `src/hooks/`. `useClientFlow` and `useDriverFlow` are the main stateful orchestrators for the client and driver experiences respectively.
+**Hooks** (`src/hooks/`):
+
+| Hook | Purpose |
+|------|---------|
+| `useClientFlow` | Client experience orchestrator — request → batch/priority → payment → delivery |
+| `useDriverFlow` | Driver experience orchestrator — auth → offer → loading → delivery steps |
+| `useLiveBatch` | TanStack Query polling for batch live state |
+| `useLivePriorityRequest` | TanStack Query polling for priority request state |
+| `useDriverAuth` | Driver login/register flow |
+| `useDriverLocationHeartbeat` | Sends GPS coords to backend on interval |
+| `useDriverOfferAlarm` | Plays sound/vibration when a new offer arrives |
+| `useClientDeliveryAlerts` | Surfaces delivery status changes as toasts |
+| `useWebPushNotifications` | Browser push notification subscription |
 
 ---
 
@@ -174,11 +218,29 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 - `hooks/useAppTheme.ts` → returns `{ theme, themeMode, isDark, toggleTheme }` where `theme` is a `TankupTheme` object (from `components/ui/theme.ts`). Has richer tokens: `successSoft`, `destructiveSoft`, `warningSoft`, `cardSoft`, `input`, `shadow`, etc. Used by driver, fleet-head, client, and admin screens.
 - `constants/tankupTheme.ts` → simpler `colors` / `darkColors` objects. Only used by the home screen (`app/index.tsx`). Don't use for new screens.
 
-Both patterns pass theme values as inline `style={{ color: theme.foreground }}` props since NativeWind doesn't support dynamic theming at runtime.
+Both patterns pass theme values as inline `style={{ color: theme.foreground }}` props since NativeWind doesn't support dynamic theming at runtime. **NativeWind hybrid rule:** use `className` for static layout/spacing (`flex-row`, `p-4`, `rounded-2xl`); use inline `style` for every dynamic color.
+
+**Fleet-head brand color is intentionally hardcoded** and not in the theme system: `const VIOLET = "#8b5cf6"` / `const VIOLET_SOFT = "rgba(139,92,246,0.12)"` — used in `app/fleet-head/index.tsx` and `app/index.tsx`. Do not move these to the theme.
+
+**Toast system:** `useToast()` from `hooks/useToast.ts` returns `{ toast, showToast }`. `showToast("msg")` = green; `showToast("msg", false)` = red. Render `<ToastMessage toast={toast} theme={theme} />` at the `SafeAreaView` root (not inside `ScrollView`) — it's absolutely positioned with `zIndex: 999`.
+
+**Skeleton loaders:** `<Skeleton theme={theme} width={200} height={20} borderRadius={8} />` from `components/ui/Skeleton.tsx`. Uses Reanimated v4 `withRepeat` on the UI thread. Swap out for real content once the first fetch resolves.
 
 **API libs:** `lib/api.ts` (base `apiRequest`), `lib/driverApi.ts`, `lib/fleetHeadApi.ts` (fleet head — Bearer token stored in AsyncStorage as `fleet_head_auth`). All requests include `ngrok-skip-browser-warning: true` to bypass ngrok's interstitial when tunnelling.
 
-**Background polling:** `hooks/useAppStatePause.ts` — pauses polling hooks when the app enters the background (AppState `active` check). Use this in any hook that polls the backend on an interval.
+**Background polling:** Two patterns must be used together in any hook that polls the backend:
+
+1. **`searchRef` — stale closure prevention.** State used inside `setInterval` must be mirrored to a ref each render so the callback reads fresh values:
+   ```ts
+   const searchRef = useRef(search);
+   searchRef.current = search; // on every render
+   setInterval(() => fetch(searchRef.current), POLL_MS);
+   ```
+
+2. **`useAppStatePause`** — pauses/resumes polling when the app backgrounds. Pass `stopPolling`/`restartPolling` callbacks:
+   ```ts
+   useAppStatePause(stopPolling, restartPolling);
+   ```
 
 **API base URL:** Read from `Constants.expoConfig.extra.API_BASE_URL` (set in `mobile/app.json` → `extra.API_BASE_URL`). `scripts/dev.sh` patches this automatically with the current ngrok tunnel URL on every run. Don't rely on `EXPO_PUBLIC_API_BASE_URL` in `.env` — it doesn't inline reliably with Expo Go + `--tunnel`.
 
