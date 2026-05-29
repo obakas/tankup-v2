@@ -39,6 +39,21 @@ import {
   ROLE_KEY,
 } from "@/constants/clientConstants";
 
+const CLIENT_STATUS_MESSAGES: Record<string, string> = {
+  assigned: "Tanker assigned — loading water",
+  loading: "Tanker loading water",
+  delivering: "Tanker en route to you",
+  en_route: "Tanker en route to you",
+  arrived: "Tanker has arrived!",
+  measuring: "Water measurement started",
+  awaiting_otp: "OTP needed — check your screen",
+  completed: "Delivery complete!",
+  delivered: "Delivery complete!",
+  partially_completed: "Delivery partially completed",
+  failed: "Delivery failed — contact support",
+  expired: "Batch expired",
+};
+
 
 
 export function useClientFlow() {
@@ -62,6 +77,7 @@ export function useClientFlow() {
   const [error, setError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string>("");
   const [scheduledFor, setScheduledFor] = useState("");
 
 
@@ -84,6 +100,11 @@ export function useClientFlow() {
     }
   }, []);
 
+  // Reset status baseline when a new request is made so the first poll doesn't fire a spurious toast.
+  useEffect(() => {
+    prevStatusRef.current = "";
+  }, [requestResp]);
+
   const fetchLive = useCallback(async () => {
     if (!requestResp) return;
 
@@ -99,6 +120,13 @@ export function useClientFlow() {
         setLiveData(data);
 
         const batchStatus = data?.status ?? "";
+        const effectiveStatus = (data?.member_delivery_status as string) || batchStatus;
+
+        if (effectiveStatus && effectiveStatus !== prevStatusRef.current) {
+          const msg = CLIENT_STATUS_MESSAGES[effectiveStatus];
+          if (msg && prevStatusRef.current !== "") toast.info(msg);
+          prevStatusRef.current = effectiveStatus;
+        }
 
         if (batchStatus === "completed") setStep("completed");
         else if (["delivering", "arrived"].includes(batchStatus))
@@ -113,6 +141,12 @@ export function useClientFlow() {
         setLiveData(data);
 
         const reqStatus = data?.status ?? "";
+
+        if (reqStatus && reqStatus !== prevStatusRef.current) {
+          const msg = CLIENT_STATUS_MESSAGES[reqStatus];
+          if (msg && prevStatusRef.current !== "") toast.info(msg);
+          prevStatusRef.current = reqStatus;
+        }
 
         if (reqStatus === "completed") setStep("completed");
         else if (["delivering", "arrived"].includes(reqStatus))

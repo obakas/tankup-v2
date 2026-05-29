@@ -4,11 +4,18 @@ import { router } from "expo-router";
 import type { DriverStep } from "@/types/driver";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { toast } from "@/lib/toast";
+import { useDriverOfferAlarm } from "@/hooks/useDriverOfferAlarm";
+
+const DRIVER_STATUS_MESSAGES: Record<string, string> = {
+  loading: "Tanker loading — prepare for departure",
+  delivering: "Delivery run in progress",
+  arrived: "You have arrived at the delivery point",
+  completed: "All deliveries complete",
+};
 import {
   acceptOffer,
   completeBatchDelivery,
   completePriorityDelivery,
-  driverLogout,
   DriverResponse,
   getCurrentJob,
   getCurrentStop,
@@ -16,6 +23,7 @@ import {
   markBatchLoaded,
   markPriorityLoaded,
   rejectOffer,
+  setDriverOnline,
 } from "@/lib/api";
 
 const POLL_INTERVAL_MS = 4000;
@@ -37,6 +45,9 @@ export function useDriverFlow() {
   const [error, setError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevTankerStatusRef = useRef<string>("");
+
+  const { triggerAlarm, cancelAlarm } = useDriverOfferAlarm();
 
   const goRoleHome = useCallback(async () => {
     await AsyncStorage.removeItem(ROLE_KEY);
@@ -63,11 +74,12 @@ export function useDriverFlow() {
         setOffer(res.offer);
         setStep("incoming");
         stopPolling();
+        void triggerAlarm(res.offer?.offer_type ?? "batch");
       }
     } catch {
       // Polling should be quiet. One bad request must not break the driver screen.
     }
-  }, [driver, stopPolling]);
+  }, [driver, stopPolling, triggerAlarm]);
 
   const pollJob = useCallback(async () => {
     if (!driver) return;
@@ -77,7 +89,15 @@ export function useDriverFlow() {
       setCurrentStop(res);
 
       const tankerStatus = res?.tanker?.status ?? res?.tanker_status ?? "";
+
+      if (tankerStatus && tankerStatus !== prevTankerStatusRef.current) {
+        const msg = DRIVER_STATUS_MESSAGES[tankerStatus];
+        if (msg && prevTankerStatusRef.current !== "") toast.info(msg);
+        prevTankerStatusRef.current = tankerStatus;
+      }
+
       if (["available", "completed"].includes(tankerStatus)) {
+        prevTankerStatusRef.current = "";
         setStep("available");
         setJob(null);
         stopPolling();
@@ -126,6 +146,7 @@ export function useDriverFlow() {
       setJob(res);
 
       const tankerStatus = res?.tanker?.status ?? res?.tanker_status ?? "";
+      prevTankerStatusRef.current = tankerStatus; // baseline — suppress toast on initial restore
       if (tankerStatus === "assigned") setStep("loading");
       else if (["loading", "delivering", "arrived"].includes(tankerStatus)) setStep("delivering");
       else setStep("available");
@@ -159,13 +180,14 @@ export function useDriverFlow() {
       if (!val) {
         stopPolling();
         setStep("offline");
-        try {
-          await driverLogout(driver.tankerId);
-        } catch {
-          // Don't punish the UI for a logout sync failure.
-        }
       } else {
         setStep("available");
+      }
+
+      try {
+        await setDriverOnline(driver.tankerId, val);
+      } catch {
+        // Don't punish the UI for a sync failure.
       }
     },
     [driver, stopPolling]
@@ -178,6 +200,7 @@ export function useDriverFlow() {
     setError(null);
 
     try {
+      void cancelAlarm();
       await acceptOffer(driver.tankerId);
       const jobRes = await getCurrentJob(driver.tankerId);
       setJob(jobRes);
@@ -190,7 +213,7 @@ export function useDriverFlow() {
     } finally {
       setActionLoading(false);
     }
-  }, [driver]);
+  }, [driver, cancelAlarm]);
 
   const handleRejectOffer = useCallback(async () => {
     if (!driver) return;
@@ -199,6 +222,7 @@ export function useDriverFlow() {
     setError(null);
 
     try {
+      void cancelAlarm();
       await rejectOffer(driver.tankerId);
       setOffer(null);
       setStep("available");
@@ -209,7 +233,7 @@ export function useDriverFlow() {
     } finally {
       setActionLoading(false);
     }
-  }, [driver]);
+  }, [driver, cancelAlarm]);
 
   const handleLoaded = useCallback(async () => {
     if (!driver || !job) return;

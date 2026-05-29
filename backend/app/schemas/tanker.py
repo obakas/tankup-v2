@@ -57,6 +57,10 @@ class TankerLocationOut(BaseModel):
         from_attributes = True
 
 
+class OnlineToggle(BaseModel):
+    online: bool
+
+
 class TankerOut(TankerBase):
     id: int
     status: TankerStatus

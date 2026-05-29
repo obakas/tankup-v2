@@ -12,7 +12,7 @@ from app.models.job_offer import JobOffer
 from app.models.request import LiquidRequest
 from app.models.tanker import Tanker
 from app.models.user import User
-from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate,TankerLocationOut
+from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle
 from app.services.assignment_service import (
     clear_tanker_offer,
     mark_offer_accepted,
@@ -801,3 +801,17 @@ def complete_priority_delivery(tanker_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(tanker)
     return {"message": "Priority delivery completed successfully", "tanker_id": tanker.id, "request_id": request.id, "tanker_status": tanker.status, "request_status": request.status}
+
+
+@router.post("/{tanker_id}/online")
+def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depends(get_db)):
+    tanker = get_tanker_or_404(db, tanker_id)
+    tanker.is_online = payload.online
+
+    if payload.online and not tanker.current_request_id and tanker.status in {"available", "completed"}:
+        tanker.status = "available"
+        tanker.is_available = True
+
+    db.commit()
+    db.refresh(tanker)
+    return {"tankerId": tanker.id, "is_online": tanker.is_online, "is_available": tanker.is_available}
