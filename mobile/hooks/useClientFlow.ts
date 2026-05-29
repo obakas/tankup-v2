@@ -28,9 +28,11 @@ import {
   getPriorityRequestLive,
   leaveBatchMember,
   listUserSites,
+  updatePushToken,
   type CreateRequestResponse,
   type SiteProfileResponse,
 } from "@/lib/api";
+import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 
 
 import {
@@ -228,11 +230,13 @@ export function useClientFlow() {
           prevStatusRef.current = effectiveStatus;
         }
 
-        if (batchStatus === "completed") setStep("completed");
+        if (batchStatus === "completed" || batchStatus === "partially_completed") setStep("completed");
         else if (["delivering", "arrived"].includes(batchStatus))
           setStep("delivery");
         else if (["assigned", "loading"].includes(batchStatus))
           setStep("tanker");
+        else if (["failed", "expired", "assignment_failed"].includes(batchStatus))
+          setStep("failed");
 
         if (data?.otp) setOtp(data.otp);
       }
@@ -243,7 +247,7 @@ export function useClientFlow() {
         setLiveData(data);
         setLiveError(null);
 
-        const reqStatus = data?.status ?? "";
+        const reqStatus = data?.request_status ?? "";
 
         if (reqStatus && reqStatus !== prevStatusRef.current) {
           const msg = CLIENT_STATUS_MESSAGES[reqStatus];
@@ -253,7 +257,7 @@ export function useClientFlow() {
 
         if (data?.otp) setOtp(data.otp);
 
-        if (reqStatus === "completed") setStep("completed");
+        if (reqStatus === "completed" || reqStatus === "partially_completed") setStep("completed");
         else if (["delivering", "arrived"].includes(reqStatus))
           setStep("delivery");
         else if (["assigned", "loading"].includes(reqStatus))
@@ -307,8 +311,10 @@ export function useClientFlow() {
     setStep("request");
     loadSites(u.id);
     toast.success(`Welcome, ${u.name}!`);
-    // Write water_user so app/index.tsx shows the client card on next launch
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
+    registerForPushNotificationsAsync().then((token) => {
+      if (token) updatePushToken(u.id, token).catch(() => {});
+    });
   };
 
   const handleSubmitRequest = async () => {

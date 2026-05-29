@@ -8,6 +8,7 @@ from app.services.batch_monitor_service import process_all_active_batches
 from app.services.delivery_timeout_service import expire_overdue_deliveries
 from app.services.loading_timeout_service import expire_overdue_loading_jobs
 from app.services.late_arrival_service import flag_late_arrivals
+from app.services.nearby_notification_service import process_nearby_batch_notifications
 
 scheduler = BackgroundScheduler()
 
@@ -83,6 +84,18 @@ def run_delivery_timeout_monitor():
         db.close()
 
 
+def run_nearby_notification_monitor():
+    db = SessionLocal()
+    try:
+        results = process_nearby_batch_notifications(db)
+        if results:
+            print("Nearby notification monitor tick:")
+            for item in results:
+                print(item)
+    finally:
+        db.close()
+
+
 def start_scheduler():
     if not scheduler.running:
         scheduler.add_job(
@@ -126,6 +139,13 @@ def start_scheduler():
             # minutes=5,
             seconds=30,
             id="late_arrival_monitor_job",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            run_nearby_notification_monitor,
+            trigger="interval",
+            seconds=60,
+            id="nearby_notification_job",
             replace_existing=True,
         )
         scheduler.start()

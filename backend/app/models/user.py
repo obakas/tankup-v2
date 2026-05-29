@@ -10,3 +10,4 @@ class User(Base):
     phone = Column(String, unique=True, nullable=False)
     address = Column(String, nullable=False)
     role = Column(String, default="customer")
+    expo_push_token = Column(String, nullable=True)

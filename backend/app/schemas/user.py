@@ -18,10 +18,12 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     name: str | None = None
     address: str | None = None
+    expo_push_token: str | None = None
 
 
 class UserOut(UserBase):
     id: int
+    expo_push_token: str | None = None
 
     class Config:
         from_attributes = True

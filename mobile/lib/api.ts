@@ -624,3 +624,10 @@ export const getPriorityRequestLive = (requestId: number) =>
 //     params: { tanker_id: tankerId },
 //     body: { reason },
 //   });
+
+export function updatePushToken(userId: number, token: string) {
+  return apiRequest(`/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ expo_push_token: token }),
+  });
+}
