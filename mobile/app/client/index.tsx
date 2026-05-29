@@ -81,12 +81,13 @@ export default function ClientFlow() {
           />
         )}
 
-        {flow.step === "payment" && flow.requestResp && (
+        {flow.step === "payment" && (
           <PaymentStep
             price={flow.price}
             size={flow.size!}
             mode={flow.mode}
-            requestResp={flow.requestResp}
+            priorityMode={flow.priorityMode}
+            scheduledFor={flow.scheduledFor}
             onPay={flow.handleConfirmPayment}
             onCancel={() => flow.setStep("request")}
             loading={flow.loading}
