@@ -120,6 +120,10 @@ export default function ClientFlow() {
             mode={flow.mode}
             liveData={flow.liveData}
             requestResp={flow.requestResp}
+            otp={flow.otp}
+            liveLoading={flow.liveLoading}
+            liveError={flow.liveError}
+            onConfirm={flow.handleDeliveryConfirmed}
           />
         )}
 
