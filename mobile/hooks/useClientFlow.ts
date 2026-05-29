@@ -403,6 +403,17 @@ export function useClientFlow() {
     ]);
   };
 
+  const handleCancelBeforePayment = () => {
+    setRequestResp(null);
+    setSize(null);
+    setMode("batch");
+    setPriorityMode("asap");
+    setScheduledFor("");
+    setSelectedSiteId(null);
+    toast.success("Request cancelled before payment");
+    setStep("request");
+  };
+
   const back = () => {
     if (step === "auth") return goRoleHome();
     if (step === "request") return goRoleHome();
