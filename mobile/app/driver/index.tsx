@@ -1,5 +1,6 @@
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
 import { DriverHeader } from "@/components/driver/DriverHeader";
@@ -11,12 +12,15 @@ import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
 import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
 import { DriverProfileModal } from "@/components/driver/ProfileModal";
-import { useState } from "react";
+import { DriverHelpModal } from "@/components/driver/HelpModal";
+import { ReportIncidentModal } from "@/components/driver/ReportIncidentModal";
 
 export default function DriverFlow() {
   const flow = useDriverFlow();
   const { theme, themeMode, toggleTheme } = useAppTheme();
   const [profileVisible, setProfileVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const [incidentVisible, setIncidentVisible] = useState(false);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -28,6 +32,7 @@ export default function DriverFlow() {
         onToggleOnline={flow.toggleOnline}
         onEditProfile={() => setProfileVisible(true)}
         onLogout={flow.goRoleHome}
+        onOpenHelp={() => setHelpVisible(true)}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
@@ -85,6 +90,7 @@ export default function DriverFlow() {
             onCompleteJob={flow.handleCompleteJob}
             actionLoading={flow.actionLoading}
             setError={flow.setError}
+            onReportIncident={() => setIncidentVisible(true)}
           />
         )}
 
@@ -102,6 +108,21 @@ export default function DriverFlow() {
           onSaved={(updated) => { flow.setDriver(updated); setProfileVisible(false); }}
         />
       )}
+
+      <DriverHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        batchId={flow.job?.active_job?.batch_id ?? flow.job?.batch_id ?? null}
+        tankerId={flow.driver?.tankerId ?? null}
+      />
+
+      <ReportIncidentModal
+        visible={incidentVisible}
+        onClose={() => setIncidentVisible(false)}
+        batchId={flow.job?.active_job?.batch_id ?? flow.job?.batch_id ?? null}
+        tankerId={flow.driver?.tankerId ?? null}
+        deliveryRecordId={flow.currentStop?.current_stop?.id ?? null}
+      />
     </SafeAreaView>
   );
 }

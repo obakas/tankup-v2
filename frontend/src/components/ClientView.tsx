@@ -10,6 +10,7 @@ import CompletedStep from "@/components/client/CompletedStep";
 import ExpiredBatchStep from "@/components/client/ExpiredBatchStep";
 import DeliveryOutcomeStep from "@/components/client/DeliveryOutcomeStep";
 import HelpModal from "@/components/client/HelpModal";
+import ReportIncidentModal from "@/components/client/ReportIncidentModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
 import { ProfileDialog } from "@/components/client/ProfileDialog";
 import { SitesDialog } from "@/components/client/SitesDialog";
@@ -85,6 +86,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [sitesOpen, setSitesOpen] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const {
     isSupported: webPushSupported,
@@ -197,18 +199,26 @@ const ClientView = ({ onBack }: ClientViewProps) => {
 
       case "delivery":
         return (
-          <DeliveryStep
-            requestMode={requestMode}
-            otp={otp}
-            onConfirm={handleDeliveryConfirmed}
-            onCopyOtp={copyOtp}
-            livePriorityRequest={livePriorityRequest}
-            livePriorityLoading={livePriorityLoading}
-            livePriorityError={livePriorityError}
-            liveBatch={liveBatch}
-            liveBatchLoading={liveBatchLoading}
-            liveBatchError={liveBatchError}
-          />
+          <div className="space-y-2">
+            <DeliveryStep
+              requestMode={requestMode}
+              otp={otp}
+              onConfirm={handleDeliveryConfirmed}
+              onCopyOtp={copyOtp}
+              livePriorityRequest={livePriorityRequest}
+              livePriorityLoading={livePriorityLoading}
+              livePriorityError={livePriorityError}
+              liveBatch={liveBatch}
+              liveBatchLoading={liveBatchLoading}
+              liveBatchError={liveBatchError}
+            />
+            <button
+              onClick={() => setShowReport(true)}
+              className="w-full text-xs text-destructive py-2 hover:underline"
+            >
+              Report a problem
+            </button>
+          </div>
         );
 
       case "completed":
@@ -428,7 +438,15 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         )}
       </main>
 
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} batchId={batchId} requestId={requestId} />}
+
+      {showReport && (
+        <ReportIncidentModal
+          onClose={() => setShowReport(false)}
+          batchId={batchId}
+          userId={currentUser?.id ?? null}
+        />
+      )}
 
       {showLeaveBatchWarning && (
         <LeaveBatchWarningModal

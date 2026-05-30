@@ -21,6 +21,7 @@ type Props = {
   onCompleteJob: () => void;
   actionLoading: boolean;
   setError: (e: string | null) => void;
+  onReportIncident?: () => void;
 };
 
 export function DriverDeliveringStep({
@@ -30,6 +31,7 @@ export function DriverDeliveringStep({
   onCompleteJob,
   actionLoading,
   setError,
+  onReportIncident,
 }: Props) {
   const stop = currentStop?.current_stop ?? currentStop?.stop;
   const summary = currentStop?.stop_summary ?? [];
@@ -332,6 +334,17 @@ export function DriverDeliveringStep({
           ) : (
             <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Complete Job</Text>
           )}
+        </Pressable>
+      )}
+
+      {onReportIncident && (
+        <Pressable
+          onPress={onReportIncident}
+          className="items-center py-3"
+        >
+          <Text className="text-xs" style={{ color: theme.destructive }}>
+            Report an incident
+          </Text>
         </Pressable>
       )}
     </View>

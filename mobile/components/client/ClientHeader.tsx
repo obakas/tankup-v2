@@ -1,4 +1,4 @@
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   ArrowLeft,
   Bell,
@@ -23,6 +23,7 @@ type Props = {
   onLogout: () => void;
   onEditProfile: () => void;
   onOpenSites: () => void;
+  onOpenHelp: () => void;
   theme: ReturnType<typeof import("@/components/ui/theme").getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -38,6 +39,7 @@ export function ClientHeader({
   onLogout,
   onEditProfile,
   onOpenSites,
+  onOpenHelp,
   theme,
   themeMode,
   onToggleTheme,
@@ -107,7 +109,7 @@ export function ClientHeader({
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert("Help", "Contact support: 0800-TANKUP")}
+            onPress={onOpenHelp}
             accessibilityLabel="Help"
             accessibilityRole="button"
             className="p-2"

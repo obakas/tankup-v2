@@ -8,6 +8,7 @@ import DriverIncomingOfferStep from "@/components/driver/DriverIncomingOfferStep
 import DriverAuthModal from "@/components/driver/DriverAuthModal";
 import { DriverProfileDialog } from "@/components/driver/DriverProfileDialog";
 import DriverHelpModal from "@/components/driver/DriverHelpModal";
+import DriverReportIncidentModal from "@/components/driver/ReportIncidentModal";
 import DeliveryHistoryTab from "@/components/driver/DeliveryHistoryTab";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
 import { useDriverAuth } from "@/hooks/useDriverAuth";
@@ -101,6 +102,7 @@ function NextStepCard({
 
 const DriverView = ({ onBack }: DriverViewProps) => {
   const [showHelp, setShowHelp] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
@@ -363,37 +365,45 @@ const DriverView = ({ onBack }: DriverViewProps) => {
         }
 
         return (
-          <DriverDeliveringStep
-            currentDelivery={currentDelivery}
-            activeDeliveryIdx={activeDeliveryIdx}
-            deliveredCount={deliveredCount}
-            totalStops={deliveries.length}
-            allDelivered={allDelivered}
-            allowedActions={allowedActions}
-            currentStopStatus={currentStop?.delivery_status ?? null}
-            otpVerified={currentStop?.otp_verified ?? false}
-            otpInput={otpInput}
-            setOtpInput={setOtpInput}
-            meterStartReading={meterStartReading}
-            setMeterStartReading={setMeterStartReading}
-            meterEndReading={meterEndReading}
-            setMeterEndReading={setMeterEndReading}
-            deliveryNotes={deliveryNotes}
-            setDeliveryNotes={setDeliveryNotes}
-            failureReason={failureReason}
-            setFailureReason={setFailureReason}
-            skipReason={skipReason}
-            setSkipReason={setSkipReason}
-            isLoading={isActionLoading}
-            onMarkArrived={markArrived}
-            onBeginMeasurement={beginMeasurement}
-            onFinishMeasurement={finishMeasurement}
-            onVerifyOtp={verifyOtp}
-            onCompleteDelivery={completeDelivery}
-            onFailStop={failCurrentStop}
-            onSkipStop={skipCurrentStop}
-            onReset={resetToDashboard}
-          />
+          <div className="space-y-2">
+            <DriverDeliveringStep
+              currentDelivery={currentDelivery}
+              activeDeliveryIdx={activeDeliveryIdx}
+              deliveredCount={deliveredCount}
+              totalStops={deliveries.length}
+              allDelivered={allDelivered}
+              allowedActions={allowedActions}
+              currentStopStatus={currentStop?.delivery_status ?? null}
+              otpVerified={currentStop?.otp_verified ?? false}
+              otpInput={otpInput}
+              setOtpInput={setOtpInput}
+              meterStartReading={meterStartReading}
+              setMeterStartReading={setMeterStartReading}
+              meterEndReading={meterEndReading}
+              setMeterEndReading={setMeterEndReading}
+              deliveryNotes={deliveryNotes}
+              setDeliveryNotes={setDeliveryNotes}
+              failureReason={failureReason}
+              setFailureReason={setFailureReason}
+              skipReason={skipReason}
+              setSkipReason={setSkipReason}
+              isLoading={isActionLoading}
+              onMarkArrived={markArrived}
+              onBeginMeasurement={beginMeasurement}
+              onFinishMeasurement={finishMeasurement}
+              onVerifyOtp={verifyOtp}
+              onCompleteDelivery={completeDelivery}
+              onFailStop={failCurrentStop}
+              onSkipStop={skipCurrentStop}
+              onReset={resetToDashboard}
+            />
+            <button
+              onClick={() => setShowReport(true)}
+              className="w-full text-xs text-destructive py-2 hover:underline"
+            >
+              Report an incident
+            </button>
+          </div>
         );
 
       case "completed":
@@ -488,7 +498,16 @@ const DriverView = ({ onBack }: DriverViewProps) => {
         )}
       </div>
 
-      {showHelp && <DriverHelpModal onClose={() => setShowHelp(false)} />}
+      {showHelp && <DriverHelpModal onClose={() => setShowHelp(false)} batchId={activeJob?.jobId || null} driverId={driver?.tankerId ?? null} />}
+
+      {showReport && (
+        <DriverReportIncidentModal
+          onClose={() => setShowReport(false)}
+          batchId={activeJob?.jobId ?? null}
+          tankerId={driver?.tankerId ?? null}
+          deliveryRecordId={currentStop?.id ?? null}
+        />
+      )}
 
       {driver && (
         <DriverProfileDialog

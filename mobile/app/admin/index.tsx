@@ -35,7 +35,7 @@ const ADMIN_SECRET =
 function adminReq<T>(
   token: string,
   endpoint: string,
-  options: { method?: "GET" | "POST"; body?: unknown } = {}
+  options: { method?: "GET" | "POST" | "PATCH"; body?: unknown } = {}
 ): Promise<T> {
   return apiRequest<T>(endpoint, {
     method: options.method ?? "GET",
@@ -113,6 +113,10 @@ const api = {
     adminReq(tok, `/admin/deliveries/${id}/skip-manual`, { method: "POST", body: { reason } }),
   refundMember: (tok: string, memberId: number) =>
     adminReq(tok, `/admin/batch-members/${memberId}/refund`, { method: "POST" }),
+  incidents: (tok: string, status?: string) =>
+    adminReq<any[]>(tok, `/incidents?${buildQ({ status })}`),
+  resolveIncident: (tok: string, id: number, newStatus: string, note?: string) =>
+    adminReq(tok, `/incidents/${id}`, { method: "PATCH", body: { new_status: newStatus, resolution_note: note ?? null } }),
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -131,7 +135,7 @@ function fmtDate(s?: string | null) {
   });
 }
 
-type Tab = "overview" | "live" | "history" | "payments" | "emergency";
+type Tab = "overview" | "live" | "history" | "payments" | "emergency" | "incidents";
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -147,6 +151,8 @@ export default function AdminDashboard() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [tankers, setTankers] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<any[]>([]);
+  const [incidentStatus, setIncidentStatus] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -211,17 +217,24 @@ export default function AdminDashboard() {
     } catch (_) {}
   }, []);
 
+  const fetchIncidents = useCallback(async (tok: string, status?: string) => {
+    try {
+      const data = await api.incidents(tok, status || undefined);
+      setIncidents(Array.isArray(data) ? data : []);
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    Promise.all([fetchLive(token), fetchHistory(token)]).finally(() => setLoading(false));
+    Promise.all([fetchLive(token), fetchHistory(token), fetchIncidents(token)]).finally(() => setLoading(false));
     liveRef.current = setInterval(() => fetchLive(token), POLL_LIVE_MS);
     histRef.current = setInterval(() => fetchHistory(token), POLL_HIST_MS);
     return () => {
       if (liveRef.current) clearInterval(liveRef.current);
       if (histRef.current) clearInterval(histRef.current);
     };
-  }, [token, fetchLive, fetchHistory]);
+  }, [token, fetchLive, fetchHistory, fetchIncidents]);
 
   const stopAllPolling = useCallback(() => {
     if (liveRef.current) { clearInterval(liveRef.current); liveRef.current = null; }
@@ -250,7 +263,7 @@ export default function AdminDashboard() {
       await action();
       toast.success(successMsg);
       if (token) {
-        await Promise.all([fetchLive(token), fetchHistory(token)]);
+        await Promise.all([fetchLive(token), fetchHistory(token), fetchIncidents(token, incidentStatus)]);
       }
     } catch (e: any) {
       toast.error(e.message || "Action failed");
@@ -280,15 +293,19 @@ export default function AdminDashboard() {
     setDeliveries([]);
     setPayments([]);
     setTankers([]);
+    setIncidents([]);
+    router.replace("/");
   };
 
   if (!token) return <LoginScreen theme={theme} isDark={isDark} onToggleTheme={toggleTheme} onLogin={setToken} />;
 
+  const openIncidents = incidents.filter((i) => i.status === "created" || i.status === "escalated").length;
   const TABS: { key: Tab; label: string }[] = [
     { key: "overview", label: alerts.length ? `Overview (${alerts.length})` : "Overview" },
     { key: "live", label: "Live" },
     { key: "history", label: "History" },
     { key: "payments", label: "Payments" },
+    { key: "incidents", label: openIncidents > 0 ? `Incidents (${openIncidents})` : "Incidents" },
     { key: "emergency", label: "Emergency" },
   ];
 
@@ -307,7 +324,7 @@ export default function AdminDashboard() {
         }}
       >
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() ? router.back() : router.replace("/")}
           accessibilityLabel="Go back"
           accessibilityRole="button"
           style={{ padding: 6 }}
@@ -355,7 +372,10 @@ export default function AdminDashboard() {
         {TABS.map((t) => (
           <Pressable
             key={t.key}
-            onPress={() => setTab(t.key)}
+            onPress={() => {
+              setTab(t.key);
+              if (t.key === "incidents" && token) fetchIncidents(token, incidentStatus);
+            }}
             style={{
               paddingHorizontal: 14,
               paddingVertical: 12,
@@ -470,6 +490,27 @@ export default function AdminDashboard() {
                   title: "Reset tanker",
                   msg: `Clear pending offer/assignment for tanker #${tnkId}?`,
                   action: () => api.resetTanker(token, tnkId),
+                })
+              }
+            />
+          )}
+
+          {tab === "incidents" && token && (
+            <IncidentsTab
+              theme={theme}
+              incidents={incidents}
+              statusFilter={incidentStatus}
+              onStatusChange={(s) => {
+                setIncidentStatus(s);
+                fetchIncidents(token, s);
+              }}
+              onRefresh={() => fetchIncidents(token, incidentStatus)}
+              actionLoading={actionLoading}
+              onResolve={(id, newStatus) =>
+                setConfirm({
+                  title: "Update incident",
+                  msg: `Mark incident #${id} as '${newStatus}'?`,
+                  action: () => api.resolveIncident(token, id, newStatus),
                 })
               }
             />
@@ -734,7 +775,7 @@ function LoginScreen({
           borderBottomColor: theme.border,
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ padding: 6 }}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace("/")} style={{ padding: 6 }}>
           <ArrowLeft color={theme.mutedForeground} size={20} />
         </Pressable>
         <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 15, marginLeft: 8 }}>
@@ -1242,6 +1283,129 @@ function PaymentsTab({
                 disabled={actionLoading}
               />
             </View>
+          </View>
+        ))
+      )}
+    </>
+  );
+}
+
+// ── Incidents Tab ─────────────────────────────────────────────────────────────
+
+const INCIDENT_STATUSES = ["", "created", "escalated", "resolved", "closed"];
+
+function IncidentsTab({
+  theme, incidents, statusFilter, onStatusChange, onRefresh, actionLoading, onResolve,
+}: {
+  theme: TankupTheme;
+  incidents: any[];
+  statusFilter: string;
+  onStatusChange: (s: string) => void;
+  onRefresh: () => void;
+  actionLoading: boolean;
+  onResolve: (id: number, newStatus: string) => void;
+}) {
+  return (
+    <>
+      {/* Filter row */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12, flexGrow: 0 }}>
+        <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 2 }}>
+          {INCIDENT_STATUSES.map((s) => (
+            <Pressable
+              key={s || "all"}
+              onPress={() => onStatusChange(s)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+                backgroundColor: statusFilter === s ? RED : theme.muted,
+              }}
+            >
+              <Text style={{ fontSize: 12, color: statusFilter === s ? "#fff" : theme.mutedForeground, fontWeight: "600" }}>
+                {s || "All"}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={onRefresh}
+            style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: theme.muted }}
+          >
+            <Text style={{ fontSize: 12, color: theme.mutedForeground, fontWeight: "600" }}>Refresh</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+
+      {incidents.length === 0 ? (
+        <View style={{ alignItems: "center", paddingVertical: 40 }}>
+          <Text style={{ color: theme.mutedForeground, fontSize: 13 }}>No incidents found</Text>
+        </View>
+      ) : (
+        incidents.map((inc) => (
+          <View
+            key={inc.id}
+            style={{
+              backgroundColor: theme.card,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: (inc.status === "created" || inc.status === "escalated") ? RED + "55" : theme.border,
+              padding: 14,
+              marginBottom: 10,
+              gap: 6,
+            }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 13, flex: 1 }}>
+                #{inc.id} — {inc.incident_type.replace(/_/g, " ")}
+              </Text>
+              <View style={{ backgroundColor: inc.status === "created" ? RED_SOFT : theme.muted, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 11, fontWeight: "600", color: inc.status === "created" ? RED : theme.mutedForeground }}>
+                  {inc.status}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
+              Source: {inc.source}
+              {inc.batch_id ? ` • Batch #${inc.batch_id}` : ""}
+              {inc.tanker_id ? ` • Tanker #${inc.tanker_id}` : ""}
+            </Text>
+
+            {inc.description && (
+              <Text style={{ color: theme.foreground, fontSize: 12 }}>{inc.description}</Text>
+            )}
+
+            <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+              {fmtDate(inc.created_at)}
+              {inc.resolution_note ? ` — Note: ${inc.resolution_note}` : ""}
+            </Text>
+
+            {(inc.status === "created" || inc.status === "escalated") && (
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
+                {inc.status === "created" && (
+                  <Pressable
+                    disabled={actionLoading}
+                    onPress={() => onResolve(inc.id, "escalated")}
+                    style={{ flex: 1, backgroundColor: "rgba(245,158,11,0.15)", borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
+                  >
+                    <Text style={{ color: "#f59e0b", fontWeight: "600", fontSize: 12 }}>Escalate</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  disabled={actionLoading}
+                  onPress={() => onResolve(inc.id, "resolved")}
+                  style={{ flex: 1, backgroundColor: "rgba(34,197,94,0.15)", borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
+                >
+                  <Text style={{ color: "#22c55e", fontWeight: "600", fontSize: 12 }}>Resolve</Text>
+                </Pressable>
+                <Pressable
+                  disabled={actionLoading}
+                  onPress={() => onResolve(inc.id, "closed")}
+                  style={{ flex: 1, backgroundColor: theme.muted, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
+                >
+                  <Text style={{ color: theme.mutedForeground, fontWeight: "600", fontSize: 12 }}>Close</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         ))
       )}

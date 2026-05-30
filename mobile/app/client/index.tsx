@@ -2,6 +2,7 @@
 
 import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState } from "react";
 
 import { useClientFlow } from "@/hooks/useClientFlow";
 
@@ -14,8 +15,9 @@ import { TankerStep } from "@/components/client/TankerStep";
 import { DeliveryStep } from "@/components/client/DeliveryStep";
 import { CompletedStep } from "@/components/client/CompletedStep";
 import { FailedStep } from "@/components/client/FailedStep";
+import { HelpModal } from "@/components/client/HelpModal";
+import { ReportIncidentModal } from "@/components/client/ReportIncidentModal";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { useState } from "react";
 import { OrderHistoryModal } from "@/components/client/OrderHistoryModal";
 import { ProfileModal } from "@/components/client/ProfileModal";
 import { SitesModal } from "@/components/client/SitesModal";
@@ -27,18 +29,20 @@ export default function ClientFlow() {
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
   const [sitesVisible, setSitesVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const [incidentVisible, setIncidentVisible] = useState(false);
 
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <ClientHeader
         title={flow.titles[flow.step]}
-        // stepLabel={flow.step.toUpperCase()}
         user={flow.user}
         onBack={flow.back}
         onLogout={flow.goRoleHome}
         onEditProfile={() => setProfileVisible(true)}
         onOpenSites={() => setSitesVisible(true)}
+        onOpenHelp={() => setHelpVisible(true)}
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}
@@ -129,6 +133,7 @@ export default function ClientFlow() {
             liveLoading={flow.liveLoading}
             liveError={flow.liveError}
             onConfirm={() => flow.setStep("completed")}
+            onReportIncident={() => setIncidentVisible(true)}
           />
         )}
 
@@ -177,6 +182,20 @@ export default function ClientFlow() {
           }}
         />
       )}
+
+      <HelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        batchId={flow.requestResp?.batch_id ?? null}
+        requestId={flow.requestResp?.request_id ?? null}
+      />
+
+      <ReportIncidentModal
+        visible={incidentVisible}
+        onClose={() => setIncidentVisible(false)}
+        batchId={flow.requestResp?.batch_id ?? null}
+        userId={flow.user?.id ?? null}
+      />
     </SafeAreaView>
   );
 }

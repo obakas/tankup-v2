@@ -21,6 +21,7 @@ type Props = {
   liveLoading?: boolean;
   liveError?: string | null;
   onConfirm: () => void;
+  onReportIncident?: () => void;
 };
 
 function formatDateTime(value?: string | null) {
@@ -112,6 +113,7 @@ export function DeliveryStep({
   liveLoading = false,
   liveError = null,
   onConfirm,
+  onReportIncident,
 }: Props) {
   const { theme } = useAppTheme();
   const isPriority = mode === "priority";
@@ -466,6 +468,13 @@ export function DeliveryStep({
         </Text>
       </Pressable>
 
+      {onReportIncident && (
+        <Pressable onPress={onReportIncident} className="items-center py-3">
+          <Text className="text-xs" style={{ color: theme.destructive }}>
+            Report a problem
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }

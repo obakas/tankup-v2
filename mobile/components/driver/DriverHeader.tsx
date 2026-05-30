@@ -1,4 +1,4 @@
-import { Alert, Pressable, Switch, Text, View } from "react-native";
+import { Pressable, Switch, Text, View } from "react-native";
 import { ArrowLeft, HelpCircle, LogOut, Moon, Sun, Truck, UserPen } from "lucide-react-native";
 import type { AppTheme, getTheme } from "@/components/ui/theme";
 import type { DriverResponse } from "@/lib/api";
@@ -11,6 +11,7 @@ type Props = {
   onToggleOnline: (val: boolean) => void;
   onEditProfile: () => void;
   onLogout: () => void;
+  onOpenHelp: () => void;
   theme: ReturnType<typeof getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -24,6 +25,7 @@ export function DriverHeader({
   onToggleOnline,
   onEditProfile,
   onLogout,
+  onOpenHelp,
   theme,
   themeMode,
   onToggleTheme,
@@ -116,7 +118,7 @@ export function DriverHeader({
           </Pressable>
 
           <Pressable
-            onPress={() => Alert.alert("Help", "Driver support: 0800-DRIVER")}
+            onPress={onOpenHelp}
             accessibilityLabel="Help"
             accessibilityRole="button"
             className="p-2"
