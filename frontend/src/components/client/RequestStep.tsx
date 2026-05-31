@@ -59,6 +59,12 @@ const RequestStep = ({
         selectedSize * BATCH_PRICE_PER_LITER
         : 0;
 
+  const selectedSite = userSites.find(s => s.id === selectedSiteId);
+  const isOverCapacity =
+    selectedSize !== null &&
+    (selectedSite?.tank_capacity_liters ?? 0) > 0 &&
+    selectedSize > selectedSite!.tank_capacity_liters!;
+
   return (
     <div className="space-y-6">
       <div className="text-center py-4">
@@ -348,6 +354,18 @@ const RequestStep = ({
               {selectedSize.toLocaleString()}L
             </span>
           </div>
+
+          {isOverCapacity && selectedSite?.tank_capacity_liters && (
+            <div className="rounded-lg bg-warning/5 border border-warning/20 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Volume exceeds registered tank capacity
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                You selected {selectedSize.toLocaleString()}L but your site's registered capacity is{" "}
+                {selectedSite.tank_capacity_liters.toLocaleString()}L. You can still proceed.
+              </p>
+            </div>
+          )}
 
           {requestMode === "batch" ? (
             <div className="flex justify-between text-sm">

@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.schemas.request import RequestCreate
+from app.models.customer_site_profile import CustomerSiteProfile
 from app.services.batch_service import find_or_create_batch
 from app.services.priority_service import (
     create_and_assign_priority_request,
@@ -125,6 +126,20 @@ def get_active_priority_request_for_user_flow(
     return get_priority_request_live_flow(db, request.id)
 
 
+def _get_tank_capacity_warning(db: Session, data: RequestCreate) -> str | None:
+    if not data.site_profile_id:
+        return None
+    site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == data.site_profile_id).first()
+    if not site or not site.tank_capacity_liters:
+        return None
+    if data.volume_liters > site.tank_capacity_liters:
+        return (
+            f"Requested volume ({data.volume_liters}L) exceeds the registered tank "
+            f"capacity ({site.tank_capacity_liters}L) for the selected site."
+        )
+    return None
+
+
 def create_client_request_flow(db: Session, data: RequestCreate) -> dict[str, Any]:
     """
     Main entry point from route layer.
@@ -133,13 +148,18 @@ def create_client_request_flow(db: Session, data: RequestCreate) -> dict[str, An
     This flow assumes payment has ALREADY succeeded on the frontend side.
     The user should only hit this endpoint after successful payment.
     """
+    warning = _get_tank_capacity_warning(db, data)
+
     if data.delivery_type == "batch":
-        return create_batch_request_flow(db, data)
+        result = create_batch_request_flow(db, data)
+    elif data.delivery_type == "priority":
+        result = create_priority_request_flow(db, data)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid delivery type")
 
-    if data.delivery_type == "priority":
-        return create_priority_request_flow(db, data)
-
-    raise HTTPException(status_code=400, detail="Invalid delivery type")
+    if warning:
+        result["warning"] = warning
+    return result
 
 
 def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any]:

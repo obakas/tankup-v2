@@ -1,18 +1,18 @@
 import { Pressable, Text, View } from "react-native";
+import { useState } from "react";
 import {
   ArrowLeft,
   Bell,
   BellOff,
   Droplets,
   HelpCircle,
-  History,
   LogOut,
-  MapPin,
+  MoreHorizontal,
   Moon,
   Sun,
-  UserPen,
 } from "lucide-react-native";
 
+import { ClientActionsSheet } from "@/components/client/ClientActionsSheet";
 import type { AppTheme } from "@/components/ui/theme";
 import type { CurrentUser } from "@/types/client";
 
@@ -47,6 +47,8 @@ export function ClientHeader({
   onToggleAlerts,
   onOpenHistory,
 }: Props) {
+  const [actionsVisible, setActionsVisible] = useState(false);
+
   return (
     <View
       style={{ backgroundColor: theme.card, borderBottomColor: theme.border }}
@@ -164,40 +166,25 @@ export function ClientHeader({
         </View>
 
         {user && (
-          <View className="flex-row gap-2">
-            {/* Edit profile — primary accent */}
+          <>
             <Pressable
-              onPress={onEditProfile}
-              accessibilityLabel="Edit profile"
+              onPress={() => setActionsVisible(true)}
+              accessibilityLabel="More options"
               accessibilityRole="button"
               style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
               className="h-12 w-12 items-center justify-center rounded-2xl border"
             >
-              <UserPen color={theme.primary} size={19} />
+              <MoreHorizontal color={theme.primary} size={20} />
             </Pressable>
 
-            {/* My sites — primary accent */}
-            <Pressable
-              onPress={onOpenSites}
-              accessibilityLabel="My delivery sites"
-              accessibilityRole="button"
-              style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
-              className="h-12 w-12 items-center justify-center rounded-2xl border"
-            >
-              <MapPin color={theme.primary} size={19} />
-            </Pressable>
-
-            {/* Order history — primary accent */}
-            <Pressable
-              onPress={onOpenHistory}
-              accessibilityLabel="Order history"
-              accessibilityRole="button"
-              style={{ backgroundColor: theme.primarySoft, borderColor: theme.primary + "30" }}
-              className="h-12 w-12 items-center justify-center rounded-2xl border"
-            >
-              <History color={theme.primary} size={20} />
-            </Pressable>
-          </View>
+            <ClientActionsSheet
+              visible={actionsVisible}
+              onClose={() => setActionsVisible(false)}
+              onEditProfile={onEditProfile}
+              onOpenSites={onOpenSites}
+              onOpenHistory={onOpenHistory}
+            />
+          </>
         )}
       </View>
     </View>

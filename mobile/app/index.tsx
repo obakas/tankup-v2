@@ -4,7 +4,6 @@ import { router } from "expo-router";
 import { Droplets, Truck, Users, Moon, Sun } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { type TankupTheme } from "@/components/ui/theme";
 
@@ -54,13 +53,19 @@ export default function RoleSelect() {
   const logoTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as Record<string, unknown>;
-      if (data?.type === "batch_invite") {
-        router.push("/client");
-      }
-    });
-    return () => sub.remove();
+    // expo-notifications throws on import in Expo Go (Android, SDK 53+); guard with require
+    try {
+      const Notifications = require("expo-notifications");
+      const sub = Notifications.addNotificationResponseReceivedListener((response: any) => {
+        const data = response.notification.request.content.data as Record<string, unknown>;
+        if (data?.type === "batch_invite") {
+          router.push("/client");
+        }
+      });
+      return () => sub.remove();
+    } catch {
+      // running in Expo Go — push notification tap routing unavailable
+    }
   }, []);
 
   useEffect(() => {

@@ -122,6 +122,12 @@ export function RequestStep({
       ? PRIORITY_FULL_TANKER_PRICE + PRIORITY_FULL_TANKER_PRICE * PLATFORM_PRIORITY_COMMISSION_RATE
       : (size ?? 0) * BATCH_PRICE_PER_LITER + (size ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
 
+  const selectedSite = userSites.find(s => s.id === selectedSiteId);
+  const isOverCapacity =
+    size !== null &&
+    (selectedSite?.tank_capacity_liters ?? 0) > 0 &&
+    size > selectedSite!.tank_capacity_liters!;
+
   const canContinue =
     !!size &&
     !!selectedSiteId &&
@@ -461,6 +467,21 @@ export function RequestStep({
               {size.toLocaleString()}L
             </Text>
           </View>
+
+          {isOverCapacity && selectedSite?.tank_capacity_liters && (
+            <View
+              style={{ backgroundColor: theme.warningSoft, borderColor: theme.warning }}
+              className="rounded-lg border p-3"
+            >
+              <Text style={{ color: theme.warning }} className="text-sm font-medium">
+                Volume exceeds registered tank capacity
+              </Text>
+              <Text style={mutedText} className="text-xs mt-1">
+                You selected {size.toLocaleString()}L but your site's registered capacity is{" "}
+                {selectedSite.tank_capacity_liters.toLocaleString()}L. You can still proceed.
+              </Text>
+            </View>
+          )}
 
           {mode === "batch" ? (
             <View className="flex-row justify-between">
