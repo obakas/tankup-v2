@@ -1,5 +1,5 @@
 import { Pressable, Switch, Text, View } from "react-native";
-import { ArrowLeft, HelpCircle, LogOut, Moon, Sun, Truck, UserPen } from "lucide-react-native";
+import { ArrowLeft, Bell, HelpCircle, LogOut, Moon, Sun, Truck, UserPen } from "lucide-react-native";
 import type { AppTheme, getTheme } from "@/components/ui/theme";
 import type { DriverResponse } from "@/lib/api";
 
@@ -12,6 +12,7 @@ type Props = {
   onEditProfile: () => void;
   onLogout: () => void;
   onOpenHelp: () => void;
+  onOpenNotificationSettings: () => void;
   theme: ReturnType<typeof getTheme>;
   themeMode: AppTheme;
   onToggleTheme: () => void;
@@ -26,6 +27,7 @@ export function DriverHeader({
   onEditProfile,
   onLogout,
   onOpenHelp,
+  onOpenNotificationSettings,
   theme,
   themeMode,
   onToggleTheme,
@@ -115,6 +117,15 @@ export function DriverHeader({
             ) : (
               <Moon color={theme.mutedForeground} size={20} />
             )}
+          </Pressable>
+
+          <Pressable
+            onPress={onOpenNotificationSettings}
+            accessibilityLabel="Notification settings"
+            accessibilityRole="button"
+            className="p-2"
+          >
+            <Bell color={theme.mutedForeground} size={20} />
           </Pressable>
 
           <Pressable

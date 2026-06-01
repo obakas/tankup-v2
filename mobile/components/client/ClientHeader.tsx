@@ -30,6 +30,7 @@ type Props = {
   alertsEnabled: boolean;
   onToggleAlerts: () => void;
   onOpenHistory: () => void;
+  onOpenNotificationSettings: () => void;
 };
 
 export function ClientHeader({
@@ -46,6 +47,7 @@ export function ClientHeader({
   alertsEnabled,
   onToggleAlerts,
   onOpenHistory,
+  onOpenNotificationSettings,
 }: Props) {
   const [actionsVisible, setActionsVisible] = useState(false);
 
@@ -183,6 +185,7 @@ export function ClientHeader({
               onEditProfile={onEditProfile}
               onOpenSites={onOpenSites}
               onOpenHistory={onOpenHistory}
+              onOpenNotificationSettings={onOpenNotificationSettings}
             />
           </>
         )}

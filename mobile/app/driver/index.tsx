@@ -1,6 +1,7 @@
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
+import { router } from "expo-router";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
 import { DriverHeader } from "@/components/driver/DriverHeader";
@@ -41,6 +42,13 @@ export default function DriverFlow() {
         onEditProfile={() => setProfileVisible(true)}
         onLogout={flow.goRoleHome}
         onOpenHelp={() => setHelpVisible(true)}
+        onOpenNotificationSettings={() =>
+          router.push(
+            flow.driver
+              ? `/driver/settings?actor_id=${flow.driver.tankerId}`
+              : "/driver/settings"
+          )
+        }
         theme={theme}
         themeMode={themeMode}
         onToggleTheme={toggleTheme}

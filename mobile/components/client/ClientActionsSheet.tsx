@@ -1,5 +1,5 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { History, MapPin, UserPen, X } from "lucide-react-native";
+import { Bell, History, MapPin, UserPen, X } from "lucide-react-native";
 
 import { useAppTheme } from "@/hooks/useAppTheme";
 
@@ -9,6 +9,7 @@ type Props = {
   onEditProfile: () => void;
   onOpenSites: () => void;
   onOpenHistory: () => void;
+  onOpenNotificationSettings: () => void;
 };
 
 type ActionRowProps = {
@@ -65,6 +66,7 @@ export function ClientActionsSheet({
   onEditProfile,
   onOpenSites,
   onOpenHistory,
+  onOpenNotificationSettings,
 }: Props) {
   const { theme } = useAppTheme();
 
@@ -156,6 +158,16 @@ export function ClientActionsSheet({
             label="Order history"
             description="View your past water delivery orders"
             onPress={() => handle(onOpenHistory)}
+          />
+
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+
+          <ActionRow
+            icon={<Bell color={theme.primary} size={20} />}
+            iconBg={theme.primarySoft}
+            label="Notification settings"
+            description="Choose which alerts and updates you receive"
+            onPress={() => handle(onOpenNotificationSettings)}
           />
         </Pressable>
       </Pressable>

@@ -6,6 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.notification_subscription import NotificationSubscription
+from app.services.notification_preference_service import (
+    DEFAULT_CATEGORIES,
+    get_preferences,
+    update_preferences,
+)
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -91,3 +96,56 @@ def unsubscribe_from_push(payload: UnsubscribeIn, db: Session = Depends(get_db))
     db.commit()
 
     return {"ok": True, "message": "Push subscription disabled."}
+
+
+# ── Notification Preferences ───────────────────────────────────────────────────
+
+VALID_ACTOR_TYPES = {"customer", "driver", "fleet_head", "admin"}
+
+
+class PreferencesOut(BaseModel):
+    actor_type: str
+    actor_id: str
+    preferences: dict[str, bool]
+    categories_meta: dict[str, list[str]]  # actor_type -> list of valid category keys
+
+
+class PreferencesUpdateIn(BaseModel):
+    actor_type: str
+    actor_id: str
+    updates: dict[str, bool]
+
+
+@router.get("/preferences", response_model=PreferencesOut)
+def get_notification_preferences(
+    actor_type: str,
+    actor_id: str,
+    db: Session = Depends(get_db),
+):
+    if actor_type not in VALID_ACTOR_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid actor_type: {actor_type}")
+
+    prefs = get_preferences(db, actor_type, actor_id)
+    return PreferencesOut(
+        actor_type=actor_type,
+        actor_id=actor_id,
+        preferences=prefs,
+        categories_meta={k: list(v.keys()) for k, v in DEFAULT_CATEGORIES.items()},
+    )
+
+
+@router.patch("/preferences", response_model=PreferencesOut)
+def patch_notification_preferences(
+    payload: PreferencesUpdateIn,
+    db: Session = Depends(get_db),
+):
+    if payload.actor_type not in VALID_ACTOR_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid actor_type: {payload.actor_type}")
+
+    prefs = update_preferences(db, payload.actor_type, payload.actor_id, payload.updates)
+    return PreferencesOut(
+        actor_type=payload.actor_type,
+        actor_id=payload.actor_id,
+        preferences=prefs,
+        categories_meta={k: list(v.keys()) for k, v in DEFAULT_CATEGORIES.items()},
+    )

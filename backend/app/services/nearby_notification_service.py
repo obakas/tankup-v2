@@ -13,6 +13,7 @@ from app.models.customer_site_profile import CustomerSiteProfile
 from app.models.request import LiquidRequest
 from app.models.user import User
 from app.services.routing_service import calculate_distance_km
+from app.services.notification_preference_service import is_enabled
 
 _ACTIVE_REQUEST_STATUSES = {
     "pending",
@@ -122,6 +123,8 @@ def process_nearby_batch_notifications(db: Session) -> list[str]:
 
         sent: list[int] = []
         for user in eligible_users:
+            if not is_enabled(db, "customer", str(user.id), "batch_nearby"):
+                continue
             ok = _send_expo_push(
                 token=user.expo_push_token,
                 title="Batch forming near your site!",

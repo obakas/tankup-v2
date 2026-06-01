@@ -3,6 +3,7 @@
 import { View, Text, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
+import { router } from "expo-router";
 
 import { useClientFlow } from "@/hooks/useClientFlow";
 
@@ -49,6 +50,7 @@ export default function ClientFlow() {
         alertsEnabled={alertsEnabled}
         onToggleAlerts={() => setAlertsEnabled((prev) => !prev)}
         onOpenHistory={() => setHistoryVisible(true)}
+        onOpenNotificationSettings={() => router.push("/client/settings")}
       />
 
       <ScrollView

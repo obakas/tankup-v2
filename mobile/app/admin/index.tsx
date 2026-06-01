@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { AlertTriangle, ArrowLeft, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
+import { AlertTriangle, ArrowLeft, Bell, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
 import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -342,6 +342,23 @@ export default function AdminDashboard() {
             style={{ padding: 6 }}
           >
             <RefreshCw color={theme.mutedForeground} size={18} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              try {
+                const payload = token!.split(".")[1];
+                const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+                const username: string = decoded?.username ?? "admin";
+                router.push(`/admin/settings?actor_id=${encodeURIComponent(username)}`);
+              } catch {
+                router.push("/admin/settings");
+              }
+            }}
+            accessibilityLabel="Notification settings"
+            accessibilityRole="button"
+            style={{ padding: 6 }}
+          >
+            <Bell color={theme.mutedForeground} size={18} />
           </Pressable>
           <Pressable
             onPress={toggleTheme}

@@ -16,6 +16,7 @@ import { router } from "expo-router";
 import {
   Activity,
   ArrowLeft,
+  Bell,
   CheckCircle2,
   ChevronUp,
   LogOut,
@@ -820,6 +821,17 @@ export default function FleetHeadScreen() {
     setRefreshing(false);
   };
 
+  const openNotificationSettings = () => {
+    try {
+      const payload = token!.split(".")[1];
+      const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+      const username: string = decoded?.username ?? "fleet_head";
+      router.push(`/fleet-head/settings?actor_id=${encodeURIComponent(username)}`);
+    } catch {
+      router.push("/fleet-head/settings");
+    }
+  };
+
   if (!hydrated) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background, alignItems: "center", justifyContent: "center" }}>
@@ -866,6 +878,14 @@ export default function FleetHeadScreen() {
               ) : (
                 <RefreshCw color={theme.mutedForeground} size={18} />
               )}
+            </Pressable>
+            <Pressable
+              onPress={openNotificationSettings}
+              accessibilityLabel="Notification settings"
+              accessibilityRole="button"
+              style={{ padding: 9, borderRadius: 10 }}
+            >
+              <Bell color={theme.mutedForeground} size={18} />
             </Pressable>
             <Pressable
               onPress={toggleTheme}

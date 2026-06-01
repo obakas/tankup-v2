@@ -11,6 +11,7 @@ from app.models.request import LiquidRequest
 from app.models.tanker import Tanker
 from app.models.user import User
 from app.services.operation_alert_service import create_operation_alert
+from app.services.notification_preference_service import is_enabled
 
 _EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
@@ -112,6 +113,8 @@ def _notify_clients(
 
     sent = 0
     for user in users:
+        if not is_enabled(db, "customer", str(user.id), "driver_updates"):
+            continue
         ok = _send_expo_push(
             token=user.expo_push_token,
             title=title,
