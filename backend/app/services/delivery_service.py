@@ -13,6 +13,7 @@ from app.models.batch_member import BatchMember
 from app.models.request import LiquidRequest
 from app.models.tanker import Tanker
 from app.models.user import User
+from app.models.customer_site_profile import CustomerSiteProfile
 from app.utils.status_rules import ensure_valid_transition, TANKER_STATUS_TRANSITIONS
 from app.services.site_intelligence_service import update_site_on_delivery_complete
 
@@ -445,6 +446,22 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
         customer_phone = getattr(user, "phone", None)
         customer_address = getattr(user, "address", None)
 
+    site = None
+    if current.site_profile_id:
+        site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == current.site_profile_id).first()
+
+    site_payload = {
+        "label": site.label,
+        "address": site.address,
+        "landmark_notes": site.landmark_notes,
+        "tank_capacity_liters": site.tank_capacity_liters,
+        "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
+        "has_gate": site.has_gate,
+        "gate_notes": site.gate_notes,
+        "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
+        "parking_difficulty": site.parking_difficulty,
+    } if site else None
+
     return {
         "tanker": {
             "id": tanker.id,
@@ -471,7 +488,8 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
                 "user_id": current.user_id,
                 "name": customer_name,
                 "phone": customer_phone,
-                "address": customer_address,
+                "address": (site_payload.get("address") if site_payload else None) or customer_address,
+                "site": site_payload,
             },
             "location": {
                 "latitude": current.latitude,

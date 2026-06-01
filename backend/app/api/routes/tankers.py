@@ -13,6 +13,7 @@ from app.models.request import LiquidRequest
 from app.models.driver_metric import DriverMetric
 from app.models.tanker import Tanker
 from app.models.user import User
+from app.models.customer_site_profile import CustomerSiteProfile
 from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle
 from app.services.operation_alert_service import create_operation_alert
 from app.services.assignment_service import (
@@ -197,31 +198,81 @@ def expire_pending_offer(db: Session, tanker: Tanker) -> None:
 
 
 def build_priority_offer_payload(db: Session, request: LiquidRequest, seconds_left: int) -> dict[str, Any]:
+    user = db.query(User).filter(User.id == request.user_id).first()
+    site = None
+    if request.site_profile_id:
+        site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == request.site_profile_id).first()
     return {
+        "offer_type": "priority",
         "type": "priority",
         "id": request.id,
         "request_id": request.id,
+        "seconds_left": seconds_left,
         "expires_in_seconds": seconds_left,
-        "volume_liters": request.volume_liters,
+        "volume_liters": float(request.volume_liters),
+        "total_volume_liters": float(request.volume_liters),
         "latitude": request.latitude,
         "longitude": request.longitude,
         "delivery_type": request.delivery_type,
         "scheduled_for": request.scheduled_for.isoformat() if request.scheduled_for else None,
+        "customer_name": user.name if user else None,
+        "customer_phone": user.phone if user else None,
+        "site": {
+            "label": site.label,
+            "address": site.address,
+            "landmark_notes": site.landmark_notes,
+            "tank_capacity_liters": site.tank_capacity_liters,
+            "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
+            "has_gate": site.has_gate,
+            "gate_notes": site.gate_notes,
+            "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
+            "parking_difficulty": site.parking_difficulty,
+        } if site else None,
     }
 
 
 def build_batch_offer_payload(db: Session, batch: Batch, seconds_left: int) -> dict[str, Any]:
     members = db.query(BatchMember).filter(BatchMember.batch_id == batch.id, BatchMember.status == "active", BatchMember.payment_status == "paid").all()
     total_volume = int(sum(member.volume_liters for member in members)) if members else int(batch.current_volume or 0)
+
+    stops = []
+    for member in members:
+        user = db.query(User).filter(User.id == member.user_id).first()
+        request = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first()
+        site = None
+        if request and request.site_profile_id:
+            site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == request.site_profile_id).first()
+        site_address = (site.address if site and site.address else None) or (getattr(user, "address", None) if user else None)
+        stops.append({
+            "id": member.id,
+            "name": user.name if user else "Customer",
+            "phone": user.phone if user else None,
+            "address": site_address,
+            "volume_liters": member.volume_liters,
+            "latitude": member.latitude,
+            "longitude": member.longitude,
+            "tank_capacity_liters": site.tank_capacity_liters if site else None,
+            "hose_distance_m": (site.driver_verified_hose_distance_m or site.hose_distance_m) if site else None,
+            "has_gate": site.has_gate if site else False,
+            "gate_notes": site.gate_notes if site else None,
+            "landmark_notes": site.landmark_notes if site else None,
+            "road_difficulty": (site.driver_verified_road_difficulty or site.road_difficulty) if site else 1,
+            "parking_difficulty": site.parking_difficulty if site else 1,
+        })
+
     return {
+        "offer_type": "batch",
         "type": "batch",
         "id": batch.id,
         "batch_id": batch.id,
+        "seconds_left": seconds_left,
         "expires_in_seconds": seconds_left,
         "total_volume": total_volume,
+        "total_volume_liters": float(total_volume),
         "member_count": len(members),
         "latitude": batch.latitude,
         "longitude": batch.longitude,
+        "stops": stops,
     }
 
 
@@ -258,34 +309,65 @@ def build_batch_members_payload(db: Session, batch_id: int) -> list[dict[str, An
     payload: list[dict[str, Any]] = []
     for member in members:
         user = get_user_or_none(db, member.user_id)
+        request = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first()
+        site = None
+        if request and request.site_profile_id:
+            site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == request.site_profile_id).first()
+        site_payload = {
+            "label": site.label,
+            "address": site.address,
+            "landmark_notes": site.landmark_notes,
+            "tank_capacity_liters": site.tank_capacity_liters,
+            "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
+            "has_gate": site.has_gate,
+            "gate_notes": site.gate_notes,
+            "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
+            "parking_difficulty": site.parking_difficulty,
+        } if site else None
         payload.append({
             "id": member.id,
             "request_id": member.request_id,
             "user_id": member.user_id,
             "name": user.name if user else "Customer",
             "phone": user.phone if user else None,
-            "address": getattr(user, "address", None) if user else None,
+            "address": (site_payload.get("address") if site_payload else None) or (getattr(user, "address", None) if user else None),
             "volume_liters": member.volume_liters,
             "latitude": member.latitude,
             "longitude": member.longitude,
             "delivery_code": member.delivery_code,
             "status": member.status,
             "payment_status": member.payment_status,
+            "site": site_payload,
         })
     return payload
 
 
 def build_priority_customer_payload(db: Session, request: LiquidRequest, delivery_record: DeliveryRecord | None = None) -> dict[str, Any]:
     user = get_user_or_none(db, request.user_id)
+    site = None
+    if request.site_profile_id:
+        site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == request.site_profile_id).first()
+    site_payload = {
+        "label": site.label,
+        "address": site.address,
+        "landmark_notes": site.landmark_notes,
+        "tank_capacity_liters": site.tank_capacity_liters,
+        "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
+        "has_gate": site.has_gate,
+        "gate_notes": site.gate_notes,
+        "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
+        "parking_difficulty": site.parking_difficulty,
+    } if site else None
     return {
         "user_id": request.user_id,
         "name": user.name if user else "Priority Customer",
         "phone": user.phone if user else None,
-        "address": getattr(user, "address", None) if user else None,
+        "address": (site_payload.get("address") if site_payload else None) or (getattr(user, "address", None) if user else None),
         "latitude": request.latitude,
         "longitude": request.longitude,
         "volume_liters": request.volume_liters,
         "delivery_code": delivery_record.delivery_code if delivery_record else None,
+        "site": site_payload,
     }
 
 

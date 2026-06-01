@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
-import { MapPin, Navigation, RefreshCw } from "lucide-react-native";
+import { Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { SiteCard } from "@/components/driver/SiteCard";
 import type { DriverResponse } from "@/lib/api";
 import {
   arriveAtStop,
@@ -150,16 +151,22 @@ export function DriverDeliveringStep({
           className="rounded-2xl p-5 gap-3"
           style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary + "66" }}
         >
-          <Text className="font-semibold" style={{ color: theme.foreground }}>
-            Current stop: {stop.customer?.name ?? "—"}
-          </Text>
+          {/* Customer header */}
+          <View className="flex-row items-center gap-2">
+            <User color={theme.primary} size={15} />
+            <Text className="font-semibold flex-1" style={{ color: theme.foreground }}>
+              {stop.customer?.name ?? "—"}
+            </Text>
+            {stop.customer?.phone && (
+              <View className="flex-row items-center gap-1">
+                <Phone color={theme.mutedForeground} size={13} />
+                <Text className="text-xs" style={{ color: theme.mutedForeground }}>{stop.customer.phone}</Text>
+              </View>
+            )}
+          </View>
 
-          {stop.customer?.address && (
-            <View className="flex-row items-center gap-2">
-              <MapPin color={theme.mutedForeground} size={14} />
-              <Text className="text-sm" style={{ color: theme.mutedForeground }}>{stop.customer.address}</Text>
-            </View>
-          )}
+          {/* Site details */}
+          <SiteCard site={stop.customer?.site} volume={stop.planned_liters} />
 
           <Text className="text-xs capitalize" style={{ color: theme.mutedForeground }}>
             Status: {stopStatus.replace(/_/g, " ")}
