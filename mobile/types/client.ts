@@ -2,6 +2,7 @@ export type ClientStep =
   | "request"
   | "payment"
   | "batch"
+  | "searching"
   | "tanker"
   | "delivery"
   | "completed"

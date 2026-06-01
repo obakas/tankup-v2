@@ -351,6 +351,12 @@ export const rejectOffer = (tankerId: number) =>
 export const getCurrentJob = (tankerId: number) =>
   apiRequest<any>(`/tankers/${tankerId}/current-job`);
 
+export const markBatchStartLoading = (tankerId: number, batchId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/accept/${batchId}`, { method: "POST" });
+
+export const markPriorityStartLoading = (tankerId: number, requestId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/accept-priority/${requestId}`, { method: "POST" });
+
 export const markBatchLoaded = (tankerId: number, batchId: number) =>
   apiRequest<any>(`/tankers/${tankerId}/loaded/${batchId}`, { method: "POST" });
 
@@ -367,6 +373,42 @@ export const completePriorityDelivery = (tankerId: number) =>
 
 export const getCurrentStop = (tankerId: number) =>
   apiRequest<any>(`/deliveries/tankers/${tankerId}/current-stop`);
+
+export const arriveAtStop = (deliveryId: number, tankerId: number) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/arrive?tanker_id=${tankerId}`, { method: "POST" });
+
+export const startMeasurement = (deliveryId: number, tankerId: number, meterStartReading: number) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/start-measurement?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { meter_start_reading: meterStartReading },
+  });
+
+export const finishMeasurement = (deliveryId: number, tankerId: number, meterEndReading: number, notes?: string) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/finish-measurement?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { meter_end_reading: meterEndReading, notes },
+  });
+
+export const confirmOtp = (deliveryId: number, tankerId: number, otpCode: string) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/confirm-otp?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { otp_code: otpCode },
+  });
+
+export const completeStop = (deliveryId: number, tankerId: number) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/complete?tanker_id=${tankerId}`, { method: "POST" });
+
+export const failStop = (deliveryId: number, tankerId: number, reason: string) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/fail?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { reason },
+  });
+
+export const skipStop = (deliveryId: number, tankerId: number, reason: string) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/skip?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { reason },
+  });
 
 // type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 

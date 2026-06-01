@@ -92,6 +92,7 @@ export default function DriverFlow() {
         {!flow.loading && flow.step === "loading" && flow.job && (
           <DriverLoadingStep
             job={flow.job}
+            onStartLoading={flow.handleStartLoading}
             onLoaded={flow.handleLoaded}
             loading={flow.actionLoading}
           />

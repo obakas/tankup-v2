@@ -22,7 +22,9 @@ import {
   getCurrentStop,
   getIncomingOffer,
   markBatchLoaded,
+  markBatchStartLoading,
   markPriorityLoaded,
+  markPriorityStartLoading,
   rejectOffer,
   setDriverOnline,
 } from "@/lib/api";
@@ -179,13 +181,21 @@ export function useDriverFlow() {
     try {
       const res = await getCurrentStop(d.tankerId);
       setCurrentStop(res);
-      setJob(res);
 
       const tankerStatus = res?.tanker?.status ?? res?.tanker_status ?? "";
       prevTankerStatusRef.current = tankerStatus; // baseline — suppress toast on initial restore
-      if (tankerStatus === "assigned") setStep("loading");
-      else if (["loading", "delivering", "arrived"].includes(tankerStatus)) setStep("delivering");
-      else setStep("available");
+
+      if (["assigned", "loading"].includes(tankerStatus)) {
+        // getCurrentStop returns a different shape that lacks active_job; fetch proper job data
+        const jobRes = await getCurrentJob(d.tankerId);
+        setJob(jobRes);
+        setStep("loading");
+      } else if (["delivering", "arrived"].includes(tankerStatus)) {
+        setJob(res);
+        setStep("delivering");
+      } else {
+        setStep("available");
+      }
     } catch {
       setStep("available");
     } finally {
@@ -278,6 +288,31 @@ export function useDriverFlow() {
       setActionLoading(false);
     }
   }, [driver, cancelAlarm]);
+
+  const handleStartLoading = useCallback(async () => {
+    if (!driver || !job) return;
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      if (job.job_type === "batch" || job.active_job?.batch_id) {
+        const batchId = job.active_job?.batch_id ?? job.batch_id;
+        await markBatchStartLoading(driver.tankerId, batchId);
+      } else {
+        const requestId = job.active_job?.request_id ?? job.request_id;
+        await markPriorityStartLoading(driver.tankerId, requestId);
+      }
+      const jobRes = await getCurrentJob(driver.tankerId);
+      setJob(jobRes);
+      toast.success("Loading started");
+    } catch (e: any) {
+      setError(e.message);
+      toast.error(e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [driver, job]);
 
   const handleRejectOffer = useCallback(async () => {
     if (!driver) return;
@@ -392,6 +427,7 @@ export function useDriverFlow() {
     handleAuthComplete,
     handleAcceptOffer,
     handleRejectOffer,
+    handleStartLoading,
     handleLoaded,
     handleCompleteJob,
     markCompletedAsAvailable,

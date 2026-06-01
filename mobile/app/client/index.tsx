@@ -115,7 +115,7 @@ export default function ClientFlow() {
           />
         )}
 
-        {flow.step === "tanker" && (
+        {(flow.step === "searching" || flow.step === "tanker") && (
           <TankerStep
             mode={flow.mode}
             liveData={flow.liveData}

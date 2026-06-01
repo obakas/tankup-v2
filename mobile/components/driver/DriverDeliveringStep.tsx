@@ -34,7 +34,7 @@ export function DriverDeliveringStep({
   onReportIncident,
 }: Props) {
   const stop = currentStop?.current_stop ?? currentStop?.stop;
-  const summary = currentStop?.stop_summary ?? [];
+  const summary = currentStop?.stops_summary ?? [];
   const deliveredCount = summary.filter((s: any) => s.status === "delivered").length;
   const totalCount = summary.length;
   const allDone = totalCount > 0 && deliveredCount === totalCount;
@@ -151,13 +151,13 @@ export function DriverDeliveringStep({
           style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary + "66" }}
         >
           <Text className="font-semibold" style={{ color: theme.foreground }}>
-            Current stop: {stop.customer_name ?? "—"}
+            Current stop: {stop.customer?.name ?? "—"}
           </Text>
 
-          {stop.address && (
+          {stop.customer?.address && (
             <View className="flex-row items-center gap-2">
               <MapPin color={theme.mutedForeground} size={14} />
-              <Text className="text-sm" style={{ color: theme.mutedForeground }}>{stop.address}</Text>
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>{stop.customer.address}</Text>
             </View>
           )}
 
@@ -168,7 +168,7 @@ export function DriverDeliveringStep({
           {(stopStatus === "en_route" || stopStatus === "pending") && (
             <Pressable
               disabled={stopLoading}
-              onPress={() => doAction(() => arriveAtStop(stop.id, driver.tankerId))}
+              onPress={() => doAction(() => arriveAtStop(stop.delivery_id, driver.tankerId))}
               className="rounded-xl py-3 items-center"
               style={{ backgroundColor: theme.primary }}
             >
@@ -194,7 +194,7 @@ export function DriverDeliveringStep({
               />
               <Pressable
                 disabled={stopLoading || !meterStart}
-                onPress={() => doAction(() => startMeasurement(stop.id, driver.tankerId, parseFloat(meterStart)))}
+                onPress={() => doAction(() => startMeasurement(stop.delivery_id, driver.tankerId, parseFloat(meterStart)))}
                 className="rounded-xl py-3 items-center"
                 style={{ backgroundColor: theme.primary }}
               >
@@ -204,6 +204,32 @@ export function DriverDeliveringStep({
                   <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Start Measurement</Text>
                 )}
               </Pressable>
+              <View className="flex-row gap-2">
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => {
+                    Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
+                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
+                    });
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
+                >
+                  <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
+                </Pressable>
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => {
+                    Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
+                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
+                    });
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
+                >
+                  <Text className="font-medium" style={{ color: theme.destructive }}>Fail</Text>
+                </Pressable>
+              </View>
             </View>
           )}
 
@@ -221,7 +247,7 @@ export function DriverDeliveringStep({
               />
               <Pressable
                 disabled={stopLoading || !meterEnd}
-                onPress={() => doAction(() => finishMeasurement(stop.id, driver.tankerId, parseFloat(meterEnd)))}
+                onPress={() => doAction(() => finishMeasurement(stop.delivery_id, driver.tankerId, parseFloat(meterEnd)))}
                 className="rounded-xl py-3 items-center"
                 style={{ backgroundColor: theme.primary }}
               >
@@ -231,6 +257,32 @@ export function DriverDeliveringStep({
                   <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Finish Measurement</Text>
                 )}
               </Pressable>
+              <View className="flex-row gap-2">
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => {
+                    Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
+                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
+                    });
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
+                >
+                  <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
+                </Pressable>
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => {
+                    Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
+                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
+                    });
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
+                >
+                  <Text className="font-medium" style={{ color: theme.destructive }}>Fail</Text>
+                </Pressable>
+              </View>
             </View>
           )}
 
@@ -255,7 +307,7 @@ export function DriverDeliveringStep({
               />
               <Pressable
                 disabled={stopLoading || otpInput.length < 4}
-                onPress={() => doAction(() => confirmOtp(stop.id, driver.tankerId, otpInput))}
+                onPress={() => doAction(() => confirmOtp(stop.delivery_id, driver.tankerId, otpInput))}
                 className="rounded-xl py-3 items-center"
                 style={{ backgroundColor: theme.success }}
               >
@@ -271,7 +323,7 @@ export function DriverDeliveringStep({
                   disabled={stopLoading}
                   onPress={() => {
                     Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
-                      if (r?.trim()) doAction(() => skipStop(stop.id, driver.tankerId, r.trim()));
+                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
                     });
                   }}
                   className="flex-1 rounded-xl py-3 items-center"
@@ -284,7 +336,7 @@ export function DriverDeliveringStep({
                   disabled={stopLoading}
                   onPress={() => {
                     Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
-                      if (r?.trim()) doAction(() => failStop(stop.id, driver.tankerId, r.trim()));
+                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
                     });
                   }}
                   className="flex-1 rounded-xl py-3 items-center"
@@ -299,7 +351,7 @@ export function DriverDeliveringStep({
           {stopStatus === "awaiting_otp" && stop.otp_verified && (
             <Pressable
               disabled={stopLoading}
-              onPress={() => doAction(() => completeStop(stop.id, driver.tankerId))}
+              onPress={() => doAction(() => completeStop(stop.delivery_id, driver.tankerId))}
               className="rounded-xl py-3 items-center"
               style={{ backgroundColor: theme.success }}
             >

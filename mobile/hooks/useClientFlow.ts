@@ -124,12 +124,12 @@ export function useClientFlow() {
 
         // Only restore a mid-flow step so we don't re-enter a terminal state
         const restorable: Array<ClientStep | "auth"> = [
-          "request", "payment", "batch", "tanker", "delivery",
+          "request", "payment", "batch", "searching", "tanker", "delivery",
         ];
         if (session.step && restorable.includes(session.step)) {
           // Require a user to be present before restoring past "request"
           const needsUser: Array<ClientStep | "auth"> = [
-            "payment", "batch", "tanker", "delivery",
+            "payment", "batch", "searching", "tanker", "delivery",
           ];
           if (needsUser.includes(session.step) && !session.user) {
             setStep("request");
@@ -229,13 +229,10 @@ export function useClientFlow() {
           prevStatusRef.current = effectiveStatus;
         }
 
-        if (batchStatus === "completed" || batchStatus === "partially_completed") setStep("completed");
-        else if (["delivering", "arrived"].includes(batchStatus))
-          setStep("delivery");
-        else if (["assigned", "loading"].includes(batchStatus))
-          setStep("tanker");
-        else if (["failed", "expired", "assignment_failed"].includes(batchStatus))
-          setStep("failed");
+        if (["completed", "partially_completed"].includes(batchStatus)) setStep("completed");
+        else if (["delivering", "arrived"].includes(batchStatus)) setStep("delivery");
+        else if (["assigned", "loading"].includes(batchStatus)) setStep("tanker");
+        else if (["failed", "expired", "assignment_failed"].includes(batchStatus)) setStep("failed");
 
         if (data?.otp) setOtp(data.otp);
       }
@@ -256,11 +253,9 @@ export function useClientFlow() {
 
         if (data?.otp) setOtp(data.otp);
 
-        if (reqStatus === "completed" || reqStatus === "partially_completed") setStep("completed");
-        else if (["delivering", "arrived"].includes(reqStatus))
-          setStep("delivery");
-        else if (["assigned", "loading"].includes(reqStatus))
-          setStep("tanker");
+        if (["completed", "partially_completed"].includes(reqStatus)) setStep("completed");
+        else if (["delivering", "arrived"].includes(reqStatus)) setStep("delivery");
+        else if (["assigned", "loading"].includes(reqStatus)) setStep("tanker");
         else if (reqStatus === "failed") setStep("failed");
       }
     } catch (e: any) {
@@ -270,7 +265,7 @@ export function useClientFlow() {
     }
   }, [requestResp]);
 
-  const POLLING_STEPS: Array<ClientStep | "auth"> = ["batch", "tanker", "delivery"];
+  const POLLING_STEPS: Array<ClientStep | "auth"> = ["batch", "searching", "tanker", "delivery"];
 
   useEffect(() => {
     if (POLLING_STEPS.includes(step) && requestResp) {
@@ -347,7 +342,7 @@ export function useClientFlow() {
           ? "Payment confirmed — batch request created!"
           : "Priority request confirmed!"
       );
-      setStep(mode === "batch" ? "batch" : "tanker");
+      setStep(mode === "batch" ? "batch" : "searching");
     } catch (e: any) {
       setError(e.message);
       toast.error(e.message);
@@ -410,6 +405,7 @@ export function useClientFlow() {
     request: "Request Water",
     payment: "Payment",
     batch: "Batch Joined",
+    searching: "Finding Tanker",
     tanker: "Tanker En Route",
     delivery: "Delivery in Progress",
     completed: "Delivered",

@@ -3,11 +3,12 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 
 type Props = {
   job: any;
+  onStartLoading: () => void;
   onLoaded: () => void;
   loading: boolean;
 };
 
-export function DriverLoadingStep({ job, onLoaded, loading }: Props) {
+export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Props) {
   const { theme } = useAppTheme();
   const totalVol =
     job?.active_job?.total_volume_liters ??
@@ -16,6 +17,8 @@ export function DriverLoadingStep({ job, onLoaded, loading }: Props) {
     "—";
 
   const jobType = job?.active_job?.job_type ?? job?.job_type ?? "batch";
+  const tankerStatus = job?.tanker_status ?? "assigned";
+  const isLoading = tankerStatus === "loading";
 
   return (
     <View className="gap-4">
@@ -31,20 +34,37 @@ export function DriverLoadingStep({ job, onLoaded, loading }: Props) {
         </Text>
       </View>
 
-      <Pressable
-        onPress={onLoaded}
-        disabled={loading}
-        className="rounded-xl py-4 items-center"
-        style={{ backgroundColor: theme.primary }}
-      >
-        {loading ? (
-          <ActivityIndicator color={theme.primaryForeground} />
-        ) : (
-          <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
-            Loaded — Start Delivery
-          </Text>
-        )}
-      </Pressable>
+      {!isLoading ? (
+        <Pressable
+          onPress={onStartLoading}
+          disabled={loading}
+          className="rounded-xl py-4 items-center"
+          style={{ backgroundColor: theme.primary }}
+        >
+          {loading ? (
+            <ActivityIndicator color={theme.primaryForeground} />
+          ) : (
+            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
+              Start Loading
+            </Text>
+          )}
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={onLoaded}
+          disabled={loading}
+          className="rounded-xl py-4 items-center"
+          style={{ backgroundColor: theme.primary }}
+        >
+          {loading ? (
+            <ActivityIndicator color={theme.primaryForeground} />
+          ) : (
+            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
+              Loaded — Start Delivery
+            </Text>
+          )}
+        </Pressable>
+      )}
     </View>
   );
 }
