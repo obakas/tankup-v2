@@ -1,5 +1,5 @@
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import { CreditCard, XCircle } from "lucide-react-native";
+import { CreditCard, Info, XCircle } from "lucide-react-native";
 import type { RequestMode, PriorityMode } from "@/types/client";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { BATCH_PRICE_PER_LITER } from "@/constants/water";
@@ -150,6 +150,22 @@ export function PaymentStep({
             Payment is held securely until delivery is confirmed. Batch orders can be cancelled
             freely before payment. Once you pay and join a batch, leaving the batch means you may
             forfeit your payment.
+          </Text>
+        </View>
+
+        <View
+          className="rounded-xl p-4 flex-row gap-3"
+          style={{
+            backgroundColor: theme.cardSoft ?? theme.card,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}
+        >
+          <Info size={16} color={theme.mutedForeground} style={{ marginTop: 1 }} />
+          <Text className="text-xs flex-1" style={{ color: theme.mutedForeground, lineHeight: 18 }}>
+            Delivery is subject to driver availability and connectivity. In the rare event of a
+            disruption, you will be notified immediately and our team will work to resolve it or
+            arrange an alternative.
           </Text>
         </View>
       </View>

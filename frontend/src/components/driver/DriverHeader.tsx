@@ -10,7 +10,7 @@ interface DriverHeaderProps {
   onOpenHelp: () => void;
   onEditProfile?: () => void;
   isOnline?: boolean;
-  onToggleOnline?: () => void;
+  onToggleOnline?: () => void | Promise<void>;
   showOnlineToggle?: boolean;
 }
 

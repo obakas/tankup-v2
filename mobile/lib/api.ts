@@ -325,8 +325,11 @@ export const driverSignup = (p: { name: string; phone: string; tank_plate_number
 export const driverLogout = (tankerId: number) =>
   apiRequest(`/auth/driver-logout/${tankerId}`, { method: "POST" });
 
-export const setDriverOnline = (tankerId: number, online: boolean) =>
-  apiRequest(`/tankers/${tankerId}/online`, { method: "POST", body: { online } });
+export const setDriverOnline = (tankerId: number, online: boolean, reason?: string) =>
+  apiRequest(`/tankers/${tankerId}/online`, { method: "POST", body: { online, reason } });
+
+export const driverHeartbeat = (tankerId: number) =>
+  apiRequest(`/tankers/${tankerId}/heartbeat`, { method: "POST" });
 
 export const updateDriver = (tankerId: number, payload: { driver_name?: string; tank_plate_number?: string }) =>
   apiRequest<DriverResponse>(`/tankers/${tankerId}`, { method: "PUT", body: payload });

@@ -16,6 +16,7 @@ import {
   acceptOffer,
   completeBatchDelivery,
   completePriorityDelivery,
+  driverHeartbeat,
   DriverResponse,
   getCurrentJob,
   getCurrentStop,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/api";
 
 const POLL_INTERVAL_MS = 4000;
+const HEARTBEAT_INTERVAL_MS = 30_000;
 const ROLE_KEY = "tankup_active_role";
 
 type FlowStep = DriverStep | "auth";
@@ -45,7 +47,11 @@ export function useDriverFlow() {
   const [error, setError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const driverIdRef = useRef<number | null>(null);
   const prevTankerStatusRef = useRef<string>("");
+
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
 
   const { triggerAlarm, cancelAlarm } = useDriverOfferAlarm();
 
@@ -57,6 +63,22 @@ export function useDriverFlow() {
   const back = useCallback(() => {
     goRoleHome();
   }, [goRoleHome]);
+
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current);
+      heartbeatRef.current = null;
+    }
+  }, []);
+
+  const startHeartbeat = useCallback(() => {
+    stopHeartbeat();
+    if (!driverIdRef.current) return;
+    const id = driverIdRef.current;
+    heartbeatRef.current = setInterval(() => {
+      driverHeartbeat(id).catch(() => {});
+    }, HEARTBEAT_INTERVAL_MS);
+  }, [stopHeartbeat]);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -109,7 +131,12 @@ export function useDriverFlow() {
   }, [driver, pollOffer, stopPolling]);
 
   useEffect(() => {
+    if (driver) driverIdRef.current = driver.tankerId;
+  }, [driver]);
+
+  useEffect(() => {
     stopPolling();
+    stopHeartbeat();
     if (!driver || !online) return;
 
     if (step === "available") {
@@ -120,11 +147,19 @@ export function useDriverFlow() {
       pollRef.current = setInterval(pollJob, POLL_INTERVAL_MS);
     }
 
-    return stopPolling;
-  }, [driver, online, step, pollOffer, pollJob, stopPolling]);
+    if (step === "delivering") {
+      startHeartbeat();
+    }
+
+    return () => {
+      stopPolling();
+      stopHeartbeat();
+    };
+  }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
 
   const restartPolling = useCallback(() => {
     stopPolling();
+    stopHeartbeat();
     if (!driver || !online) return;
     if (step === "available") {
       pollOffer();
@@ -133,7 +168,8 @@ export function useDriverFlow() {
       pollJob();
       pollRef.current = setInterval(pollJob, POLL_INTERVAL_MS);
     }
-  }, [driver, online, step, pollOffer, pollJob, stopPolling]);
+    if (step === "delivering") startHeartbeat();
+  }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
 
   useAppStatePause(stopPolling, restartPolling);
 
@@ -175,10 +211,17 @@ export function useDriverFlow() {
     async (val: boolean) => {
       if (!driver) return;
 
+      // If going offline during an active delivery, show the reason modal instead
+      if (!val && step === "delivering") {
+        setShowOfflineModal(true);
+        return;
+      }
+
       setOnline(val);
 
       if (!val) {
         stopPolling();
+        stopHeartbeat();
         setStep("offline");
       } else {
         setStep("available");
@@ -190,8 +233,29 @@ export function useDriverFlow() {
         // Don't punish the UI for a sync failure.
       }
     },
-    [driver, stopPolling]
+    [driver, step, stopPolling, stopHeartbeat]
   );
+
+  const confirmOffline = useCallback(
+    async (reason: string) => {
+      if (!driver) return;
+      setShowOfflineModal(false);
+      setOnline(false);
+      stopPolling();
+      stopHeartbeat();
+      setStep("offline");
+      try {
+        await setDriverOnline(driver.tankerId, false, reason);
+      } catch {
+        // Don't punish the UI for a sync failure.
+      }
+    },
+    [driver, stopPolling, stopHeartbeat]
+  );
+
+  const cancelOfflineModal = useCallback(() => {
+    setShowOfflineModal(false);
+  }, []);
 
   const handleAcceptOffer = useCallback(async () => {
     if (!driver) return;
@@ -315,6 +379,7 @@ export function useDriverFlow() {
     actionLoading,
     error,
     titles,
+    showOfflineModal,
     setError,
     setStep,
     back,
@@ -322,6 +387,8 @@ export function useDriverFlow() {
     pollOffer,
     pollJob,
     toggleOnline,
+    confirmOffline,
+    cancelOfflineModal,
     handleAuthComplete,
     handleAcceptOffer,
     handleRejectOffer,

@@ -10,9 +10,11 @@ from app.models.batch_member import BatchMember
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.job_offer import JobOffer
 from app.models.request import LiquidRequest
+from app.models.driver_metric import DriverMetric
 from app.models.tanker import Tanker
 from app.models.user import User
 from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle
+from app.services.operation_alert_service import create_operation_alert
 from app.services.assignment_service import (
     clear_tanker_offer,
     mark_offer_accepted,
@@ -50,9 +52,16 @@ def update_tanker_location(
 ):
     tanker = get_tanker_or_404(db, tanker_id)
 
+    now = datetime.utcnow()
     tanker.latitude = payload.latitude
     tanker.longitude = payload.longitude
-    tanker.last_location_update_at = datetime.utcnow()
+    tanker.last_location_update_at = now
+    tanker.last_heartbeat_at = now  # location ping doubles as a heartbeat for offline detection
+    if tanker.offline_grace_started_at:
+        tanker.offline_grace_started_at = None
+        tanker.offline_notified_at = None
+        tanker.offline_escalated_at = None
+        tanker.offline_followup_sent_at = None
 
     db.add(tanker)
     db.commit()
@@ -803,9 +812,72 @@ def complete_priority_delivery(tanker_id: int, db: Session = Depends(get_db)):
     return {"message": "Priority delivery completed successfully", "tanker_id": tanker.id, "request_id": request.id, "tanker_status": tanker.status, "request_status": request.status}
 
 
+_VALID_OFFLINE_REASONS = {"breakdown", "emergency", "technical"}
+_ACTIVE_DELIVERY_STATUSES = {"delivering", "arrived", "measuring"}
+
+
+@router.post("/{tanker_id}/heartbeat")
+def driver_heartbeat(tanker_id: int, db: Session = Depends(get_db)):
+    tanker = get_tanker_or_404(db, tanker_id)
+    now = datetime.utcnow()
+    tanker.last_heartbeat_at = now
+    # If driver reconnected during a grace period, clear it
+    if tanker.offline_grace_started_at:
+        tanker.offline_grace_started_at = None
+        tanker.offline_notified_at = None
+        tanker.offline_escalated_at = None
+        tanker.offline_followup_sent_at = None
+    db.commit()
+    return {"status": "ok", "last_heartbeat_at": now.isoformat()}
+
+
 @router.post("/{tanker_id}/online")
 def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depends(get_db)):
     tanker = get_tanker_or_404(db, tanker_id)
+
+    if not payload.online and tanker.status in _ACTIVE_DELIVERY_STATUSES:
+        reason = (payload.reason or "").lower().strip()
+        metric = db.query(DriverMetric).filter(DriverMetric.tanker_id == tanker_id).first()
+
+        if metric:
+            prior_count = metric.abandoned_delivery_count or 0
+            metric.abandoned_delivery_count = prior_count + 1
+        else:
+            prior_count = 0
+
+        if reason not in _VALID_OFFLINE_REASONS:
+            if prior_count == 0:
+                tanker.paused_until = datetime.utcnow() + timedelta(hours=2)
+            elif prior_count == 1:
+                tanker.paused_until = datetime.utcnow() + timedelta(hours=24)
+            else:
+                tanker.paused_until = datetime.utcnow() + timedelta(hours=48)
+                create_operation_alert(
+                    db,
+                    alert_type="driver_repeated_abandonment",
+                    severity="critical",
+                    job_type="tanker",
+                    job_id=tanker_id,
+                    tanker_id=tanker_id,
+                    message=(
+                        f"Driver {tanker.driver_name} (tanker #{tanker_id}) has abandoned "
+                        f"an active delivery {prior_count + 1} times. Manual review required."
+                    ),
+                )
+
+        create_operation_alert(
+            db,
+            alert_type="driver_offline_intentional",
+            severity="warning",
+            job_type="tanker",
+            job_id=tanker_id,
+            tanker_id=tanker_id,
+            message=(
+                f"Driver {tanker.driver_name} (tanker #{tanker_id}) went offline during delivery. "
+                f"Reason: {reason or 'none provided'}."
+            ),
+        )
+
     tanker.is_online = payload.online
 
     if payload.online and not tanker.current_request_id and tanker.status in {"available", "completed"}:

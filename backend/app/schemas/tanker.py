@@ -59,6 +59,7 @@ class TankerLocationOut(BaseModel):
 
 class OnlineToggle(BaseModel):
     online: bool
+    reason: Optional[str] = None
 
 
 class TankerOut(TankerBase):

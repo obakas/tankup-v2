@@ -64,6 +64,13 @@ export async function getDriverLocation(tankerId: number) {
   return apiRequest<TankerLocationResponse>(`/tankers/${tankerId}/location`);
 }
 
+export async function setDriverOnline(tankerId: number, online: boolean, reason?: string) {
+  return apiRequest(`/tankers/${tankerId}/online`, {
+    method: "POST",
+    body: JSON.stringify({ online, reason }),
+  });
+}
+
 /* =========================
    TYPES
 ========================= */

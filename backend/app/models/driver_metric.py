@@ -37,4 +37,6 @@ class DriverMetric(Base):
     reliability_score_cached = Column(Float, default=0.5, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    abandoned_delivery_count = Column(Integer, default=0, nullable=False)
+
     tanker = relationship("Tanker", backref="metric")

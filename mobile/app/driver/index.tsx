@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -15,12 +15,20 @@ import { DriverProfileModal } from "@/components/driver/ProfileModal";
 import { DriverHelpModal } from "@/components/driver/HelpModal";
 import { ReportIncidentModal } from "@/components/driver/ReportIncidentModal";
 
+const OFFLINE_REASONS = [
+  { key: "breakdown", label: "Breakdown / Vehicle issue" },
+  { key: "emergency", label: "Personal emergency" },
+  { key: "technical", label: "Technical problem" },
+  { key: "other", label: "Other" },
+] as const;
+
 export default function DriverFlow() {
   const flow = useDriverFlow();
   const { theme, themeMode, toggleTheme } = useAppTheme();
   const [profileVisible, setProfileVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [incidentVisible, setIncidentVisible] = useState(false);
+  const [selectedOfflineReason, setSelectedOfflineReason] = useState<string | null>(null);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -123,6 +131,91 @@ export default function DriverFlow() {
         tankerId={flow.driver?.tankerId ?? null}
         deliveryRecordId={flow.currentStop?.current_stop?.id ?? null}
       />
+
+      <Modal
+        visible={flow.showOfflineModal}
+        transparent
+        animationType="fade"
+        onRequestClose={flow.cancelOfflineModal}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 }}
+          onPress={flow.cancelOfflineModal}
+        >
+          <Pressable onPress={() => {}}>
+            <View style={{ backgroundColor: theme.card, borderRadius: 16, padding: 24, width: "100%", maxWidth: 360 }}>
+              <Text style={{ fontSize: 18, fontWeight: "700", color: theme.foreground, marginBottom: 8 }}>
+                Going offline during delivery?
+              </Text>
+              <Text style={{ fontSize: 14, color: theme.mutedForeground, marginBottom: 20, lineHeight: 20 }}>
+                You have an active delivery. Going offline will affect your job rating. Please select a reason.
+              </Text>
+
+              {OFFLINE_REASONS.map((r) => (
+                <TouchableOpacity
+                  key={r.key}
+                  onPress={() => setSelectedOfflineReason(r.key)}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    paddingHorizontal: 14,
+                    borderRadius: 10,
+                    marginBottom: 8,
+                    borderWidth: 1.5,
+                    borderColor: selectedOfflineReason === r.key ? theme.primary : theme.border,
+                    backgroundColor: selectedOfflineReason === r.key ? theme.primarySoft ?? theme.card : theme.card,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      borderWidth: 2,
+                      borderColor: selectedOfflineReason === r.key ? theme.primary : theme.mutedForeground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 12,
+                    }}
+                  >
+                    {selectedOfflineReason === r.key && (
+                      <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: theme.primary }} />
+                    )}
+                  </View>
+                  <Text style={{ color: theme.foreground, fontSize: 14 }}>{r.label}</Text>
+                </TouchableOpacity>
+              ))}
+
+              <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
+                <TouchableOpacity
+                  onPress={() => { setSelectedOfflineReason(null); flow.cancelOfflineModal(); }}
+                  style={{ flex: 1, paddingVertical: 14, borderRadius: 10, borderWidth: 1, borderColor: theme.border, alignItems: "center" }}
+                >
+                  <Text style={{ color: theme.foreground, fontWeight: "600" }}>Stay Online</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (!selectedOfflineReason) return;
+                    flow.confirmOffline(selectedOfflineReason);
+                    setSelectedOfflineReason(null);
+                  }}
+                  disabled={!selectedOfflineReason}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 14,
+                    borderRadius: 10,
+                    backgroundColor: selectedOfflineReason ? theme.destructive : theme.muted,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: selectedOfflineReason ? "#fff" : theme.mutedForeground, fontWeight: "600" }}>Go Offline</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

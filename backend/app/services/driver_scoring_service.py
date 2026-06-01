@@ -155,6 +155,13 @@ def compute_penalty(metric: DriverMetric, area_affinity: float) -> float:
     if cancellation_rate > 0.15:
         penalty += 0.10
 
+    # Abandonment penalty: drivers who go offline during active deliveries
+    abandoned = metric.abandoned_delivery_count or 0
+    total_accepts = max(metric.accepts_total or 0, 1)
+    abandonment_rate = abandoned / total_accepts
+    if abandonment_rate > 0.05:
+        penalty += 0.25
+
     return clamp(penalty, 0.0, 0.5)
 
 

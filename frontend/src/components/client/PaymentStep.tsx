@@ -1,4 +1,4 @@
-import { CreditCard, XCircle } from "lucide-react";
+import { CreditCard, Info, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BATCH_PRICE_PER_LITER } from "@/constants/water";
 import type { RequestMode } from "@/types/client";
@@ -105,6 +105,15 @@ const PaymentStep = ({
                         Payment is held securely until delivery is confirmed. Batch orders can be
                         cancelled freely before payment. Once you pay and join a batch, leaving the
                         batch means you may forfeit your payment.
+                    </p>
+                </div>
+
+                <div className="flex gap-3 rounded-xl border border-border bg-card p-4">
+                    <Info className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Delivery is subject to driver availability and connectivity. In the rare
+                        event of a disruption, you will be notified immediately and our team will
+                        work to resolve it or arrange an alternative.
                     </p>
                 </div>
             </div>

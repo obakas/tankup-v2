@@ -1,4 +1,9 @@
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { setDriverOnline } from "@/lib/driverApi";
 import { DriverHeader } from "@/components/driver/DriverHeader";
 import { DriverAvailableStep } from "@/components/driver/DriverAvailableStep";
 import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
@@ -104,20 +109,41 @@ const DriverView = ({ onBack }: DriverViewProps) => {
   const [showHelp, setShowHelp] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [selectedOfflineReason, setSelectedOfflineReason] = useState<string>("breakdown");
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     const stored = localStorage.getItem("driver_is_online");
     return stored === null ? true : stored === "true";
   });
 
+  const _applyOffline = (reason?: string) => {
+    setIsOnline(false);
+    localStorage.setItem("driver_is_online", "false");
+    if (driver?.tankerId) {
+      setDriverOnline(driver.tankerId, false, reason).catch(() => undefined);
+    }
+  };
+
   const toggleOnline = () => {
-    setIsOnline((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem("driver_is_online", String(next));
-      } catch {}
-      return next;
-    });
+    const goingOnline = !isOnline;
+
+    if (goingOnline) {
+      setIsOnline(true);
+      localStorage.setItem("driver_is_online", "true");
+      if (driver?.tankerId) {
+        setDriverOnline(driver.tankerId, true).catch(() => undefined);
+      }
+      return;
+    }
+
+    // Going offline — intercept if currently in an active delivery
+    if (["delivering", "arrived"].includes(step)) {
+      setShowOfflineModal(true);
+      return;
+    }
+
+    _applyOffline();
   };
 
   const { driver, isAuthenticated, isHydrated, loginDriver, logoutDriver, updateDriver } =
@@ -517,6 +543,57 @@ const DriverView = ({ onBack }: DriverViewProps) => {
           onSave={updateDriver}
         />
       )}
+
+      <Dialog open={showOfflineModal} onOpenChange={(open) => { if (!open) setShowOfflineModal(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Going offline during delivery?</DialogTitle>
+            <DialogDescription>
+              You have an active delivery. Going offline will affect your job rating. Please select a reason.
+            </DialogDescription>
+          </DialogHeader>
+
+          <RadioGroup
+            value={selectedOfflineReason}
+            onValueChange={setSelectedOfflineReason}
+            className="space-y-2 py-2"
+          >
+            {[
+              { value: "breakdown", label: "Breakdown / Vehicle issue" },
+              { value: "emergency", label: "Personal emergency" },
+              { value: "technical", label: "Technical problem" },
+              { value: "other", label: "Other" },
+            ].map((r) => (
+              <div key={r.value} className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                <RadioGroupItem value={r.value} id={`reason-${r.value}`} />
+                <Label htmlFor={`reason-${r.value}`} className="cursor-pointer text-sm font-normal">
+                  {r.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowOfflineModal(false)}
+            >
+              Stay Online
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => {
+                setShowOfflineModal(false);
+                _applyOffline(selectedOfflineReason);
+              }}
+            >
+              Go Offline
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

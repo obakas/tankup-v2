@@ -27,3 +27,10 @@ class Tanker(Base):
     pending_offer_type = Column(String, nullable=True)      # "priority" or "batch"
     pending_offer_id = Column(Integer, nullable=True)       # request_id or batch_id
     offer_expires_at = Column(DateTime, nullable=True)
+
+    # driver offline mid-delivery tracking
+    last_heartbeat_at = Column(DateTime, nullable=True)
+    offline_grace_started_at = Column(DateTime, nullable=True)
+    offline_notified_at = Column(DateTime, nullable=True)
+    offline_escalated_at = Column(DateTime, nullable=True)
+    offline_followup_sent_at = Column(DateTime, nullable=True)

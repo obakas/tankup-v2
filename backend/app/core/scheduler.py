@@ -8,6 +8,7 @@ from app.services.batch_monitor_service import process_all_active_batches
 from app.services.delivery_timeout_service import expire_overdue_deliveries
 from app.services.loading_timeout_service import expire_overdue_loading_jobs
 from app.services.late_arrival_service import flag_late_arrivals
+from app.services.driver_offline_service import process_offline_drivers
 from app.services.nearby_notification_service import process_nearby_batch_notifications
 
 scheduler = BackgroundScheduler()
@@ -96,6 +97,18 @@ def run_nearby_notification_monitor():
         db.close()
 
 
+def run_driver_offline_monitor():
+    db = SessionLocal()
+    try:
+        results = process_offline_drivers(db)
+        if results:
+            print("Driver offline monitor tick:")
+            for item in results:
+                print(item)
+    finally:
+        db.close()
+
+
 def start_scheduler():
     if not scheduler.running:
         scheduler.add_job(
@@ -146,6 +159,13 @@ def start_scheduler():
             trigger="interval",
             seconds=60,
             id="nearby_notification_job",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            run_driver_offline_monitor,
+            trigger="interval",
+            seconds=30,
+            id="driver_offline_monitor_job",
             replace_existing=True,
         )
         scheduler.start()
