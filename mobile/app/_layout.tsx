@@ -2,23 +2,31 @@ import "@/global.css";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useColorScheme } from "react-native";
 import Toast from "react-native-toast-message";
+import { ThemeProvider, useAppTheme } from "@/hooks/useAppTheme";
 
-export default function RootLayout() {
-  const scheme = useColorScheme();
-  const bg = scheme === "dark" ? "#0f172a" : "#f8fafc";
-
+function AppShell() {
+  const { isDark, theme } = useAppTheme();
   return (
-    <SafeAreaProvider>
-      <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: bg },
+          contentStyle: { backgroundColor: theme.background },
         }}
       />
       <Toast />
-    </SafeAreaProvider>
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <AppShell />
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }

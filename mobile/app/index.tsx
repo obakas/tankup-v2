@@ -170,7 +170,8 @@ export default function RoleSelect() {
           </View>
 
           <View className="gap-4">
-            {ALL_ROLES.filter((r) => authedRoles.size === 0 || authedRoles.has(r.role)).map((r) => (
+            {/* {ALL_ROLES.filter((r) => authedRoles.size === 0 || authedRoles.has(r.role)).map((r) => ( */}
+            {ALL_ROLES.map((r) => ( 
               <RoleCard
                 key={r.role}
                 theme={theme}

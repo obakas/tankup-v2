@@ -1,5 +1,5 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { Bell, History, HelpCircle, LogOut, MapPin, UserPen, X } from "lucide-react-native";
+import { Bell, HelpCircle, LogOut, UserPen, X } from "lucide-react-native";
 
 import { useAppTheme } from "@/hooks/useAppTheme";
 
@@ -7,8 +7,6 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onEditProfile: () => void;
-  onOpenSites: () => void;
-  onOpenHistory: () => void;
   onOpenNotificationSettings: () => void;
   onOpenHelp: () => void;
   onLogout: () => void;
@@ -53,12 +51,10 @@ function ActionRow({ icon, label, description, onPress, iconBg, destructive }: A
   );
 }
 
-export function ClientActionsSheet({
+export function DriverActionsSheet({
   visible,
   onClose,
   onEditProfile,
-  onOpenSites,
-  onOpenHistory,
   onOpenNotificationSettings,
   onOpenHelp,
   onLogout,
@@ -108,7 +104,7 @@ export function ClientActionsSheet({
             }}
           >
             <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 17 }}>
-              Account
+              Driver menu
             </Text>
             <Pressable
               onPress={onClose}
@@ -128,38 +124,18 @@ export function ClientActionsSheet({
           <View style={{ height: 1, backgroundColor: theme.border, marginBottom: 4 }} />
 
           <ActionRow
-            icon={<UserPen color={theme.primary} size={20} />}
-            iconBg={theme.primarySoft}
+            icon={<UserPen color={theme.success} size={20} />}
+            iconBg={theme.successSoft}
             label="Edit profile"
-            description="Update your name and contact details"
+            description="Update your vehicle and contact details"
             onPress={() => handle(onEditProfile)}
           />
 
           <View style={{ height: 1, backgroundColor: theme.border }} />
 
           <ActionRow
-            icon={<MapPin color={theme.primary} size={20} />}
-            iconBg={theme.primarySoft}
-            label="My delivery sites"
-            description="Manage your saved delivery locations"
-            onPress={() => handle(onOpenSites)}
-          />
-
-          <View style={{ height: 1, backgroundColor: theme.border }} />
-
-          <ActionRow
-            icon={<History color={theme.primary} size={20} />}
-            iconBg={theme.primarySoft}
-            label="Order history"
-            description="View your past water delivery orders"
-            onPress={() => handle(onOpenHistory)}
-          />
-
-          <View style={{ height: 1, backgroundColor: theme.border }} />
-
-          <ActionRow
-            icon={<Bell color={theme.primary} size={20} />}
-            iconBg={theme.primarySoft}
+            icon={<Bell color={theme.success} size={20} />}
+            iconBg={theme.successSoft}
             label="Notification settings"
             description="Choose which alerts and updates you receive"
             onPress={() => handle(onOpenNotificationSettings)}
@@ -168,8 +144,8 @@ export function ClientActionsSheet({
           <View style={{ height: 1, backgroundColor: theme.border }} />
 
           <ActionRow
-            icon={<HelpCircle color={theme.primary} size={20} />}
-            iconBg={theme.primarySoft}
+            icon={<HelpCircle color={theme.success} size={20} />}
+            iconBg={theme.successSoft}
             label="Help"
             description="Get support or report an issue"
             onPress={() => handle(onOpenHelp)}

@@ -5,8 +5,6 @@ import {
   Bell,
   BellOff,
   Droplets,
-  HelpCircle,
-  LogOut,
   MoreHorizontal,
   Moon,
   Sun,
@@ -112,25 +110,6 @@ export function ClientHeader({
             )}
           </Pressable>
 
-          <Pressable
-            onPress={onOpenHelp}
-            accessibilityLabel="Help"
-            accessibilityRole="button"
-            className="p-2"
-          >
-            <HelpCircle color={theme.mutedForeground} size={19} />
-          </Pressable>
-
-          {user && (
-            <Pressable
-              onPress={onLogout}
-              accessibilityLabel="Log out"
-              accessibilityRole="button"
-              className="p-2"
-            >
-              <LogOut color={theme.mutedForeground} size={19} />
-            </Pressable>
-          )}
         </View>
       </View>
 
@@ -186,6 +165,8 @@ export function ClientHeader({
               onOpenSites={onOpenSites}
               onOpenHistory={onOpenHistory}
               onOpenNotificationSettings={onOpenNotificationSettings}
+              onOpenHelp={onOpenHelp}
+              onLogout={onLogout}
             />
           </>
         )}

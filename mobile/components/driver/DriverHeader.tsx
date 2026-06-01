@@ -1,7 +1,9 @@
 import { Pressable, Switch, Text, View } from "react-native";
-import { ArrowLeft, Bell, HelpCircle, LogOut, Moon, Sun, Truck, UserPen } from "lucide-react-native";
+import { useState } from "react";
+import { ArrowLeft, Moon, MoreHorizontal, Sun, Truck } from "lucide-react-native";
 import type { AppTheme, getTheme } from "@/components/ui/theme";
 import type { DriverResponse } from "@/lib/api";
+import { DriverActionsSheet } from "@/components/driver/DriverActionsSheet";
 
 type Props = {
   title: string;
@@ -32,15 +34,15 @@ export function DriverHeader({
   themeMode,
   onToggleTheme,
 }: Props) {
+  const [actionsVisible, setActionsVisible] = useState(false);
+
   return (
     <View
       style={{ backgroundColor: theme.card, borderBottomColor: theme.border }}
       className="border-b"
     >
       {/* Row 1: back + brand + title/status + utilities */}
-      <View
-        className="flex-row items-center justify-between px-4 py-3"
-      >
+      <View className="flex-row items-center justify-between px-4 py-3">
         {/* Left: back + brand pill + title or status */}
         <View className="flex-row items-center gap-2 flex-1 mr-2">
           <Pressable
@@ -86,26 +88,8 @@ export function DriverHeader({
           )}
         </View>
 
-        {/* Right: utilities */}
+        {/* Right: theme toggle + more (more only shown once authenticated) */}
         <View className="flex-row items-center gap-1">
-          {driver && (
-            /* Edit profile — warning accent */
-            <Pressable
-              onPress={onEditProfile}
-              accessibilityLabel="Edit profile"
-              accessibilityRole="button"
-              style={{
-                backgroundColor: theme.successSoft,
-                borderColor: theme.success + "40",
-                borderWidth: 1,
-                borderRadius: 10,
-                padding: 8,
-              }}
-            >
-              <UserPen color={theme.success} size={19} />
-            </Pressable>
-          )}
-
           <Pressable
             onPress={onToggleTheme}
             accessibilityLabel={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
@@ -119,34 +103,35 @@ export function DriverHeader({
             )}
           </Pressable>
 
-          <Pressable
-            onPress={onOpenNotificationSettings}
-            accessibilityLabel="Notification settings"
-            accessibilityRole="button"
-            className="p-2"
-          >
-            <Bell color={theme.mutedForeground} size={20} />
-          </Pressable>
-
-          <Pressable
-            onPress={onOpenHelp}
-            accessibilityLabel="Help"
-            accessibilityRole="button"
-            className="p-2"
-          >
-            <HelpCircle color={theme.mutedForeground} size={20} />
-          </Pressable>
-
-          <Pressable
-            onPress={onLogout}
-            accessibilityLabel="Log out"
-            accessibilityRole="button"
-            className="p-2"
-          >
-            <LogOut color={theme.mutedForeground} size={20} />
-          </Pressable>
+          {driver && (
+            <Pressable
+              onPress={() => setActionsVisible(true)}
+              accessibilityLabel="More options"
+              accessibilityRole="button"
+              style={{
+                backgroundColor: theme.successSoft,
+                borderColor: theme.success + "30",
+                borderWidth: 1,
+                borderRadius: 10,
+                padding: 8,
+              }}
+            >
+              <MoreHorizontal color={theme.success} size={20} />
+            </Pressable>
+          )}
         </View>
       </View>
+
+      {driver && (
+        <DriverActionsSheet
+          visible={actionsVisible}
+          onClose={() => setActionsVisible(false)}
+          onEditProfile={onEditProfile}
+          onOpenNotificationSettings={onOpenNotificationSettings}
+          onOpenHelp={onOpenHelp}
+          onLogout={onLogout}
+        />
+      )}
     </View>
   );
 }
