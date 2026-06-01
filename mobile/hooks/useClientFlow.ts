@@ -317,7 +317,12 @@ export function useClientFlow() {
     });
   };
 
-  const handleSubmitRequest = async () => {
+  const handleSubmitRequest = () => {
+    if (!user || !size || !selectedSiteId) return;
+    setStep("payment");
+  };
+
+  const handleConfirmPayment = async () => {
     if (!user || !size || !selectedSiteId) return;
 
     setLoading(true);
@@ -338,26 +343,6 @@ export function useClientFlow() {
       });
 
       setRequestResp(resp);
-      setStep("payment");
-    } catch (e: any) {
-      setError(e.message);
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmPayment = async () => {
-    if (!requestResp?.member_id) {
-      setStep(mode === "batch" ? "batch" : "tanker");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      await confirmPayment(requestResp.member_id);
       toast.success(
         mode === "batch"
           ? "Payment confirmed — batch request created!"

@@ -304,6 +304,9 @@ export const listUserSites = (userId: number) =>
 export const updateSite = (siteId: number, payload: SiteProfileUpdatePayload) =>
   apiRequest<SiteProfileResponse>(`/sites/${siteId}`, { method: "PATCH", body: payload });
 
+export const deleteSite = (siteId: number) =>
+  apiRequest<void>(`/sites/${siteId}`, { method: "DELETE" });
+
 // ── Driver auth ───────────────────────────────────────────────────────────────
 
 export interface DriverResponse {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -11,11 +12,12 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ChevronLeft, MapPin, Pencil, Plus, X } from "lucide-react-native";
+import { ChevronLeft, MapPin, Pencil, Plus, Trash2, X } from "lucide-react-native";
 import type { TankupTheme } from "@/components/ui/theme";
 import type { CurrentUser } from "@/types/client";
 import {
   createSite,
+  deleteSite,
   listUserSites,
   updateSite,
   type SiteProfileResponse,
@@ -63,6 +65,7 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
   const [form, setForm] = useState<SiteFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadSites = useCallback(async () => {
     setLoadingSites(true);
@@ -89,6 +92,31 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     setForm(EMPTY_FORM);
     setError(null);
     setView("form");
+  };
+
+  const handleDelete = (site: SiteProfileResponse) => {
+    Alert.alert(
+      "Delete Site",
+      `Delete "${site.label ?? "this site"}"? This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingId(site.id);
+            try {
+              await deleteSite(site.id);
+              setSites((prev) => prev.filter((s) => s.id !== site.id));
+            } catch (e: any) {
+              setError(e.message ?? "Failed to delete site");
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const openEditForm = (site: SiteProfileResponse) => {
@@ -267,22 +295,46 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                             {STATUS_LABELS[site.verification_status] ?? "Unverified"}
                           </Text>
                         </View>
-                        <Pressable
-                          onPress={() => openEditForm(site)}
-                          accessibilityLabel={`Edit ${site.label ?? "site"}`}
-                          style={{
-                            height: 32,
-                            width: 32,
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderWidth: 1,
-                            borderColor: theme.border,
-                            borderRadius: 8,
-                            backgroundColor: theme.muted,
-                          }}
-                        >
-                          <Pencil color={theme.mutedForeground} size={14} />
-                        </Pressable>
+                        <View style={{ flexDirection: "row", gap: 6 }}>
+                          <Pressable
+                            onPress={() => openEditForm(site)}
+                            accessibilityLabel={`Edit ${site.label ?? "site"}`}
+                            style={{
+                              height: 32,
+                              width: 32,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderWidth: 1,
+                              borderColor: theme.border,
+                              borderRadius: 8,
+                              backgroundColor: theme.muted,
+                            }}
+                          >
+                            <Pencil color={theme.mutedForeground} size={14} />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleDelete(site)}
+                            disabled={deletingId === site.id}
+                            accessibilityLabel={`Delete ${site.label ?? "site"}`}
+                            style={{
+                              height: 32,
+                              width: 32,
+                              alignItems: "center",
+                              justifyContent: "center",
+                              borderWidth: 1,
+                              borderColor: theme.destructive,
+                              borderRadius: 8,
+                              backgroundColor: theme.destructiveSoft,
+                              opacity: deletingId === site.id ? 0.5 : 1,
+                            }}
+                          >
+                            {deletingId === site.id ? (
+                              <ActivityIndicator color={theme.destructive} size={12} />
+                            ) : (
+                              <Trash2 color={theme.destructive} size={14} />
+                            )}
+                          </Pressable>
+                        </View>
                       </View>
                     ))}
                   </View>

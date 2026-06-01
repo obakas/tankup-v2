@@ -201,3 +201,7 @@ export function updateSite(siteId: number, payload: SiteProfileUpdatePayload) {
   return apiRequest<SiteProfileResponse>(`/sites/${siteId}`, { method: "PATCH", body: payload });
 }
 
+export function deleteSite(siteId: number) {
+  return apiRequest<void>(`/sites/${siteId}`, { method: "DELETE" });
+}
+

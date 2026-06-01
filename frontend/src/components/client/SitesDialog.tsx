@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, Loader2, MapPin, Pencil, Plus } from "lucide-react";
+import { ChevronLeft, Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   createSite,
+  deleteSite,
   listUserSites,
   updateSite,
   type SiteProfileResponse,
@@ -72,6 +73,8 @@ export function SitesDialog({ open, user, onClose }: SitesDialogProps) {
   const [editingSite, setEditingSite] = useState<SiteProfileResponse | null>(null);
   const [form, setForm] = useState<SiteFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadSites = useCallback(async () => {
     setLoadingSites(true);
@@ -96,6 +99,20 @@ export function SitesDialog({ open, user, onClose }: SitesDialogProps) {
     setEditingSite(null);
     setForm(EMPTY_FORM);
     setView("form");
+  };
+
+  const handleDelete = async (siteId: number) => {
+    setDeleting(true);
+    try {
+      await deleteSite(siteId);
+      setSites((prev) => prev.filter((s) => s.id !== siteId));
+      toast.success("Site deleted");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete site");
+    } finally {
+      setDeleting(false);
+      setConfirmDeleteId(null);
+    }
   };
 
   const openEditForm = (site: SiteProfileResponse) => {
@@ -230,13 +247,44 @@ export function SitesDialog({ open, user, onClose }: SitesDialogProps) {
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={() => openEditForm(site)}
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted"
-                        aria-label={`Edit ${site.label ?? "site"}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                      </button>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {confirmDeleteId === site.id ? (
+                          <>
+                            <button
+                              onClick={() => handleDelete(site.id)}
+                              disabled={deleting}
+                              className="flex h-8 items-center gap-1 rounded-lg border border-destructive bg-destructive px-2 text-xs font-medium text-destructive-foreground hover:opacity-90 disabled:opacity-60"
+                              aria-label="Confirm delete"
+                            >
+                              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Delete?"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                              aria-label="Cancel delete"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => openEditForm(site)}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                              aria-label={`Edit ${site.label ?? "site"}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(site.id)}
+                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-muted"
+                              aria-label={`Delete ${site.label ?? "site"}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
