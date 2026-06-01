@@ -22,7 +22,6 @@ import type {
 } from "@/types/client";
 
 import {
-  confirmPayment,
   createWaterRequest,
   getBatchLive,
   getPriorityRequestLive,
