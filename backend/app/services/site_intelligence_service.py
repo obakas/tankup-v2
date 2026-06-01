@@ -41,6 +41,12 @@ def get_site_profiles_for_user(db: Session, user_id: int) -> list[CustomerSitePr
     )
 
 
+def delete_site_profile(db: Session, site_id: int) -> None:
+    profile = get_site_profile_by_id(db, site_id)
+    db.delete(profile)
+    db.commit()
+
+
 def get_or_create_site_profile(
     db: Session,
     *,

@@ -97,18 +97,20 @@ export function ClientHeader({
             )}
           </Pressable>
 
-          <Pressable
-            onPress={onToggleAlerts}
-            accessibilityLabel={alertsEnabled ? "Disable alerts" : "Enable alerts"}
-            accessibilityRole="button"
-            className="p-2"
-          >
-            {alertsEnabled ? (
-              <BellOff color={theme.mutedForeground} size={19} />
-            ) : (
-              <Bell color={theme.mutedForeground} size={19} />
-            )}
-          </Pressable>
+          {user && (
+            <Pressable
+              onPress={onToggleAlerts}
+              accessibilityLabel={alertsEnabled ? "Disable alerts" : "Enable alerts"}
+              accessibilityRole="button"
+              className="p-2"
+            >
+              {alertsEnabled ? (
+                <BellOff color={theme.mutedForeground} size={19} />
+              ) : (
+                <Bell color={theme.mutedForeground} size={19} />
+              )}
+            </Pressable>
+          )}
 
         </View>
       </View>

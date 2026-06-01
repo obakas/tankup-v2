@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.schemas.site_profile import SiteProfileCreate, SiteProfileResponse, SiteProfileUpdate
 from app.services.site_intelligence_service import (
+    delete_site_profile,
     get_or_create_site_profile,
     get_site_profile_by_id,
     get_site_profiles_for_user,
@@ -62,3 +63,8 @@ def patch_site_profile(site_id: int, payload: SiteProfileUpdate, db: Session = D
         driver_verified_hose_distance_m=payload.driver_verified_hose_distance_m,
         driver_verified_road_difficulty=payload.driver_verified_road_difficulty,
     )
+
+
+@router.delete("/{site_id}", status_code=204)
+def delete_site(site_id: int, db: Session = Depends(get_db)):
+    delete_site_profile(db, site_id)
