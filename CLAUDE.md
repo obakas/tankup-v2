@@ -24,7 +24,7 @@ cd backend
 source .venv/bin/activate   # always activate venv first
 
 # Install dependencies
-pip install -r app/requirements.txt
+pip install -r requirements.txt
 
 # Run dev server — must use --host 0.0.0.0 for phone access
 uvicorn app.main:app --reload --host 0.0.0.0
