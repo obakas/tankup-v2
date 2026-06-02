@@ -102,7 +102,7 @@ export function DriverDeliveringStep({
         >
           <View className="flex-row justify-between mb-2">
             <Text className="font-semibold" style={{ color: theme.foreground }}>Progress</Text>
-            <Text className="font-bold" style={{ color: theme.primary }}>{deliveredCount}/{totalCount}</Text>
+            <Text className="font-bold" style={{ color: theme.success }}>{deliveredCount}/{totalCount}</Text>
           </View>
           <View className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
             <View
@@ -123,14 +123,14 @@ export function DriverDeliveringStep({
           style={{
             backgroundColor: theme.card,
             borderWidth: 1,
-            borderColor: s.delivery_id === stop?.id ? theme.primary : theme.border,
+            borderColor: s.delivery_id === stop?.id ? theme.success : theme.border,
             opacity: s.delivery_status === "delivered" ? 0.5 : 1,
           }}
         >
           <View className="flex-row items-center gap-2">
             <View
               className="w-6 h-6 rounded-full items-center justify-center"
-              style={{ backgroundColor: s.delivery_status === "delivered" ? theme.success : theme.primary }}
+              style={{ backgroundColor: theme.success }}
             >
               <Text className="text-xs font-bold" style={{ color: theme.primaryForeground }}>
                 {s.delivery_status === "delivered" ? "✓" : idx + 1}
@@ -149,11 +149,11 @@ export function DriverDeliveringStep({
       {stop && !allDone && (
         <View
           className="rounded-2xl p-5 gap-3"
-          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary + "66" }}
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.success + "66" }}
         >
           {/* Customer header */}
           <View className="flex-row items-center gap-2">
-            <User color={theme.primary} size={15} />
+            <User color={theme.success} size={15} />
             <Text className="font-semibold flex-1" style={{ color: theme.foreground }}>
               {stop.customer?.name ?? "—"}
             </Text>
@@ -177,7 +177,7 @@ export function DriverDeliveringStep({
               disabled={stopLoading}
               onPress={() => doAction(() => arriveAtStop(stop.delivery_id, driver.tankerId))}
               className="rounded-xl py-3 items-center"
-              style={{ backgroundColor: theme.primary }}
+              style={{ backgroundColor: theme.success }}
             >
               {stopLoading ? (
                 <ActivityIndicator color={theme.primaryForeground} />

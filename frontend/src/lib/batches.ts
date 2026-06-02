@@ -70,6 +70,8 @@ export interface BatchLiveResponse {
   refund_reference?: string | null;
   failure_reason?: string | null;
   notes?: string | null;
+  stop_order?: number | null;
+  stops_ahead?: number | null;
 }
 
 export async function leaveBatchMember(memberId: number) {

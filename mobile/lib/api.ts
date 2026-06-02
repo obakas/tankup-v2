@@ -204,6 +204,8 @@ export interface BatchLiveResponse {
   refunded_at?: string | null;
   failure_reason?: string | null;
   notes?: string | null;
+  stop_order?: number | null;
+  stops_ahead?: number | null;
 }
 
 export function getBatchLive(batchId: number, memberId?: number) {

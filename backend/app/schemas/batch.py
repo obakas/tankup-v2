@@ -83,3 +83,5 @@ class BatchLiveResponse(BaseModel):
 
     failure_reason: Optional[str] = None
     notes: Optional[str] = None
+    stop_order: Optional[int] = None
+    stops_ahead: Optional[int] = None

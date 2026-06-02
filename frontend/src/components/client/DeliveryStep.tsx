@@ -203,22 +203,25 @@ export default function DeliveryStep({
     ? isCompleted || !!livePriorityRequest?.otp_verified || livePriorityRequest?.delivery_status === "delivered"
     : isCompleted || !!liveBatch?.otp_verified || liveBatch?.member_delivery_status === "delivered";
 
-  // Compute queue position for batch deliveries (client's spot in driver's route).
   const queuePosition = (() => {
     if (isPriority || !liveBatch) return null;
     const myStatus = liveBatch.member_delivery_status;
     if (!myStatus || myStatus === "delivered" || myStatus === "failed" || myStatus === "skipped") return null;
-    // Estimate: if driver is actively delivering and our stop isn't current, we're in queue.
-    // Use member_count as queue size hint; show "Next" when arrived/measuring/awaiting_otp.
     const total = liveBatch.member_count ?? null;
+    const position = liveBatch.stop_order ?? null;
+    const stopsAhead = liveBatch.stops_ahead ?? null;
     if (myStatus === "arrived" || myStatus === "measuring" || myStatus === "awaiting_otp") {
-      return { label: "You're up now", position: 1, total };
+      return { label: "You're up now", sublabel: null, position, total };
     }
     if (myStatus === "en_route") {
-      return { label: "Driver is on the way to you", position: 1, total };
+      return { label: "Driver is on the way to you", sublabel: null, position, total };
     }
-    // pending — somewhere in queue
-    return { label: "In delivery queue", position: null as number | null, total };
+    const sublabel = stopsAhead != null && stopsAhead > 0
+      ? `${stopsAhead} stop${stopsAhead === 1 ? "" : "s"} ahead of you`
+      : stopsAhead === 0
+        ? "You're next"
+        : null;
+    return { label: "In delivery queue", sublabel, position, total };
   })();
 
   return (
@@ -232,9 +235,11 @@ export default function DeliveryStep({
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground">{queuePosition.label}</p>
               <p className="text-xs text-muted-foreground">
-                {queuePosition.total
-                  ? `Batch of ${queuePosition.total} stop${queuePosition.total === 1 ? "" : "s"}`
-                  : "The driver will reach you shortly"}
+                {queuePosition.sublabel
+                  ? queuePosition.sublabel
+                  : queuePosition.total
+                    ? `Batch of ${queuePosition.total} stop${queuePosition.total === 1 ? "" : "s"}`
+                    : "The driver will reach you shortly"}
               </p>
             </div>
           </div>

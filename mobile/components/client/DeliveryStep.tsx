@@ -139,13 +139,20 @@ export function DeliveryStep({
     const memberStatus = liveData?.member_delivery_status;
     if (!memberStatus || memberStatus === "delivered" || memberStatus === "failed" || memberStatus === "skipped") return null;
     const total: number | null = liveData?.member_count ?? null;
+    const position: number | null = liveData?.stop_order ?? null;
+    const stopsAhead: number | null = liveData?.stops_ahead ?? null;
     if (memberStatus === "arrived" || memberStatus === "measuring" || memberStatus === "awaiting_otp") {
-      return { label: "You're up now", position: 1 as number | null, total };
+      return { label: "You're up now", sublabel: null as string | null, position, total };
     }
     if (memberStatus === "en_route") {
-      return { label: "Driver is on the way to you", position: 1 as number | null, total };
+      return { label: "Driver is on the way to you", sublabel: null as string | null, position, total };
     }
-    return { label: "In delivery queue", position: null as number | null, total };
+    const sublabel = stopsAhead != null && stopsAhead > 0
+      ? `${stopsAhead} stop${stopsAhead === 1 ? "" : "s"} ahead of you`
+      : stopsAhead === 0
+        ? "You're next"
+        : null;
+    return { label: "In delivery queue", sublabel, position, total };
   })();
 
   const deliveryStatus = isPriority ? liveData?.delivery_status : liveData?.member_delivery_status;
@@ -191,9 +198,11 @@ export function DeliveryStep({
                 {queuePosition.label}
               </Text>
               <Text className="text-xs mt-0.5" style={{ color: theme.mutedForeground }}>
-                {queuePosition.total
-                  ? `Batch of ${queuePosition.total} stop${queuePosition.total === 1 ? "" : "s"}`
-                  : "The driver will reach you shortly"}
+                {queuePosition.sublabel
+                  ? queuePosition.sublabel
+                  : queuePosition.total
+                    ? `Batch of ${queuePosition.total} stop${queuePosition.total === 1 ? "" : "s"}`
+                    : "The driver will reach you shortly"}
               </Text>
             </View>
           </View>

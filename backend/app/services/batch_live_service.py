@@ -59,6 +59,7 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         refund_eligible = is_member_eligible_for_refund(member, batch)
 
     member_delivery = None
+    stops_ahead = None
     if member is not None:
         member_delivery = (
             db.query(DeliveryRecord)
@@ -70,6 +71,17 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
             .order_by(DeliveryRecord.id.desc())
             .first()
         )
+        if member_delivery and member_delivery.stop_order is not None:
+            stops_ahead = (
+                db.query(DeliveryRecord)
+                .filter(
+                    DeliveryRecord.job_type == "batch",
+                    DeliveryRecord.batch_id == batch.id,
+                    DeliveryRecord.stop_order < member_delivery.stop_order,
+                    DeliveryRecord.delivery_status.in_(["pending", "en_route"]),
+                )
+                .count()
+            )
 
     current_volume = float(getattr(batch, "current_volume", 0) or 0)
     target_volume = float(getattr(batch, "target_volume", 0) or 0)
@@ -107,6 +119,8 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         ),
         "member_delivery_id": getattr(member_delivery, "id", None) if member_delivery else None,
         "member_delivery_status": getattr(member_delivery, "delivery_status", None) if member_delivery else None,
+        "stop_order": getattr(member_delivery, "stop_order", None) if member_delivery else None,
+        "stops_ahead": stops_ahead,
         "member_delivery_code": getattr(member_delivery, "delivery_code", None) if member_delivery else None,
         "otp_verified": getattr(member_delivery, "otp_verified", False) if member_delivery else False,
         "otp_required": getattr(member_delivery, "otp_required", True) if member_delivery else True,

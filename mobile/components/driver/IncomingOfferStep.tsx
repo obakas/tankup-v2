@@ -41,11 +41,11 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
           <View className="flex-row items-center gap-2">
             <View
               className="rounded-lg px-2 py-1"
-              style={{ backgroundColor: isPriority ? theme.destructive + "22" : theme.primary + "22" }}
+              style={{ backgroundColor: isPriority ? theme.destructive + "22" : theme.success + "22" }}
             >
               <Text
                 className="text-xs font-bold uppercase"
-                style={{ color: isPriority ? theme.destructive : theme.primary }}
+                style={{ color: isPriority ? theme.destructive : theme.success }}
               >
                 {isPriority ? "Priority" : "Batch"}
               </Text>
@@ -85,7 +85,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
           style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
           <View className="flex-row items-center gap-2 mb-1">
-            <User color={theme.primary} size={15} />
+            <User color={theme.success} size={15} />
             <Text className="font-bold" style={{ color: theme.foreground }}>
               {offer.customer_name ?? "Customer"}
             </Text>
@@ -120,7 +120,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
           <View className="flex-row items-center gap-2">
             <View
               className="w-6 h-6 rounded-full items-center justify-center"
-              style={{ backgroundColor: theme.primary }}
+              style={{ backgroundColor: theme.success }}
             >
               <Text className="text-xs font-bold" style={{ color: theme.primaryForeground }}>
                 {idx + 1}
