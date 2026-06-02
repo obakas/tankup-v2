@@ -18,7 +18,7 @@ import DeliveryHistoryTab from "@/components/driver/DeliveryHistoryTab";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
 import { useDriverAuth } from "@/hooks/useDriverAuth";
 import { useDriverOfferAlarm } from "@/hooks/useDriverOfferAlarm";
-import { BellRing, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, BellRing, Volume2, VolumeX } from "lucide-react";
 import { Bell, BellOff } from "lucide-react";
 import { useWebPushNotifications } from "@/hooks/useWebPushNotifications";
 
@@ -471,6 +471,15 @@ const DriverView = ({ onBack }: DriverViewProps) => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background p-5">
+        <button
+          onClick={onBack}
+          className="mb-4 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          type="button"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
         <DriverAuthModal onLogin={loginDriver} />
       </div>
     );
