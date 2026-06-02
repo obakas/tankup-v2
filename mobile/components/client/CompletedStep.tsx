@@ -67,7 +67,7 @@ export function CompletedStep({ size, requestMode, priorityMode, scheduledFor, p
         className="w-full rounded-xl py-4 items-center"
         style={{ backgroundColor: theme.primary }}
       >
-        <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Back to Home</Text>
+        <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Request Again</Text>
       </Pressable>
     </View>
   );

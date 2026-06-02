@@ -33,6 +33,7 @@ def create_and_assign_priority_request(db: Session, data) -> dict[str, Any]:
         return {
             "message": "Priority request created. Searching for a tanker.",
             "request_id": request.id,
+            "delivery_type": request.delivery_type,
             "tanker_id": None,
             "request_status": request.status,
             "tanker_status": None,
@@ -49,8 +50,9 @@ def create_and_assign_priority_request(db: Session, data) -> dict[str, Any]:
     return {
         "message": "Priority request created and offer sent successfully",
         "request_id": request.id,
+        "delivery_type": request.delivery_type,
         "tanker_id": tanker.id,
-        "request_status": request.status,   # should now be searching_driver
+        "request_status": request.status,
         "tanker_status": tanker.status,
         "scheduled_for": request.scheduled_for.isoformat() if request.scheduled_for else None,
         "score_breakdown": assignment_result.get("score_breakdown"),
@@ -67,6 +69,7 @@ def create_scheduled_priority_request(db: Session, data) -> dict[str, Any]:
     return {
         "message": "Scheduled priority request created successfully",
         "request_id": request.id,
+        "delivery_type": request.delivery_type,
         "request_status": request.status,
         "scheduled_for": request.scheduled_for.isoformat() if request.scheduled_for else None,
     }

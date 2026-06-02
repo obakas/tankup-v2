@@ -147,12 +147,12 @@ export default function ClientFlow() {
             scheduledFor={flow.scheduledFor}
             price={flow.price}
             otp={flow.otp}
-            onHome={flow.goRoleHome}
+            onHome={flow.handleStartNewRequest}
           />
         )}
 
         {flow.step === "failed" && (
-          <FailedStep onHome={flow.goRoleHome} />
+          <FailedStep onHome={flow.handleStartNewRequest} />
         )}
       </ScrollView>
 

@@ -211,7 +211,9 @@ export function useClientFlow() {
     try {
       setLiveLoading(true);
 
-      if (requestResp.delivery_type === "batch" && requestResp.batch_id) {
+      // requestResp.delivery_type is not included in the backend create response,
+      // so we use the mode state (set before payment and stable thereafter).
+      if (mode === "batch" && requestResp.batch_id) {
         const data = await getBatchLive(
           requestResp.batch_id,
           requestResp.member_id ?? undefined
@@ -237,7 +239,7 @@ export function useClientFlow() {
         if (data?.otp) setOtp(data.otp);
       }
 
-      if (requestResp.delivery_type === "priority" && requestResp.request_id) {
+      if (mode === "priority" && requestResp.request_id) {
         const data = await getPriorityRequestLive(requestResp.request_id);
 
         setLiveData(data);
@@ -253,9 +255,11 @@ export function useClientFlow() {
 
         if (data?.otp) setOtp(data.otp);
 
+        // "assigned" and "loading" stay on the "searching" step so the user
+        // sees driver info and loading state on the "Finding Tanker" screen.
+        // Only move forward once the tanker is actively delivering.
         if (["completed", "partially_completed"].includes(reqStatus)) setStep("completed");
         else if (["delivering", "arrived"].includes(reqStatus)) setStep("delivery");
-        else if (["assigned", "loading"].includes(reqStatus)) setStep("tanker");
         else if (reqStatus === "failed") setStep("failed");
       }
     } catch (e: any) {
@@ -263,7 +267,7 @@ export function useClientFlow() {
     } finally {
       setLiveLoading(false);
     }
-  }, [requestResp]);
+  }, [requestResp, mode]);
 
   const POLLING_STEPS: Array<ClientStep | "auth"> = ["batch", "searching", "tanker", "delivery"];
 
@@ -367,6 +371,20 @@ export function useClientFlow() {
     setStep("request");
   };
 
+  const handleStartNewRequest = useCallback(() => {
+    setRequestResp(null);
+    setSize(null);
+    setMode("batch");
+    setPriorityMode("asap");
+    setScheduledFor("");
+    setSelectedSiteId(null);
+    setOtp("");
+    setLiveData(null);
+    setLiveError(null);
+    setError(null);
+    setStep("request");
+  }, []);
+
   const handleLeave = async () => {
     if (!requestResp?.member_id) return;
 
@@ -396,6 +414,7 @@ export function useClientFlow() {
     if (step === "auth") return goRoleHome();
     if (step === "request") return goRoleHome();
     if (step === "payment") return setStep("request");
+    if (step === "completed" || step === "failed") return handleStartNewRequest();
 
     goRoleHome();
   };
@@ -441,6 +460,7 @@ export function useClientFlow() {
 
     back,
     handleCancelBeforePayment,
+    handleStartNewRequest,
     goRoleHome,
     fetchLive,
     handleAuthComplete,

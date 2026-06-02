@@ -204,6 +204,7 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
     return {
         "message": "Batch request created successfully after payment.",
         "request_id": request.id,
+        "delivery_type": request.delivery_type,
         "batch_id": batch.id,
         "member_id": member.id,
         "request_status": request.status,
