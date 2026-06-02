@@ -21,7 +21,7 @@ export function DriverCompletedStep({ onBackOnline }: { onBackOnline: () => void
       <Pressable
         onPress={onBackOnline}
         className="w-full rounded-xl py-4 items-center"
-        style={{ backgroundColor: theme.primary }}
+        style={{ backgroundColor: theme.success }}
       >
         <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Back Online</Text>
       </Pressable>

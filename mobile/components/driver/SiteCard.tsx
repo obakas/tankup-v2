@@ -64,7 +64,7 @@ export function SiteCard({ site, volume }: Props) {
             className="flex-row items-center gap-1 rounded-lg px-2 py-1"
             style={{ backgroundColor: theme.cardSoft }}
           >
-            <Droplets color={theme.primary} size={12} />
+            <Droplets color={theme.success} size={12} />
             <Text className="text-xs font-semibold" style={{ color: theme.foreground }}>
               {volume.toLocaleString()}L
             </Text>

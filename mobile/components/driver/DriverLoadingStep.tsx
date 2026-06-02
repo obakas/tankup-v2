@@ -47,7 +47,7 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
           style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
           <View className="flex-row items-center gap-2">
-            <User color={theme.primary} size={15} />
+            <User color={theme.success} size={15} />
             <Text className="font-semibold flex-1" style={{ color: theme.foreground }}>
               {priorityCustomer.name ?? "Customer"}
             </Text>
@@ -72,7 +72,7 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
           <View className="flex-row items-center gap-2">
             <View
               className="w-6 h-6 rounded-full items-center justify-center"
-              style={{ backgroundColor: theme.primary }}
+              style={{ backgroundColor: theme.success }}
             >
               <Text className="text-xs font-bold" style={{ color: theme.primaryForeground }}>
                 {idx + 1}
@@ -97,7 +97,7 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
           onPress={onStartLoading}
           disabled={loading}
           className="rounded-xl py-4 items-center"
-          style={{ backgroundColor: theme.primary }}
+          style={{ backgroundColor: theme.success }}
         >
           {loading ? (
             <ActivityIndicator color={theme.primaryForeground} />

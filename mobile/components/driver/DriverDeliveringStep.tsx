@@ -36,7 +36,7 @@ export function DriverDeliveringStep({
 }: Props) {
   const stop = currentStop?.current_stop ?? currentStop?.stop;
   const summary = currentStop?.stops_summary ?? [];
-  const deliveredCount = summary.filter((s: any) => s.status === "delivered").length;
+  const deliveredCount = summary.filter((s: any) => s.delivery_status === "delivered").length;
   const totalCount = summary.length;
   const allDone = totalCount > 0 && deliveredCount === totalCount;
   const stopStatus: string = stop?.delivery_status ?? "";
@@ -70,9 +70,9 @@ export function DriverDeliveringStep({
         >
           <View
             className="w-20 h-20 rounded-full items-center justify-center"
-            style={{ backgroundColor: theme.primarySoft }}
+            style={{ backgroundColor: theme.successSoft }}
           >
-            <Navigation color={theme.primary} size={36} />
+            <Navigation color={theme.success} size={36} />
           </View>
           <View className="items-center gap-1">
             <Text className="font-bold text-xl" style={{ color: theme.foreground }}>No stops yet</Text>
@@ -124,23 +124,23 @@ export function DriverDeliveringStep({
             backgroundColor: theme.card,
             borderWidth: 1,
             borderColor: s.delivery_id === stop?.id ? theme.primary : theme.border,
-            opacity: s.status === "delivered" ? 0.5 : 1,
+            opacity: s.delivery_status === "delivered" ? 0.5 : 1,
           }}
         >
           <View className="flex-row items-center gap-2">
             <View
               className="w-6 h-6 rounded-full items-center justify-center"
-              style={{ backgroundColor: s.status === "delivered" ? theme.success : theme.primary }}
+              style={{ backgroundColor: s.delivery_status === "delivered" ? theme.success : theme.primary }}
             >
               <Text className="text-xs font-bold" style={{ color: theme.primaryForeground }}>
-                {s.status === "delivered" ? "✓" : idx + 1}
+                {s.delivery_status === "delivered" ? "✓" : idx + 1}
               </Text>
             </View>
             <Text className="font-medium flex-1" style={{ color: theme.foreground }}>
               {s.customer_name ?? `Stop ${idx + 1}`}
             </Text>
             <Text className="text-xs capitalize" style={{ color: theme.mutedForeground }}>
-              {s.status?.replace(/_/g, " ")}
+              {s.delivery_status?.replace(/_/g, " ")}
             </Text>
           </View>
         </View>
