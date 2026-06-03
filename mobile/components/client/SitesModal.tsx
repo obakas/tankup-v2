@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,7 +13,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ChevronLeft, MapPin, Pencil, Plus, Trash2, X } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { Camera, ChevronLeft, Image as ImageIcon, MapPin, Pencil, Plus, Trash2, X } from "lucide-react-native";
 import type { TankupTheme } from "@/components/ui/theme";
 import type { CurrentUser } from "@/types/client";
 import {
@@ -20,7 +22,9 @@ import {
   deleteSite,
   listUserSites,
   updateSite,
+  uploadSitePhoto,
   type SiteProfileResponse,
+  type TankFloorLevel,
 } from "@/lib/api";
 import { DEFAULT_LAT, DEFAULT_LNG } from "@/constants/clientConstants";
 
@@ -29,8 +33,14 @@ interface SiteFormData {
   address: string;
   landmark_notes: string;
   tank_capacity_liters: string;
+  tank_floor_level: TankFloorLevel | null;
   has_gate: boolean;
   gate_notes: string;
+}
+
+interface PendingPhoto {
+  uri: string;
+  mimeType: string;
 }
 
 const EMPTY_FORM: SiteFormData = {
@@ -38,6 +48,7 @@ const EMPTY_FORM: SiteFormData = {
   address: "",
   landmark_notes: "",
   tank_capacity_liters: "",
+  tank_floor_level: null,
   has_gate: false,
   gate_notes: "",
 };
@@ -49,6 +60,14 @@ const STATUS_LABELS: Record<string, string> = {
   high_risk: "High Risk",
   restricted: "Restricted",
 };
+
+const FLOOR_OPTIONS: { value: TankFloorLevel; label: string }[] = [
+  { value: "ground", label: "Ground" },
+  { value: "first_floor", label: "1st Floor" },
+  { value: "second_floor", label: "2nd Floor" },
+  { value: "third_floor", label: "3rd Floor" },
+  { value: "rooftop", label: "Roof" },
+];
 
 type Props = {
   visible: boolean;
@@ -63,6 +82,7 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
   const [view, setView] = useState<"list" | "form">("list");
   const [editingSite, setEditingSite] = useState<SiteProfileResponse | null>(null);
   const [form, setForm] = useState<SiteFormData>(EMPTY_FORM);
+  const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -90,6 +110,7 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
   const openAddForm = () => {
     setEditingSite(null);
     setForm(EMPTY_FORM);
+    setPendingPhoto(null);
     setError(null);
     setView("form");
   };
@@ -126,11 +147,59 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
       address: site.address ?? "",
       landmark_notes: site.landmark_notes ?? "",
       tank_capacity_liters: site.tank_capacity_liters != null ? String(site.tank_capacity_liters) : "",
+      tank_floor_level: site.tank_floor_level ?? null,
       has_gate: site.has_gate,
       gate_notes: site.gate_notes ?? "",
     });
+    setPendingPhoto(null);
     setError(null);
     setView("form");
+  };
+
+  const pickPhoto = async (source: "camera" | "gallery") => {
+    const permResult =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permResult.granted) {
+      Alert.alert(
+        "Permission required",
+        source === "camera"
+          ? "Camera access is needed to take a photo."
+          : "Photo library access is needed to choose a photo."
+      );
+      return;
+    }
+
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ["images"],
+            quality: 0.7,
+            allowsEditing: false,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ["images"],
+            quality: 0.7,
+            allowsEditing: false,
+          });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setPendingPhoto({
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+    }
+  };
+
+  const showPhotoPicker = () => {
+    Alert.alert("Tank Photo", "How would you like to add a photo?", [
+      { text: "Take Photo", onPress: () => pickPhoto("camera") },
+      { text: "Choose from Library", onPress: () => pickPhoto("gallery") },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   const handleSave = async () => {
@@ -149,19 +218,20 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     setSaving(true);
     setError(null);
     try {
+      let saved: SiteProfileResponse;
       if (editingSite) {
-        const updated = await updateSite(editingSite.id, {
+        saved = await updateSite(editingSite.id, {
           label: form.label.trim(),
           address: form.address.trim(),
           landmark_notes: form.landmark_notes.trim() || undefined,
           tank_capacity_liters: tank_capacity,
+          tank_floor_level: form.tank_floor_level ?? undefined,
           has_gate: form.has_gate,
           gate_notes: gateNotes,
         });
-        setSites((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-        setView("list");
+        setSites((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
       } else {
-        const created = await createSite({
+        saved = await createSite({
           user_id: user.id,
           latitude: DEFAULT_LAT,
           longitude: DEFAULT_LNG,
@@ -169,12 +239,19 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
           address: form.address.trim(),
           landmark_notes: form.landmark_notes.trim() || undefined,
           tank_capacity_liters: tank_capacity,
+          tank_floor_level: form.tank_floor_level ?? undefined,
           has_gate: form.has_gate,
           gate_notes: gateNotes,
         });
-        setSites((prev) => [...prev, created]);
-        setView("list");
+        setSites((prev) => [...prev, saved]);
       }
+
+      if (pendingPhoto) {
+        const withPhoto = await uploadSitePhoto(saved.id, pendingPhoto.uri, pendingPhoto.mimeType);
+        setSites((prev) => prev.map((s) => (s.id === withPhoto.id ? withPhoto : s)));
+      }
+
+      setView("list");
     } catch (e: any) {
       setError(e.message ?? "Failed to save site");
     } finally {
@@ -193,6 +270,8 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     fontSize: 14,
   };
 
+  const currentPhotoUri = pendingPhoto?.uri ?? (editingSite?.tank_photo_url || null);
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -205,7 +284,7 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             padding: 24,
-            maxHeight: "85%",
+            maxHeight: "90%",
           }}
         >
           {/* Header */}
@@ -277,6 +356,14 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                           gap: 12,
                         }}
                       >
+                        {/* Tank photo thumbnail */}
+                        {site.tank_photo_url ? (
+                          <Image
+                            source={{ uri: site.tank_photo_url }}
+                            style={{ width: 48, height: 48, borderRadius: 8 }}
+                            resizeMode="cover"
+                          />
+                        ) : null}
                         <View style={{ flex: 1, gap: 2 }}>
                           <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 14 }} numberOfLines={1}>
                             {site.label ?? "Unlabeled"}
@@ -286,11 +373,18 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                               {site.address}
                             </Text>
                           )}
-                          {site.tank_capacity_liters != null && (
-                            <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
-                              Tank: {site.tank_capacity_liters.toLocaleString()}L
-                            </Text>
-                          )}
+                          <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                            {site.tank_capacity_liters != null && (
+                              <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+                                {site.tank_capacity_liters.toLocaleString()}L
+                              </Text>
+                            )}
+                            {site.tank_floor_level && (
+                              <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+                                {FLOOR_OPTIONS.find((f) => f.value === site.tank_floor_level)?.label ?? site.tank_floor_level}
+                              </Text>
+                            )}
+                          </View>
                           <Text style={{ color: theme.mutedForeground, fontSize: 11, marginTop: 2 }}>
                             {STATUS_LABELS[site.verification_status] ?? "Unverified"}
                           </Text>
@@ -412,6 +506,118 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                     style={inputStyle}
                     keyboardType="numeric"
                   />
+                </View>
+
+                {/* Tank floor level */}
+                <View style={{ gap: 8 }}>
+                  <Text style={{ color: theme.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                    Tank Location{" "}
+                    <Text style={{ fontWeight: "400" }}>(optional)</Text>
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+                    {FLOOR_OPTIONS.map((opt) => {
+                      const selected = form.tank_floor_level === opt.value;
+                      return (
+                        <Pressable
+                          key={opt.value}
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              tank_floor_level: selected ? null : opt.value,
+                            }))
+                          }
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                            borderRadius: 8,
+                            borderWidth: 1,
+                            borderColor: selected ? theme.primary : theme.border,
+                            backgroundColor: selected ? theme.primary + "22" : theme.input,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: selected ? "700" : "400",
+                              color: selected ? theme.primary : theme.foreground,
+                            }}
+                          >
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Tank photo */}
+                <View style={{ gap: 8 }}>
+                  <Text style={{ color: theme.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                    Tank Photo{" "}
+                    <Text style={{ fontWeight: "400" }}>(optional — helps drivers estimate height)</Text>
+                  </Text>
+
+                  {currentPhotoUri ? (
+                    <View style={{ gap: 8 }}>
+                      <Image
+                        source={{ uri: currentPhotoUri }}
+                        style={{ width: "100%", height: 160, borderRadius: 12 }}
+                        resizeMode="cover"
+                      />
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                        <Pressable
+                          onPress={showPhotoPicker}
+                          style={{
+                            flex: 1,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            paddingVertical: 10,
+                            borderRadius: 10,
+                            borderWidth: 1,
+                            borderColor: theme.border,
+                            backgroundColor: theme.input,
+                          }}
+                        >
+                          <Camera color={theme.mutedForeground} size={14} />
+                          <Text style={{ color: theme.foreground, fontSize: 13 }}>Retake</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => setPendingPhoto(null)}
+                          style={{
+                            paddingHorizontal: 14,
+                            paddingVertical: 10,
+                            borderRadius: 10,
+                            borderWidth: 1,
+                            borderColor: theme.destructive,
+                            backgroundColor: theme.destructiveSoft,
+                          }}
+                        >
+                          <Text style={{ color: theme.destructive, fontSize: 13 }}>Remove</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={showPhotoPicker}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        paddingVertical: 32,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderStyle: "dashed",
+                        borderColor: theme.border,
+                        backgroundColor: theme.input,
+                      }}
+                    >
+                      <ImageIcon color={theme.mutedForeground} size={20} />
+                      <Text style={{ color: theme.mutedForeground, fontSize: 14 }}>Add Tank Photo</Text>
+                    </Pressable>
+                  )}
                 </View>
 
                 <View

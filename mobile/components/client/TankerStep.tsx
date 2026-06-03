@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import {
   Truck,
   Phone,
@@ -7,6 +9,7 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Navigation,
 } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import type { RequestMode } from "@/types/client";
@@ -239,6 +242,7 @@ export function TankerStep({
   onRefresh,
 }: Props) {
   const { theme } = useAppTheme();
+  const mapRef = useRef<MapView>(null);
   const isPriority = mode === "priority";
 
   const state = isPriority
@@ -255,6 +259,13 @@ export function TankerStep({
   const scheduledFor = requestResp?.scheduled_for ?? null;
 
   const myStop = liveData?.your_stop ?? liveData?.member;
+
+  const tankerLat: number | null = liveData?.tanker_latitude ?? null;
+  const tankerLon: number | null = liveData?.tanker_longitude ?? null;
+  const customerLat: number | null = liveData?.customer_latitude ?? null;
+  const customerLon: number | null = liveData?.customer_longitude ?? null;
+  const etaMinutes: number | null = liveData?.eta_minutes ?? null;
+  const hasMap = state.tankerId != null && tankerLat != null && tankerLon != null;
 
   return (
     <View className="gap-4">
@@ -326,6 +337,65 @@ export function TankerStep({
           </View>
         )}
       </View>
+
+      {/* ETA pill */}
+      {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading") && (
+        <View
+          className="flex-row items-center gap-3 rounded-2xl px-4 py-3"
+          style={{ backgroundColor: theme.successSoft, borderWidth: 1, borderColor: theme.success + "66" }}
+        >
+          <Navigation color={theme.success} size={16} />
+          <Text className="font-semibold text-sm" style={{ color: theme.success }}>
+            Arriving in ~{etaMinutes} min
+          </Text>
+        </View>
+      )}
+
+      {/* Live map */}
+      {hasMap && (
+        <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
+          <MapView
+            ref={mapRef}
+            style={{ height: 220 }}
+            onLayout={() => {
+              const coords = [
+                { latitude: tankerLat!, longitude: tankerLon! },
+                ...(customerLat != null && customerLon != null
+                  ? [{ latitude: customerLat, longitude: customerLon }]
+                  : []),
+              ];
+              mapRef.current?.fitToCoordinates(coords, {
+                edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+                animated: false,
+              });
+            }}
+          >
+            <Marker
+              coordinate={{ latitude: tankerLat!, longitude: tankerLon! }}
+              title={state.driverName ?? "Tanker"}
+              description={state.tankerStatus ?? undefined}
+              pinColor="#2563eb"
+            />
+            {customerLat != null && customerLon != null && (
+              <Marker
+                coordinate={{ latitude: customerLat, longitude: customerLon }}
+                title="Your location"
+                pinColor="#16a34a"
+              />
+            )}
+            {customerLat != null && customerLon != null && (
+              <Polyline
+                coordinates={[
+                  { latitude: tankerLat!, longitude: tankerLon! },
+                  { latitude: customerLat, longitude: customerLon },
+                ]}
+                strokeColor="#64748b"
+                strokeWidth={3}
+              />
+            )}
+          </MapView>
+        </View>
+      )}
 
       {/* Tanker details card */}
       <View

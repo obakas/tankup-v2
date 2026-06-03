@@ -43,7 +43,21 @@
       "@react-native-community/datetimepicker",
       "expo-notifications",
       "expo-font",
-      "expo-image"
+      "expo-image",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TankUp needs your location to track your delivery route.",
+          "locationWhenInUsePermission": "TankUp needs your location to track your delivery route."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TankUp needs access to your photos to add a tank photo to your site.",
+          "cameraPermission": "TankUp needs camera access to take a photo of your tank."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

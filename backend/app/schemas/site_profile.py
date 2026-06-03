@@ -14,6 +14,7 @@ class SiteProfileCreate(BaseModel):
     tank_capacity_liters: Optional[int] = None
     tank_height_m: Optional[float] = None
     hose_distance_m: Optional[float] = None
+    tank_floor_level: Optional[str] = None
     road_difficulty: int = Field(default=1, ge=1, le=5)
     parking_difficulty: int = Field(default=1, ge=1, le=5)
     has_gate: bool = False
@@ -27,6 +28,7 @@ class SiteProfileUpdate(BaseModel):
     tank_capacity_liters: Optional[int] = None
     tank_height_m: Optional[float] = None
     hose_distance_m: Optional[float] = None
+    tank_floor_level: Optional[str] = None
     road_difficulty: Optional[int] = Field(default=None, ge=1, le=5)
     parking_difficulty: Optional[int] = Field(default=None, ge=1, le=5)
     has_gate: Optional[bool] = None
@@ -48,6 +50,8 @@ class SiteProfileResponse(BaseModel):
     tank_capacity_liters: Optional[int]
     tank_height_m: Optional[float]
     hose_distance_m: Optional[float]
+    tank_floor_level: Optional[str]
+    tank_photo_url: Optional[str]
     road_difficulty: int
     parking_difficulty: int
     has_gate: bool

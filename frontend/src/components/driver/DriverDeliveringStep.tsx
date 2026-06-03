@@ -35,6 +35,10 @@ interface DriverDeliveringStepProps {
 
   otpVerified?: boolean;
 
+  driverLatitude?: number | null;
+  driverLongitude?: number | null;
+  lastLocationUpdateAt?: string | null;
+
   onMarkArrived: () => void | Promise<void>;
   onBeginMeasurement: () => void | Promise<void>;
   onFinishMeasurement: () => void | Promise<void>;
@@ -77,10 +81,9 @@ export const DriverDeliveringStep = ({
   onFailStop,
   onSkipStop,
   onReset,
-
-  // driverLatitude,
-  // driverLongitude,
-  // lastLocationUpdateAt,
+  driverLatitude,
+  driverLongitude,
+  lastLocationUpdateAt,
 }: DriverDeliveringStepProps) => {
   const canArrive = allowedActions.includes("arrive");
   const canStartMeasurement = allowedActions.includes("start_measurement");
@@ -195,6 +198,30 @@ export const DriverDeliveringStep = ({
           </div>
         </div>
       </div>
+
+      <LiveDeliveryMap
+        title="Delivery map"
+        subtitle="Your tanker position and the current customer stop."
+        driver={{
+          label: "Your tanker",
+          latitude: driverLatitude,
+          longitude: driverLongitude,
+          kind: "driver",
+          description: "Current tanker location",
+        }}
+        customer={
+          currentDelivery?.latitude != null && currentDelivery?.longitude != null
+            ? {
+                label: currentDelivery.name,
+                latitude: currentDelivery.latitude,
+                longitude: currentDelivery.longitude,
+                kind: "customer",
+                description: currentDelivery.address,
+              }
+            : undefined
+        }
+        lastUpdatedAt={lastLocationUpdateAt}
+      />
 
       <div className="rounded-2xl border bg-card p-5 shadow-sm space-y-5">
         <div>

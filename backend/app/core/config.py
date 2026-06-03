@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     ADMIN_SECRET: str = "dev-admin-secret"
 
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

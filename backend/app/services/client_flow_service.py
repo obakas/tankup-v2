@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.schemas.request import RequestCreate
 from app.models.customer_site_profile import CustomerSiteProfile
 from app.services.batch_service import find_or_create_batch
+from app.services.routing_service import calculate_distance_km
 from app.services.priority_service import (
     create_and_assign_priority_request,
     create_scheduled_priority_request,
@@ -67,6 +68,15 @@ def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, An
         "tanker_latitude": tanker.latitude if tanker else None,
         "tanker_longitude": tanker.longitude if tanker else None,
         "last_location_update_at": tanker.last_location_update_at.isoformat() if tanker and tanker.last_location_update_at else None,
+        "eta_minutes": (
+            max(round((calculate_distance_km(
+                tanker.longitude, tanker.latitude,
+                request.longitude, request.latitude,
+            ) * 1.3) / 25.0 * 60), 1)
+            if tanker and tanker.latitude and tanker.longitude
+            and request.latitude and request.longitude
+            else None
+        ),
 
         "customer_latitude": request.latitude,
         "customer_longitude": request.longitude,

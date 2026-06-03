@@ -177,6 +177,13 @@ export interface BatchLiveResponse {
   driver_name?: string | null;
   tanker_status?: string | null;
   tanker_phone?: string | null;
+  tanker_latitude?: number | null;
+  tanker_longitude?: number | null;
+  last_location_update_at?: string | null;
+  eta_minutes?: number | null;
+
+  customer_latitude?: number | null;
+  customer_longitude?: number | null;
 
   otp?: string | null;
   member_delivery_code?: string | null;
@@ -253,6 +260,8 @@ export function fetchClientHistory(userId: number) {
 export const updateUser = (userId: number, payload: { name?: string; address?: string }) =>
   apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
 
+export type TankFloorLevel = "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop";
+
 export interface SiteProfileCreatePayload {
   user_id: number;
   latitude: number;
@@ -261,6 +270,7 @@ export interface SiteProfileCreatePayload {
   address?: string;
   landmark_notes?: string;
   tank_capacity_liters?: number;
+  tank_floor_level?: TankFloorLevel;
   has_gate?: boolean;
   gate_notes?: string;
 }
@@ -270,6 +280,7 @@ export interface SiteProfileUpdatePayload {
   address?: string;
   landmark_notes?: string;
   tank_capacity_liters?: number;
+  tank_floor_level?: TankFloorLevel | null;
   has_gate?: boolean;
   gate_notes?: string;
 }
@@ -285,6 +296,8 @@ export interface SiteProfileResponse {
   tank_capacity_liters: number | null;
   tank_height_m: number | null;
   hose_distance_m: number | null;
+  tank_floor_level: TankFloorLevel | null;
+  tank_photo_url: string | null;
   road_difficulty: number;
   parking_difficulty: number;
   has_gate: boolean;
@@ -308,6 +321,30 @@ export const updateSite = (siteId: number, payload: SiteProfileUpdatePayload) =>
 
 export const deleteSite = (siteId: number) =>
   apiRequest<void>(`/sites/${siteId}`, { method: "DELETE" });
+
+export async function uploadSitePhoto(
+  siteId: number,
+  uri: string,
+  mimeType: string
+): Promise<SiteProfileResponse> {
+  const formData = new FormData();
+  const filename = uri.split("/").pop() ?? "photo.jpg";
+  formData.append("file", { uri, name: filename, type: mimeType } as any);
+
+  const response = await fetch(
+    `${API_BASE_URL}/sites/${siteId}/photo`,
+    {
+      method: "POST",
+      headers: { "ngrok-skip-browser-warning": "true" },
+      body: formData,
+    }
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Upload failed (${response.status})`);
+  }
+  return response.json();
+}
 
 // ── Driver auth ───────────────────────────────────────────────────────────────
 
@@ -571,8 +608,54 @@ export const verifySite = (
 // export const getRequestStatus = (requestId: number) =>
 //   apiRequest<any>(`/requests/${requestId}/status`);
 
+export interface PriorityLiveResponse {
+  request_id: number;
+  delivery_type: "priority";
+  request_status: string;
+  is_asap: boolean;
+  scheduled_for: string | null;
+
+  tanker_id: number | null;
+  driver_name: string | null;
+  tanker_phone: string | null;
+  tanker_status: string | null;
+  tanker_latitude: number | null;
+  tanker_longitude: number | null;
+  last_location_update_at: string | null;
+  eta_minutes?: number | null;
+
+  customer_latitude: number | null;
+  customer_longitude: number | null;
+
+  delivery_id: number | null;
+  delivery_status:
+    | "pending"
+    | "en_route"
+    | "arrived"
+    | "measuring"
+    | "awaiting_otp"
+    | "delivered"
+    | null;
+
+  otp: string | null;
+  otp_verified: boolean;
+  otp_required: boolean;
+
+  planned_liters: number | null;
+  actual_liters_delivered: number | null;
+  meter_start_reading: number | null;
+  meter_end_reading: number | null;
+  arrived_at: string | null;
+  measurement_started_at: string | null;
+  measurement_completed_at: string | null;
+  delivered_at: string | null;
+  customer_confirmed: boolean;
+  failure_reason: string | null;
+  notes: string | null;
+}
+
 export const getPriorityRequestLive = (requestId: number) =>
-  apiRequest<any>(`/requests/${requestId}/live`);
+  apiRequest<PriorityLiveResponse>(`/requests/${requestId}/live`);
 
 // export const getActivePriorityRequest = (userId: number) =>
 //   apiRequest<any>(`/requests/users/${userId}/active-priority`);

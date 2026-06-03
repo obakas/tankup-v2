@@ -59,6 +59,7 @@ def get_or_create_site_profile(
     tank_capacity_liters: Optional[int] = None,
     tank_height_m: Optional[float] = None,
     hose_distance_m: Optional[float] = None,
+    tank_floor_level: Optional[str] = None,
     road_difficulty: int = 1,
     parking_difficulty: int = 1,
     has_gate: bool = False,
@@ -83,6 +84,7 @@ def get_or_create_site_profile(
         tank_capacity_liters=tank_capacity_liters,
         tank_height_m=tank_height_m,
         hose_distance_m=hose_distance_m,
+        tank_floor_level=tank_floor_level,
         road_difficulty=road_difficulty,
         parking_difficulty=parking_difficulty,
         has_gate=has_gate,
@@ -105,6 +107,8 @@ def update_site_profile(
     tank_capacity_liters: Optional[int] = None,
     tank_height_m: Optional[float] = None,
     hose_distance_m: Optional[float] = None,
+    tank_floor_level: Optional[str] = None,
+    tank_photo_url: Optional[str] = None,
     road_difficulty: Optional[int] = None,
     parking_difficulty: Optional[int] = None,
     has_gate: Optional[bool] = None,
@@ -127,6 +131,10 @@ def update_site_profile(
         profile.tank_height_m = tank_height_m
     if hose_distance_m is not None:
         profile.hose_distance_m = hose_distance_m
+    if tank_floor_level is not None:
+        profile.tank_floor_level = tank_floor_level
+    if tank_photo_url is not None:
+        profile.tank_photo_url = tank_photo_url
     if road_difficulty is not None:
         profile.road_difficulty = road_difficulty
     if parking_difficulty is not None:

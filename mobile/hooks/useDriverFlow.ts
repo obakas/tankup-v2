@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import type { DriverStep } from "@/types/driver";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
+import { useLocationHeartbeat } from "@/hooks/useLocationHeartbeat";
 import { toast } from "@/lib/toast";
 import { useDriverOfferAlarm } from "@/hooks/useDriverOfferAlarm";
 
@@ -43,6 +44,7 @@ export function useDriverFlow() {
   const [offer, setOffer] = useState<any>(null);
   const [job, setJob] = useState<any>(null);
   const [currentStop, setCurrentStop] = useState<any>(null);
+  const [driverLocation, setDriverLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -174,6 +176,12 @@ export function useDriverFlow() {
   }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
 
   useAppStatePause(stopPolling, restartPolling);
+
+  useLocationHeartbeat({
+    tankerId: driver?.tankerId ?? null,
+    enabled: online && ["loading", "delivering"].includes(step),
+    onLocationUpdate: (latitude, longitude) => setDriverLocation({ latitude, longitude }),
+  });
 
   const refreshJob = useCallback(async (d: DriverResponse) => {
     setLoading(true);
@@ -410,6 +418,7 @@ export function useDriverFlow() {
     offer,
     job,
     currentStop,
+    driverLocation,
     loading,
     actionLoading,
     error,

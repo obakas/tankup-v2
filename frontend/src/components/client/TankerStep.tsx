@@ -379,6 +379,46 @@ export default function TankerStep({
         </div>
       </div>
 
+      {state.tankerId && (() => {
+        const etaMinutes = isPriority
+          ? livePriorityRequest?.eta_minutes
+          : liveBatch?.eta_minutes;
+        return (
+          <div className="space-y-3">
+            {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading") && (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
+                <Clock3 className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-sm font-medium text-foreground">
+                  Arriving in ~{etaMinutes} min
+                </p>
+              </div>
+            )}
+            <LiveDeliveryMap
+              title="Track your tanker"
+              subtitle="Live tanker position updated every few seconds."
+              driver={{
+                label: state.driverName ?? "Tanker",
+                latitude: isPriority ? livePriorityRequest?.tanker_latitude : liveBatch?.tanker_latitude,
+                longitude: isPriority ? livePriorityRequest?.tanker_longitude : liveBatch?.tanker_longitude,
+                kind: "driver",
+                description: state.tankerStatus ?? undefined,
+              }}
+              customer={{
+                label: "Your location",
+                latitude: isPriority ? livePriorityRequest?.customer_latitude : liveBatch?.customer_latitude,
+                longitude: isPriority ? livePriorityRequest?.customer_longitude : liveBatch?.customer_longitude,
+                kind: "customer",
+              }}
+              lastUpdatedAt={
+                isPriority
+                  ? livePriorityRequest?.last_location_update_at
+                  : liveBatch?.last_location_update_at
+              }
+            />
+          </div>
+        );
+      })()}
+
       <div className="rounded-2xl border bg-card p-5 shadow-sm">
         <div className="flex items-start gap-3">
           {loading ? (

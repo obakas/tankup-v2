@@ -108,6 +108,10 @@ export default function DriverFlow() {
             actionLoading={flow.actionLoading}
             setError={flow.setError}
             onReportIncident={() => setIncidentVisible(true)}
+            driverLat={flow.driverLocation?.latitude}
+            driverLon={flow.driverLocation?.longitude}
+            stopLat={flow.currentStop?.current_stop?.location?.latitude}
+            stopLon={flow.currentStop?.current_stop?.location?.longitude}
           />
         )}
 

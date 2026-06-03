@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -51,10 +52,11 @@ import {
 
 const ROLE_KEY = "tankup_active_role";
 const POLL_MS = 15_000;
+const MAP_POLL_MS = 5_000;
 const VIOLET = "#8b5cf6";
 const VIOLET_SOFT = "rgba(139,92,246,0.12)";
 
-type Tab = "live" | "tankers" | "overview";
+type Tab = "live" | "tankers" | "overview" | "map";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -723,9 +725,50 @@ function LoginScreen({
   );
 }
 
+// ── Map tab ───────────────────────────────────────────────────────────────────
+
+const TANKER_PIN: Record<string, string> = {
+  delivering: "#2563eb",
+  loading: "#f59e0b",
+  assigned: "#3b82f6",
+  arrived: VIOLET,
+  available: "#16a34a",
+};
+
+function MapTab({ tankers, theme }: { tankers: TankerCard[]; theme: TankupTheme }) {
+  const located = tankers.filter((t) => t.latitude != null && t.longitude != null);
+
+  if (located.length === 0) {
+    return <EmptyCard message="No tanker locations available yet. Locations appear once drivers start sending their position." theme={theme} />;
+  }
+
+  const initialRegion = {
+    latitude: located[0].latitude!,
+    longitude: located[0].longitude!,
+    latitudeDelta: 0.08,
+    longitudeDelta: 0.08,
+  };
+
+  return (
+    <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
+      <MapView style={{ height: 500 }} initialRegion={initialRegion}>
+        {located.map((tanker) => (
+          <Marker
+            key={tanker.id}
+            coordinate={{ latitude: tanker.latitude!, longitude: tanker.longitude! }}
+            title={tanker.driver_name ?? `Tanker #${tanker.id}`}
+            description={`${tanker.status} · ${tanker.tank_plate_number}`}
+            pinColor={TANKER_PIN[tanker.status] ?? "#64748b"}
+          />
+        ))}
+      </MapView>
+    </View>
+  );
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-const TABS: Tab[] = ["live", "tankers", "overview"];
+const TABS: Tab[] = ["live", "tankers", "overview", "map"];
 
 export default function FleetHeadScreen() {
   const { theme, isDark, toggleTheme } = useAppTheme();
@@ -740,6 +783,8 @@ export default function FleetHeadScreen() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
 
   useEffect(() => {
     getFleetHeadToken().then((tok) => {
@@ -790,10 +835,23 @@ export default function FleetHeadScreen() {
     if (!token) return;
     stopPolling();
     fetchAll(token, true);
-    pollRef.current = setInterval(() => fetchAll(token, true), POLL_MS);
+    const ms = tabRef.current === "map" ? MAP_POLL_MS : POLL_MS;
+    pollRef.current = setInterval(() => fetchAll(token, true), ms);
   }, [token, fetchAll, stopPolling]);
 
   useAppStatePause(stopPolling, restartPolling);
+
+  // Reschedule poll interval when switching to/from the map tab (different rate)
+  const prevTabRef = useRef(tab);
+  useEffect(() => {
+    const wasMap = prevTabRef.current === "map";
+    const isMap = tab === "map";
+    prevTabRef.current = tab;
+    if (wasMap === isMap || !token) return;
+    stopPolling();
+    const ms = isMap ? MAP_POLL_MS : POLL_MS;
+    pollRef.current = setInterval(() => fetchAll(token, true), ms);
+  }, [tab, token, fetchAll, stopPolling]);
 
   const handleLogin = async (tok: string) => {
     await setFleetHeadToken(tok);
@@ -938,6 +996,15 @@ export default function FleetHeadScreen() {
       {/* Content */}
       {loading ? (
         <FleetHeadLiveSkeleton theme={theme} />
+      ) : tab === "map" ? (
+        <View style={{ flex: 1, padding: 16 }}>
+          <MapTab tankers={tankers} theme={theme} />
+          {lastUpdated && (
+            <Text style={{ color: theme.mutedForeground, fontSize: 11, textAlign: "center", marginTop: 12 }}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </Text>
+          )}
+        </View>
       ) : (
         <ScrollView
           style={{ flex: 1 }}

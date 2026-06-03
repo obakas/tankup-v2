@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from app.services.batch_service import get_batch_by_id, get_batch_members
+from app.services.routing_service import calculate_distance_km
 from app.models.DeliveryRecord import DeliveryRecord
 
 
@@ -90,6 +91,17 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         (current_volume / target_volume) * 100 if target_volume > 0 else 0
     )
 
+    eta_minutes = None
+    if (
+        tanker and tanker.latitude and tanker.longitude
+        and member and getattr(member, "latitude", None) and getattr(member, "longitude", None)
+    ):
+        dist_km = calculate_distance_km(
+            tanker.longitude, tanker.latitude,
+            member.longitude, member.latitude,
+        )
+        eta_minutes = max(round((dist_km * 1.3) / 25.0 * 60), 1)
+
     return {
         "batch_id": batch.id,
         "status": batch.status,
@@ -107,6 +119,7 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         "tanker_latitude": tanker.latitude if tanker else None,
         "tanker_longitude": tanker.longitude if tanker else None,
         "last_location_update_at": tanker.last_location_update_at if tanker else None,
+        "eta_minutes": eta_minutes,
 
         # for client-side map: use the logged-in member's own stop if available
         "customer_latitude": getattr(member, "latitude", None) if member else None,

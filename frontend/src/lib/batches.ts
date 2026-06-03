@@ -27,6 +27,7 @@ export interface BatchLiveResponse {
   tanker_latitude?: number | null;
   tanker_longitude?: number | null;
   last_location_update_at?: string | null;
+  eta_minutes?: number | null;
 
   customer_latitude?: number | null;
   customer_longitude?: number | null;

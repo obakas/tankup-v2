@@ -379,7 +379,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   useDriverLocationHeartbeat({
     tankerId,
     enabled: shouldSendLocation,
-    intervalMs: 8000,
+    intervalMs: 4000,
   });
 
   const resetInputs = useCallback(() => {

@@ -290,6 +290,37 @@ export default function DeliveryStep({
 
       {(isPriority || !!liveBatch) && (
         <>
+          <LiveDeliveryMap
+            title="Tanker location"
+            subtitle="Shows where the driver is relative to your stop."
+            driver={{
+              label: isPriority
+                ? (livePriorityRequest?.driver_name ?? "Tanker")
+                : "Tanker",
+              latitude: isPriority
+                ? livePriorityRequest?.tanker_latitude
+                : liveBatch?.tanker_latitude,
+              longitude: isPriority
+                ? livePriorityRequest?.tanker_longitude
+                : liveBatch?.tanker_longitude,
+              kind: "driver",
+            }}
+            customer={{
+              label: "Your location",
+              latitude: isPriority
+                ? livePriorityRequest?.customer_latitude
+                : liveBatch?.customer_latitude,
+              longitude: isPriority
+                ? livePriorityRequest?.customer_longitude
+                : liveBatch?.customer_longitude,
+              kind: "customer",
+            }}
+            lastUpdatedAt={
+              isPriority
+                ? livePriorityRequest?.last_location_update_at
+                : liveBatch?.last_location_update_at
+            }
+          />
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <div className="mb-4">
               <h3 className="text-base font-semibold text-foreground">

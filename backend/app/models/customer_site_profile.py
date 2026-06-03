@@ -23,6 +23,9 @@ class CustomerSiteProfile(Base):
     tank_capacity_liters = Column(Integer, nullable=True)
     tank_height_m = Column(Float, nullable=True)
     hose_distance_m = Column(Float, nullable=True)
+    # values: ground | first_floor | second_floor | third_floor | rooftop
+    tank_floor_level = Column(String, nullable=True)
+    tank_photo_url = Column(String, nullable=True)
 
     # Accessibility — 1 (easy) to 5 (very hard), customer-submitted
     road_difficulty = Column(Integer, default=1, nullable=False)

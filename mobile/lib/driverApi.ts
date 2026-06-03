@@ -32,3 +32,9 @@ export const markJobLoaded = (jobId: number) =>
 
 export const completeJob = (jobId: number) =>
   apiRequest(`/jobs/${jobId}/complete`, { method: "POST" });
+
+export const updateTankerLocation = (tankerId: number, latitude: number, longitude: number) =>
+  apiRequest<void>(`/tankers/${tankerId}/location`, {
+    method: "POST",
+    body: { latitude, longitude },
+  });
