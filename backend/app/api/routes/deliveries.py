@@ -11,6 +11,7 @@ from app.schemas.delivery import (
     FailDeliveryIn,
     FinishMeasurementIn,
     SkipDeliveryIn,
+    SiteVerificationIn,
     StartMeasurementIn,
     TankerCurrentStopResponse,
 )
@@ -365,6 +366,43 @@ def complete_stop(
         "message": result["message"],
         "delivery": DeliveryOut.model_validate(result["delivery"]).model_dump(),
         "finalize_result": result.get("finalize_result"),
+    }
+
+
+@router.post("/{delivery_id}/verify-site")
+def verify_site_conditions(
+    delivery_id: int,
+    payload: SiteVerificationIn,
+    tanker_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Driver submits observed site conditions during or after a stop.
+    Fields are optional — driver may only report what they can measure.
+    Must be called before /complete so that update_site_on_delivery_complete picks them up.
+    """
+    delivery = _get_owned_delivery_or_403(db, tanker_id=tanker_id, delivery_id=delivery_id)
+
+    if delivery.delivery_status in {"delivered", "failed", "skipped"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Delivery already resolved as '{delivery.delivery_status}'",
+        )
+
+    if payload.tank_height_m is not None:
+        delivery.driver_reported_tank_height_m = payload.tank_height_m
+    if payload.hose_distance_m is not None:
+        delivery.driver_reported_hose_distance_m = payload.hose_distance_m
+    if payload.road_difficulty is not None:
+        delivery.driver_reported_road_difficulty = payload.road_difficulty
+
+    db.add(delivery)
+    db.commit()
+    db.refresh(delivery)
+
+    return {
+        "message": "Site conditions recorded",
+        "delivery": DeliveryOut.model_validate(delivery).model_dump(),
     }
 
 

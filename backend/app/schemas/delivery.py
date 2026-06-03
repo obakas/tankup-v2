@@ -163,3 +163,9 @@ class FailDeliveryIn(BaseModel):
 
 class SkipDeliveryIn(BaseModel):
     reason: str = Field(..., min_length=3, max_length=255)
+
+
+class SiteVerificationIn(BaseModel):
+    tank_height_m: Optional[float] = Field(None, ge=0, le=50)
+    hose_distance_m: Optional[float] = Field(None, ge=0, le=200)
+    road_difficulty: Optional[int] = Field(None, ge=1, le=5)

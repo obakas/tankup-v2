@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
-import { Navigation, Phone, RefreshCw, User } from "lucide-react-native";
+import { CheckCircle, Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
 import type { DriverResponse } from "@/lib/api";
@@ -12,6 +12,7 @@ import {
   finishMeasurement,
   skipStop,
   startMeasurement,
+  verifySite,
 } from "@/lib/api";
 
 type Props = {
@@ -46,6 +47,10 @@ export function DriverDeliveringStep({
   const [meterStart, setMeterStart] = useState("");
   const [meterEnd, setMeterEnd] = useState("");
   const [stopLoading, setStopLoading] = useState(false);
+  const [siteVerificationDone, setSiteVerificationDone] = useState(false);
+  const [siteTankHeight, setSiteTankHeight] = useState("");
+  const [siteHoseDistance, setSiteHoseDistance] = useState("");
+  const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
 
   const doAction = async (fn: () => Promise<any>) => {
     setStopLoading(true);
@@ -355,7 +360,117 @@ export function DriverDeliveringStep({
             </View>
           )}
 
-          {stopStatus === "awaiting_otp" && stop.otp_verified && (
+          {stopStatus === "awaiting_otp" && stop.otp_verified && !siteVerificationDone && (
+            <View className="gap-3">
+              <View
+                className="flex-row items-center gap-2 rounded-xl px-3 py-2"
+                style={{ backgroundColor: theme.successSoft }}
+              >
+                <CheckCircle color={theme.success} size={14} />
+                <Text className="text-sm font-semibold" style={{ color: theme.success }}>OTP verified</Text>
+              </View>
+
+              <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>
+                Verify site conditions
+              </Text>
+              <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+                These are optional. Accurate observations improve future routing.
+              </Text>
+
+              <View className="gap-1">
+                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Tank height (m)</Text>
+                <TextInput
+                  value={siteTankHeight}
+                  onChangeText={setSiteTankHeight}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 2.5"
+                  placeholderTextColor={theme.mutedForeground}
+                  className="rounded-xl px-4 py-3"
+                  style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, color: theme.foreground }}
+                />
+              </View>
+
+              <View className="gap-1">
+                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Hose distance (m)</Text>
+                <TextInput
+                  value={siteHoseDistance}
+                  onChangeText={setSiteHoseDistance}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 15"
+                  placeholderTextColor={theme.mutedForeground}
+                  className="rounded-xl px-4 py-3"
+                  style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, color: theme.foreground }}
+                />
+              </View>
+
+              <View className="gap-1">
+                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Road difficulty</Text>
+                <View className="flex-row gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Pressable
+                      key={n}
+                      onPress={() => setSiteRoadDifficulty(n)}
+                      className="flex-1 py-2 rounded-lg items-center"
+                      style={{
+                        backgroundColor: siteRoadDifficulty === n ? theme.primary : theme.background,
+                        borderWidth: 1,
+                        borderColor: siteRoadDifficulty === n ? theme.primary : theme.border,
+                      }}
+                    >
+                      <Text
+                        className="text-xs font-semibold"
+                        style={{ color: siteRoadDifficulty === n ? theme.primaryForeground : theme.mutedForeground }}
+                      >
+                        {n}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View className="flex-row gap-2">
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => setSiteVerificationDone(true)}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
+                >
+                  <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
+                </Pressable>
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={async () => {
+                    const payload: { tank_height_m?: number; hose_distance_m?: number; road_difficulty?: number } = {};
+                    if (siteTankHeight) payload.tank_height_m = parseFloat(siteTankHeight);
+                    if (siteHoseDistance) payload.hose_distance_m = parseFloat(siteHoseDistance);
+                    if (siteRoadDifficulty) payload.road_difficulty = siteRoadDifficulty;
+                    setStopLoading(true);
+                    setError(null);
+                    try {
+                      if (Object.keys(payload).length > 0) {
+                        await verifySite(stop.delivery_id, driver.tankerId, payload);
+                      }
+                      setSiteVerificationDone(true);
+                    } catch (e: any) {
+                      setError(e.message);
+                    } finally {
+                      setStopLoading(false);
+                    }
+                  }}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ backgroundColor: theme.primary }}
+                >
+                  {stopLoading ? (
+                    <ActivityIndicator color={theme.primaryForeground} />
+                  ) : (
+                    <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Submit</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          {stopStatus === "awaiting_otp" && stop.otp_verified && siteVerificationDone && (
             <Pressable
               disabled={stopLoading}
               onPress={() => doAction(() => completeStop(stop.delivery_id, driver.tankerId))}

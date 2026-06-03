@@ -99,6 +99,7 @@ cd mobile && npx expo start --tunnel --clear
 | `/customers` | Customer-side delivery confirmation |
 | `/admin` | Admin read/write operations — requires Bearer JWT with `sub="admin"` |
 | `/admin/login` | Admin + fleet head login, returns JWT |
+| `/incidents` | Incident reports from drivers |
 | `/histories`, `/notifications`, `/healths` | Supporting endpoints |
 
 **Auth model — two separate systems:**
@@ -188,6 +189,14 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 
 **Theme:** CSS custom properties in `src/index.css`, toggled via `document.documentElement.classList.toggle("dark", ...)`. `localStorage("tankup-theme")` persists the preference.
 
+**Component structure:** `src/components/` is split by role — `driver/`, `client/`, `admin/` each contain step-level screens and modals for that role view. `shared/` has `LiveDeliveryMap.tsx` (Leaflet). `ui/` is shadcn/ui primitives — don't modify directly.
+
+**Types:** `src/types/` — `driver.ts` (`DriverStep`, `DriverJob`, `DriverStop`), `client.ts` (`ClientStep`, `RequestMode`), `driverAuth.ts`. Import from here, not from hook/API files.
+
+**Toasts:** Use `import { toast } from "sonner"` directly in hooks and components. The `<Sonner />` renderer is mounted in `App.tsx`. Don't use shadcn's `useToast` hook for new code.
+
+**Pricing constants:** `src/constants/water.ts` — `BATCH_PRICE_PER_LITER`, `PRIORITY_FULL_TANKER_PRICE`, `PLATFORM_PRIORITY_COMMISSION_RATE`, `PLATFORM_BATCH_COMMISSION_RATE`. Import from here whenever pricing logic is needed.
+
 **UI components:** `src/components/ui/` contains shadcn/ui primitives. Don't modify these directly — they're generated. Use them via import.
 
 **Hooks** (`src/hooks/`):
@@ -247,6 +256,10 @@ Both patterns pass theme values as inline `style={{ color: theme.foreground }}` 
 **Admin access:** 5 rapid taps on the logo within 2 seconds → `router.push("/admin")`.
 
 **Router type definitions** (`mobile/.expo/types/router.d.ts`) are auto-generated at dev server start. New routes (`/fleet-head`) won't appear there until next `expo start` — this is expected and doesn't affect runtime.
+
+**Do not prop-drill `theme`** in mobile screens — call `useAppTheme()` directly in each component that needs it. They all converge on the same AsyncStorage value.
+
+**Mobile-specific patterns** (polling architecture, toast placement, skeleton loaders, admin API headers, role card hydration logic) are documented in detail in `mobile/CLAUDE.md`.
 
 ---
 

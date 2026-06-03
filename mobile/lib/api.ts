@@ -412,6 +412,16 @@ export const skipStop = (deliveryId: number, tankerId: number, reason: string) =
     body: { reason },
   });
 
+export const verifySite = (
+  deliveryId: number,
+  tankerId: number,
+  payload: { tank_height_m?: number; hose_distance_m?: number; road_difficulty?: number },
+) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/verify-site?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: payload,
+  });
+
 // type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 // interface RequestOptions {
