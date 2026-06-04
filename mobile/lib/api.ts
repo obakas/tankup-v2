@@ -284,6 +284,35 @@ export function fetchClientHistory(userId: number) {
   return apiRequest<ClientHistoryResponse>(`/history/users/${userId}`);
 }
 
+export interface DriverHistoryItem {
+  job_type: "batch" | "priority";
+  job_id: number;
+  tanker_id: number;
+  tanker_status: string | null;
+  total_stops: number;
+  delivered_stops: number;
+  failed_stops: number;
+  skipped_stops: number;
+  total_planned_liters: number;
+  total_actual_liters_delivered: number;
+  started_at: string | null;
+  completed_at: string | null;
+  last_updated_at: string | null;
+  job_status: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+}
+
+export interface DriverHistoryResponse {
+  tanker_id: number;
+  total: number;
+  items: DriverHistoryItem[];
+}
+
+export function fetchDriverHistory(tankerId: number) {
+  return apiRequest<DriverHistoryResponse>(`/history/tankers/${tankerId}`);
+}
+
 export const updateUser = (userId: number, payload: { name?: string; address?: string }) =>
   apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
 

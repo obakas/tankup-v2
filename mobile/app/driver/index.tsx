@@ -15,6 +15,7 @@ import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
 import { DriverProfileModal } from "@/components/driver/ProfileModal";
 import { DriverHelpModal } from "@/components/driver/HelpModal";
 import { ReportIncidentModal } from "@/components/driver/ReportIncidentModal";
+import { DeliveryHistoryModal } from "@/components/driver/DeliveryHistoryModal";
 
 const OFFLINE_REASONS = [
   { key: "breakdown", label: "Breakdown / Vehicle issue" },
@@ -29,6 +30,7 @@ export default function DriverFlow() {
   const [profileVisible, setProfileVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [incidentVisible, setIncidentVisible] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
   const [selectedOfflineReason, setSelectedOfflineReason] = useState<string | null>(null);
 
   return (
@@ -42,6 +44,7 @@ export default function DriverFlow() {
         onEditProfile={() => setProfileVisible(true)}
         onLogout={flow.goRoleHome}
         onOpenHelp={() => setHelpVisible(true)}
+        onOpenHistory={() => setHistoryVisible(true)}
         onOpenNotificationSettings={() =>
           router.push(
             flow.driver
@@ -134,6 +137,12 @@ export default function DriverFlow() {
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
         batchId={flow.job?.active_job?.batch_id ?? flow.job?.batch_id ?? null}
+        tankerId={flow.driver?.tankerId ?? null}
+      />
+
+      <DeliveryHistoryModal
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
         tankerId={flow.driver?.tankerId ?? null}
       />
 

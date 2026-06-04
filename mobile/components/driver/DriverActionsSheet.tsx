@@ -1,5 +1,5 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { Bell, HelpCircle, LogOut, UserPen, X } from "lucide-react-native";
+import { Bell, ClipboardList, HelpCircle, LogOut, UserPen, X } from "lucide-react-native";
 
 import { useAppTheme } from "@/hooks/useAppTheme";
 
@@ -9,6 +9,7 @@ type Props = {
   onEditProfile: () => void;
   onOpenNotificationSettings: () => void;
   onOpenHelp: () => void;
+  onOpenHistory: () => void;
   onLogout: () => void;
 };
 
@@ -57,6 +58,7 @@ export function DriverActionsSheet({
   onEditProfile,
   onOpenNotificationSettings,
   onOpenHelp,
+  onOpenHistory,
   onLogout,
 }: Props) {
   const { theme } = useAppTheme();
@@ -149,6 +151,16 @@ export function DriverActionsSheet({
             label="Help"
             description="Get support or report an issue"
             onPress={() => handle(onOpenHelp)}
+          />
+
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+
+          <ActionRow
+            icon={<ClipboardList color={theme.success} size={20} />}
+            iconBg={theme.successSoft}
+            label="Delivery history"
+            description="View your past and completed delivery jobs"
+            onPress={() => handle(onOpenHistory)}
           />
 
           <View style={{ height: 1, backgroundColor: theme.border }} />
