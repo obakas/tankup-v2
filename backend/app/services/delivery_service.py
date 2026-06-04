@@ -450,6 +450,13 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
     if current.site_profile_id:
         site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == current.site_profile_id).first()
 
+    is_driver_verified = bool(
+        site and (
+            site.driver_verified_hose_distance_m is not None
+            or site.driver_verified_road_difficulty is not None
+            or site.driver_verified_tank_height_m is not None
+        )
+    )
     site_payload = {
         "label": site.label,
         "address": site.address,
@@ -460,6 +467,9 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
         "gate_notes": site.gate_notes,
         "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
         "parking_difficulty": site.parking_difficulty,
+        "verification_status": site.verification_status,
+        "is_driver_verified": is_driver_verified,
+        "last_verified_at": site.last_verified_at,
     } if site else None
 
     return {

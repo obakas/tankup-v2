@@ -63,11 +63,27 @@ class DeliveryOut(BaseModel):
         from_attributes = True
 
 
+class DeliverySiteOut(BaseModel):
+    label: Optional[str] = None
+    address: Optional[str] = None
+    landmark_notes: Optional[str] = None
+    tank_capacity_liters: Optional[int] = None
+    hose_distance_m: Optional[float] = None
+    has_gate: Optional[bool] = None
+    gate_notes: Optional[str] = None
+    road_difficulty: Optional[int] = None
+    parking_difficulty: Optional[int] = None
+    verification_status: Optional[str] = None
+    is_driver_verified: bool = False
+    last_verified_at: Optional[datetime] = None
+
+
 class DeliveryCustomerOut(BaseModel):
     user_id: Optional[int] = None
     name: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    site: Optional[DeliverySiteOut] = None
 
 
 class DeliveryLocationOut(BaseModel):

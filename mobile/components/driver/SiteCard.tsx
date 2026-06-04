@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import { Droplets, Lock, MapPin, Navigation, Truck } from "lucide-react-native";
+import { CheckCircle, Droplets, Lock, MapPin, Navigation, Truck } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 export type SiteProfile = {
@@ -12,6 +12,9 @@ export type SiteProfile = {
   gate_notes?: string | null;
   road_difficulty?: number;
   parking_difficulty?: number;
+  verification_status?: string | null;
+  is_driver_verified?: boolean;
+  last_verified_at?: string | null;
 };
 
 export function DifficultyDots({ value, max = 5 }: { value: number; max?: number }) {
@@ -108,6 +111,18 @@ export function SiteCard({ site, volume }: Props) {
           <DifficultyDots value={site.parking_difficulty ?? 1} />
         </View>
       </View>
+
+      {site.verification_status && (
+        <View className="flex-row items-center gap-1">
+          <CheckCircle
+            size={12}
+            color={site.is_driver_verified ? theme.success : theme.mutedForeground}
+          />
+          <Text className="text-[11px] capitalize" style={{ color: site.is_driver_verified ? theme.success : theme.mutedForeground }}>
+            {site.verification_status.replace(/_/g, " ")}
+          </Text>
+        </View>
+      )}
 
       {site.has_gate && (
         <View

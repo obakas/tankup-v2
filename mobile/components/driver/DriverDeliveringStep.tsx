@@ -60,6 +60,7 @@ export function DriverDeliveringStep({
   const [siteTankHeight, setSiteTankHeight] = useState("");
   const [siteHoseDistance, setSiteHoseDistance] = useState("");
   const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
+  const [siteSubmitLoading, setSiteSubmitLoading] = useState(false);
 
   const doAction = async (fn: () => Promise<any>) => {
     setStopLoading(true);
@@ -458,7 +459,7 @@ export function DriverDeliveringStep({
 
               <View className="flex-row gap-2">
                 <Pressable
-                  disabled={stopLoading}
+                  disabled={siteSubmitLoading}
                   onPress={() => setSiteVerificationDone(true)}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.border }}
@@ -466,13 +467,13 @@ export function DriverDeliveringStep({
                   <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
                 </Pressable>
                 <Pressable
-                  disabled={stopLoading}
+                  disabled={siteSubmitLoading}
                   onPress={async () => {
                     const payload: { tank_height_m?: number; hose_distance_m?: number; road_difficulty?: number } = {};
                     if (siteTankHeight) payload.tank_height_m = parseFloat(siteTankHeight);
                     if (siteHoseDistance) payload.hose_distance_m = parseFloat(siteHoseDistance);
                     if (siteRoadDifficulty) payload.road_difficulty = siteRoadDifficulty;
-                    setStopLoading(true);
+                    setSiteSubmitLoading(true);
                     setError(null);
                     try {
                       if (Object.keys(payload).length > 0) {
@@ -482,13 +483,13 @@ export function DriverDeliveringStep({
                     } catch (e: any) {
                       setError(e.message);
                     } finally {
-                      setStopLoading(false);
+                      setSiteSubmitLoading(false);
                     }
                   }}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ backgroundColor: theme.primary }}
                 >
-                  {stopLoading ? (
+                  {siteSubmitLoading ? (
                     <ActivityIndicator color={theme.primaryForeground} />
                   ) : (
                     <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Submit</Text>
