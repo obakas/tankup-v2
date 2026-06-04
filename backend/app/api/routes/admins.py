@@ -664,7 +664,12 @@ def force_expire_batch(batch_id: int, refund_paid_members: bool = True, db: Sess
 
     current_status = str(batch.status or "")
     if current_status in {"completed", "expired", "failed", "partially_completed"}:
-        raise HTTPException(status_code=400, detail=f"Batch already resolved as '{current_status}'")
+        return {
+            "message": f"Batch already resolved as '{current_status}' — no action needed",
+            "batch_id": batch.id,
+            "status": current_status,
+            "refunds": [],
+        }
 
     if current_status != "expired":
         _safe_set_batch_status(batch, "expired")
@@ -710,8 +715,15 @@ def admin_cancel_priority_request(
     if request.delivery_type != "priority":
         raise HTTPException(status_code=400, detail="Only priority requests can be cancelled here")
 
-    if request.status in {"completed", "cancelled", "failed"}:
-        raise HTTPException(status_code=400, detail=f"Request already resolved as '{request.status}'")
+    if request.status == "cancelled":
+        return {
+            "message": "Priority request already cancelled — no action needed",
+            "request_id": request.id,
+            "status": request.status,
+            "affected_tanker_ids": [],
+        }
+    if request.status in {"completed", "failed"}:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel request already resolved as '{request.status}'")
 
     affected_tankers = (
         db.query(Tanker)
@@ -791,8 +803,16 @@ def force_offer_priority_to_tanker(
     if tanker.current_request_id is not None:
         raise HTTPException(status_code=400, detail="Tanker already has an active priority request")
 
+    if tanker.pending_offer_type == "priority" and tanker.pending_offer_id == request.id:
+        return {
+            "message": "Priority offer already pending for this tanker — no action needed",
+            "request_id": request.id,
+            "tanker_id": tanker.id,
+            "offer_id": None,
+            "offer_expires_at": _iso(tanker.offer_expires_at),
+        }
     if tanker.pending_offer_type or tanker.pending_offer_id:
-        raise HTTPException(status_code=400, detail="Tanker already has a pending offer")
+        raise HTTPException(status_code=400, detail="Tanker already has a pending offer for a different job")
 
     existing_offer_tanker = (
         db.query(Tanker)
@@ -804,6 +824,14 @@ def force_offer_priority_to_tanker(
     )
 
     if existing_offer_tanker:
+        if existing_offer_tanker.id == tanker_id:
+            return {
+                "message": "Priority offer already pending for this tanker — no action needed",
+                "request_id": request.id,
+                "tanker_id": tanker.id,
+                "offer_id": None,
+                "offer_expires_at": _iso(tanker.offer_expires_at),
+            }
         raise HTTPException(
             status_code=400,
             detail=f"Request already has a pending offer with tanker #{existing_offer_tanker.id}",
@@ -858,8 +886,16 @@ def force_offer_batch_to_tanker(batch_id: int, tanker_id: int, db: Session = Dep
 
     if tanker.current_request_id is not None:
         raise HTTPException(status_code=400, detail="Tanker already has an active priority request")
+    if tanker.pending_offer_type == "batch" and tanker.pending_offer_id == batch.id:
+        return {
+            "message": "Batch offer already pending for this tanker — no action needed",
+            "batch_id": batch.id,
+            "tanker_id": tanker.id,
+            "offer_id": None,
+            "offer_expires_at": _iso(tanker.offer_expires_at),
+        }
     if tanker.pending_offer_type or tanker.pending_offer_id:
-        raise HTTPException(status_code=400, detail="Tanker already has a pending offer")
+        raise HTTPException(status_code=400, detail="Tanker already has a pending offer for a different job")
     if batch.status in {"completed", "expired", "failed", "partially_completed"}:
         raise HTTPException(status_code=400, detail=f"Cannot offer resolved batch in status '{batch.status}'")
 
