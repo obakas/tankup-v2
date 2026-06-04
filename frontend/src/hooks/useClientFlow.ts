@@ -801,6 +801,8 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     handlePayment,
     handleCancelBeforePayment,
     handleLeaveBatch,
+    handleBoost,
+    isBoostLoading,
     resetClientFlow,
     handleDeliveryConfirmed,
     handleBackClick,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Zap } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -38,21 +38,16 @@ export function BatchBoostCard({
   const { theme } = useAppTheme();
   const [selected, setSelected] = useState<number | null>(null);
   const [countdown, setCountdown] = useState(timeUntilExpirySeconds ?? null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    setCountdown(timeUntilExpirySeconds ?? null);
-  }, [timeUntilExpirySeconds]);
-
-  useEffect(() => {
-    if (countdown == null || countdown <= 0) return;
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => (prev != null && prev > 0 ? prev - 1 : 0));
+    const initial = timeUntilExpirySeconds ?? null;
+    setCountdown(initial);
+    if (initial == null || initial <= 0) return undefined;
+    const id = setInterval(() => {
+      setCountdown((prev) => (prev != null && prev > 1 ? prev - 1 : 0));
     }, 1000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [countdown != null]);
+    return () => clearInterval(id);
+  }, [timeUntilExpirySeconds]);
 
   const urgency = getUrgency(countdown);
 

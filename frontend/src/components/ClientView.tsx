@@ -54,6 +54,8 @@ const ClientView = ({ onBack }: ClientViewProps) => {
     handlePayment,
     handleCancelBeforePayment,
     handleLeaveBatch,
+    handleBoost,
+    isBoostLoading,
     resetClientFlow,
     handleDeliveryConfirmed,
     handleBackClick,
@@ -176,6 +178,8 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             liveBatch={liveBatch}
             liveBatchLoading={liveBatchLoading}
             liveBatchError={liveBatchError}
+            onBoost={handleBoost}
+            isBoostLoading={isBoostLoading}
           />
         );
 

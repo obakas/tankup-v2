@@ -1,6 +1,7 @@
 import { Copy, Loader2, Truck, AlertCircle, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BatchLifecycleCard } from "@/components/client/BatchLifecycleCard";
+import { BatchBoostCard } from "@/components/client/BatchBoostCard";
 import type { BatchLiveResponse } from "@/lib/batches";
 
 interface BatchStepProps {
@@ -16,6 +17,8 @@ interface BatchStepProps {
     liveBatch: BatchLiveResponse | null;
     liveBatchLoading: boolean;
     liveBatchError: string | null;
+    onBoost?: (additionalVolume: number) => void;
+    isBoostLoading?: boolean;
 }
 
 const formatDateTime = (value: string | null) => {
@@ -104,6 +107,8 @@ export default function BatchStep({
     liveBatch,
     liveBatchLoading,
     liveBatchError,
+    onBoost,
+    isBoostLoading,
 }: BatchStepProps) {
     const status = liveBatch?.status;
     const headline = getBatchHeadline(status);
@@ -219,6 +224,16 @@ export default function BatchStep({
             )}
 
             {liveBatch && <BatchLifecycleCard batch={liveBatch} isLoading={liveBatchLoading} />}
+
+            {liveBatch?.boost_available &&
+                (liveBatch.status === "forming" || liveBatch.status === "near_ready") &&
+                onBoost && (
+                    <BatchBoostCard
+                        liveBatch={liveBatch}
+                        onBoost={onBoost}
+                        isLoading={isBoostLoading}
+                    />
+                )}
 
             {liveBatch?.tanker_id && (
                 <div className="rounded-2xl border bg-card p-5 shadow-sm">
