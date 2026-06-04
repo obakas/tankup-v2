@@ -15,7 +15,7 @@ import {
   type UserResponse,
   type SiteProfileResponse,
 } from "@/lib/api";
-import { leaveBatchMember } from "@/lib/batches";
+import { leaveBatchMember, initiateBatchBoost, confirmBoostPayment } from "@/lib/batches";
 import { useLivePriorityRequest } from "@/hooks/useLivePriorityRequest";
 import { fetchActivePriorityRequest } from "@/lib/requests";
 
@@ -85,6 +85,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [otp, setOtp] = useState<string>("");
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [isBoostLoading, setIsBoostLoading] = useState(false);
   const [requestId, setRequestId] = useState<number | null>(null);
   const [batchId, setBatchId] = useState<number | null>(null);
   const [memberId, setMemberId] = useState<number | null>(null);
@@ -658,6 +659,22 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setOtp("");
     toast.success("Request cancelled before payment");
     setStep("request");
+  };
+
+  const handleBoost = async (additionalVolume: number) => {
+    if (!memberId) return;
+    setIsBoostLoading(true);
+    try {
+      const { payment_id } = await initiateBatchBoost(memberId, additionalVolume);
+      await confirmBoostPayment(payment_id);
+      toast.success(`Boosted by ${additionalVolume.toLocaleString()}L!`);
+      refreshLiveBatch();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Boost failed";
+      toast.error(message);
+    } finally {
+      setIsBoostLoading(false);
+    }
   };
 
   const handleLeaveBatch = async () => {

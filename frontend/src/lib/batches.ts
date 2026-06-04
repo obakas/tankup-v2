@@ -98,7 +98,7 @@ export interface BoostInitiateResponse {
 export async function initiateBatchBoost(memberId: number, additionalVolume: number) {
   return apiRequest<BoostInitiateResponse>(`/batch-members/${memberId}/boost`, {
     method: "POST",
-    body: JSON.stringify({ additional_volume: additionalVolume }),
+    body: { additional_volume: additionalVolume },
   });
 }
 
