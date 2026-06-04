@@ -21,7 +21,7 @@ class Tanker(Base):
 
     current_request_id = Column(Integer, nullable=True)
     paused_until = Column(DateTime, nullable=True)
-    is_online = Column(Boolean, default=True, nullable=False)
+    is_online = Column(Boolean, default=False, nullable=False)
 
     # pending offer fields
     pending_offer_type = Column(String, nullable=True)      # "priority" or "batch"

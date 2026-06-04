@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { SafeMapView } from "@/components/ui/SafeMapView";
 import { CheckCircle, Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
@@ -52,7 +52,6 @@ export function DriverDeliveringStep({
   const stopStatus: string = stop?.delivery_status ?? "";
 
   const { theme } = useAppTheme();
-  const mapRef = useRef<MapView>(null);
   const [otpInput, setOtpInput] = useState("");
   const [meterStart, setMeterStart] = useState("");
   const [meterEnd, setMeterEnd] = useState("");
@@ -111,37 +110,22 @@ export function DriverDeliveringStep({
   return (
     <View className="gap-4">
       {driverLat != null && driverLon != null && (
-        <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
-          <MapView
-            ref={mapRef}
-            style={{ height: 200 }}
-            onLayout={() => {
-              const coords = [
-                { latitude: driverLat!, longitude: driverLon! },
-                ...(stopLat != null && stopLon != null
-                  ? [{ latitude: stopLat, longitude: stopLon }]
-                  : []),
-              ];
-              mapRef.current?.fitToCoordinates(coords, {
-                edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-                animated: false,
-              });
-            }}
-          >
-            <Marker
-              coordinate={{ latitude: driverLat!, longitude: driverLon! }}
-              title="Your tanker"
-              pinColor="#2563eb"
-            />
-            {stopLat != null && stopLon != null && (
-              <Marker
-                coordinate={{ latitude: stopLat, longitude: stopLon }}
-                title={stop?.customer?.name ?? "Delivery stop"}
-                pinColor="#16a34a"
-              />
-            )}
-          </MapView>
-        </View>
+        <SafeMapView
+          driver={{ lat: driverLat, lon: driverLon, label: "Your tanker" }}
+          customer={stopLat != null && stopLon != null ? {
+            lat: stopLat,
+            lon: stopLon,
+            label: stop?.customer?.name ?? "Delivery stop",
+            pinColor: "#16a34a",
+          } : null}
+          navigateTo={stopLat != null && stopLon != null ? {
+            lat: stopLat,
+            lon: stopLon,
+            label: stop?.customer?.name ?? "Delivery stop",
+          } : undefined}
+          height={260}
+          showPolyline={false}
+        />
       )}
 
       {totalCount > 0 && (

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -9,6 +10,11 @@ from app.services.batch_orchestration_service import (
     # maybe_assign_tanker_to_batch,
     assign_tanker_if_ready
 )
+from app.services.payment_service import initiate_boost
+
+
+class BoostRequest(BaseModel):
+    additional_volume: int
 
 router = APIRouter(prefix="/batch-members", tags=["Batch Members"])
 
@@ -42,4 +48,17 @@ def confirm_batch_member_payment(member_id: int, db: Session = Depends(get_db)):
         "member_id": member.id,
         "batch_id": member.batch_id,
         "snapshot": snapshot,
+    }
+
+
+@router.post("/{member_id}/boost")
+def boost_batch_member(member_id: int, body: BoostRequest, db: Session = Depends(get_db)):
+    payment = initiate_boost(db, member_id, body.additional_volume)
+    return {
+        "payment_id": payment.id,
+        "member_id": member_id,
+        "additional_volume": body.additional_volume,
+        "amount": payment.amount,
+        "status": payment.status,
+        "message": "Boost initiated. Confirm payment to apply volume increase.",
     }

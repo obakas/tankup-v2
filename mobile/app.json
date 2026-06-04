@@ -13,6 +13,11 @@
     },
     "android": {
       "package": "com.obakas.tankupmobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBW8c66xs0BFZRy44FKZG2chMn_97v3WeI"
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

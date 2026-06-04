@@ -10,6 +10,7 @@ import {
   type BatchProgressData,
 } from "@/components/client/BatchProgressCard";
 import { BatchLifecycleCard } from "@/components/client/BatchLifecycleCard";
+import { BatchBoostCard } from "@/components/client/BatchBoostCard";
 
 type Props = {
   requestResp: CreateRequestResponse;
@@ -22,6 +23,8 @@ type Props = {
   onLeave: () => void;
   onRefresh: () => void | Promise<void>;
   onViewTanker?: () => void;
+  onBoost?: (additionalVolume: number) => void;
+  isBoostLoading?: boolean;
 };
 
 function normalizeBatchData(liveData: any): BatchProgressData | null {
@@ -92,7 +95,7 @@ function canViewTanker(status?: string | null) {
   return ["assigned", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(status ?? "");
 }
 
-export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, paymentDeadline, onLeave, onRefresh, onViewTanker }: Props) {
+export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, paymentDeadline, onLeave, onRefresh, onViewTanker, onBoost, isBoostLoading }: Props) {
   const { theme } = useAppTheme();
   const batch = normalizeBatchData(liveData);
   const status = batch?.status ?? "forming";
@@ -221,6 +224,16 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
 
       <BatchProgressCard batch={batch} requestedLiters={size} amountPaid={price} />
       {batch && <BatchLifecycleCard batch={batch as any} isLoading={liveLoading} />}
+
+      {liveData?.boost_available && (liveData.status === "forming" || liveData.status === "near_ready") && (
+        <BatchBoostCard
+          remainingCapacity={liveData.remaining_capacity_liters ?? 0}
+          boostCostPerLiter={liveData.boost_cost_per_liter ?? 0}
+          timeUntilExpirySeconds={liveData.time_until_expiry_seconds}
+          onBoost={onBoost ?? (() => {})}
+          isLoading={isBoostLoading}
+        />
+      )}
 
       {batch?.tanker_id && (
         <View

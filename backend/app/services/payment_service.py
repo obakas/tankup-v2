@@ -270,3 +270,115 @@ def confirm_payment(db: Session, payment_id: int) -> dict[str, Any]:
         member=member,
         batch_snapshot=orchestration_result,
     )
+
+
+# -----------------------------
+# Boost (volume top-up)
+# -----------------------------
+
+def initiate_boost(db: Session, member_id: int, additional_volume: int) -> Payment:
+    """
+    Create a pending Payment for a volume boost.
+    member.volume_liters is NOT changed yet — only changes on confirm_boost_payment.
+    """
+    if additional_volume <= 0:
+        raise HTTPException(status_code=400, detail="additional_volume must be a positive integer")
+
+    member = get_member_by_id(db, member_id)
+
+    if member.status != "active" or member.payment_status != "paid":
+        raise HTTPException(
+            status_code=400,
+            detail="Only active, paid members can boost their volume",
+        )
+
+    batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    if batch.status not in {"forming", "near_ready"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot boost a batch in status '{batch.status}'",
+        )
+
+    remaining_capacity = float(batch.target_volume or 0) - float(batch.current_volume or 0)
+    if additional_volume > remaining_capacity:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Requested {additional_volume}L exceeds remaining batch capacity of {remaining_capacity:.0f}L",
+        )
+
+    amount = calculate_member_cost(batch, additional_volume)
+
+    payment = Payment(
+        member_id=member.id,
+        amount=amount,
+        status="pending",
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+    return payment
+
+
+def confirm_boost_payment(db: Session, payment_id: int) -> dict[str, Any]:
+    """
+    Confirm a boost payment: applies the volume increase and triggers batch refresh.
+    """
+    payment = get_payment_by_id(db, payment_id)
+    member = get_member_by_id(db, payment.member_id)
+
+    if payment.status == "paid":
+        return build_payment_response(
+            message="Boost payment already confirmed",
+            payment=payment,
+            member=member,
+        )
+
+    if payment.status in {"expired", "failed", "refunded"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot confirm boost payment with status '{payment.status}'",
+        )
+
+    batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
+    if not batch:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    if not batch.target_volume or batch.target_volume <= 0:
+        raise HTTPException(status_code=400, detail="Invalid batch target volume")
+
+    price_per_liter = float(batch.base_price) / float(batch.target_volume)
+    delta_volume = int(round(float(payment.amount) / price_per_liter))
+
+    remaining = float(batch.target_volume or 0) - float(batch.current_volume or 0)
+    if delta_volume > remaining + 1:
+        raise HTTPException(
+            status_code=409,
+            detail="Batch capacity was filled by another member. Cannot apply boost.",
+        )
+
+    payment.status = "paid"
+    member.volume_liters = int(getattr(member, "volume_liters", 0) or 0) + delta_volume
+    if hasattr(member, "amount_paid"):
+        member.amount_paid = float(getattr(member, "amount_paid", 0) or 0) + float(payment.amount)
+
+    db.add(payment)
+    db.add(member)
+    db.commit()
+    db.refresh(payment)
+    db.refresh(member)
+
+    orchestration_result = handle_batch_payment_confirmed(
+        db,
+        batch_id=member.batch_id,
+        member_id=member.id,
+    )
+
+    return build_payment_response(
+        message="Boost confirmed",
+        payment=payment,
+        member=member,
+        batch_snapshot=orchestration_result,
+    )

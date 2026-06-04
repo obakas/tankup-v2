@@ -1,7 +1,11 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy.orm import Session
 from app.services.batch_service import get_batch_by_id, get_batch_members
 from app.services.routing_service import calculate_distance_km
 from app.models.DeliveryRecord import DeliveryRecord
+
+BATCH_FILL_TIMEOUT_MINUTES = 90
 
 
 def build_next_action_hint(status: str, remaining_volume: float) -> str:
@@ -91,6 +95,32 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         (current_volume / target_volume) * 100 if target_volume > 0 else 0
     )
 
+    remaining_capacity = max(0.0, target_volume - current_volume)
+
+    boost_cost_per_liter = (
+        float(batch.base_price) / float(target_volume)
+        if target_volume > 0
+        else None
+    )
+
+    member_is_paid_and_active = (
+        member is not None
+        and getattr(member, "status", None) == "active"
+        and getattr(member, "payment_status", None) == "paid"
+    )
+
+    boost_available = (
+        batch.status in {"forming", "near_ready"}
+        and remaining_capacity > 0
+        and member_is_paid_and_active
+    )
+
+    time_until_expiry_seconds = None
+    if batch.status in {"forming", "near_ready"} and getattr(batch, "created_at", None):
+        expiry = batch.created_at + timedelta(minutes=BATCH_FILL_TIMEOUT_MINUTES)
+        seconds_left = (expiry - datetime.utcnow()).total_seconds()
+        time_until_expiry_seconds = max(0, int(seconds_left))
+
     eta_minutes = None
     if (
         tanker and tanker.latitude and tanker.longitude
@@ -159,4 +189,8 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         "refund_amount": getattr(member, "refund_amount", None) if member else None,
         "refunded_at": getattr(member, "refunded_at", None) if member else None,
         "refund_reference": getattr(member, "refund_reference", None) if member else None,
+        "remaining_capacity_liters": remaining_capacity,
+        "boost_available": boost_available,
+        "boost_cost_per_liter": boost_cost_per_liter,
+        "time_until_expiry_seconds": time_until_expiry_seconds,
     }

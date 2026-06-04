@@ -28,6 +28,8 @@ import {
   leaveBatchMember,
   listUserSites,
   updatePushToken,
+  initiateBatchBoost,
+  confirmBoostPayment,
   type CreateRequestResponse,
   type SiteProfileResponse,
 } from "@/lib/api";
@@ -94,6 +96,7 @@ export function useClientFlow() {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBoostLoading, setIsBoostLoading] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevStatusRef = useRef<string>("");
@@ -385,6 +388,35 @@ export function useClientFlow() {
     setStep("request");
   }, []);
 
+  const handleBoost = useCallback((additionalVolume: number) => {
+    if (!requestResp?.member_id) return;
+    const cost = (liveData?.boost_cost_per_liter ?? 0) * additionalVolume;
+
+    Alert.alert(
+      "Boost Your Batch",
+      `Add ${additionalVolume.toLocaleString()}L to your order?\nExtra cost: ₦${cost.toLocaleString()}`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm Boost",
+          onPress: async () => {
+            setIsBoostLoading(true);
+            try {
+              const { payment_id } = await initiateBatchBoost(requestResp.member_id!, additionalVolume);
+              await confirmBoostPayment(payment_id);
+              toast.success(`Boosted by ${additionalVolume.toLocaleString()}L!`);
+              fetchLive();
+            } catch (e: any) {
+              toast.error(e.message ?? "Boost failed");
+            } finally {
+              setIsBoostLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [requestResp, liveData, fetchLive]);
+
   const handleLeave = async () => {
     if (!requestResp?.member_id) return;
 
@@ -468,6 +500,8 @@ export function useClientFlow() {
     handleConfirmPayment,
     handleDeliveryConfirmed,
     handleLeave,
+    handleBoost,
+    isBoostLoading,
     setStep,
     setUser,
     scheduledFor,

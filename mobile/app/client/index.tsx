@@ -112,6 +112,8 @@ export default function ClientFlow() {
             onLeave={flow.handleLeave}
             onRefresh={flow.fetchLive}
             onViewTanker={() => flow.setStep("tanker")}
+            onBoost={flow.handleBoost}
+            isBoostLoading={flow.isBoostLoading}
           />
         )}
 

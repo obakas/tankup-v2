@@ -1,6 +1,5 @@
-import { useRef } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
-import MapView, { Marker, Polyline } from "react-native-maps";
+import { SafeMapView } from "@/components/ui/SafeMapView";
 import {
   Truck,
   Phone,
@@ -242,7 +241,6 @@ export function TankerStep({
   onRefresh,
 }: Props) {
   const { theme } = useAppTheme();
-  const mapRef = useRef<MapView>(null);
   const isPriority = mode === "priority";
 
   const state = isPriority
@@ -353,48 +351,16 @@ export function TankerStep({
 
       {/* Live map */}
       {hasMap && (
-        <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
-          <MapView
-            ref={mapRef}
-            style={{ height: 220 }}
-            onLayout={() => {
-              const coords = [
-                { latitude: tankerLat!, longitude: tankerLon! },
-                ...(customerLat != null && customerLon != null
-                  ? [{ latitude: customerLat, longitude: customerLon }]
-                  : []),
-              ];
-              mapRef.current?.fitToCoordinates(coords, {
-                edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-                animated: false,
-              });
-            }}
-          >
-            <Marker
-              coordinate={{ latitude: tankerLat!, longitude: tankerLon! }}
-              title={state.driverName ?? "Tanker"}
-              description={state.tankerStatus ?? undefined}
-              pinColor="#2563eb"
-            />
-            {customerLat != null && customerLon != null && (
-              <Marker
-                coordinate={{ latitude: customerLat, longitude: customerLon }}
-                title="Your location"
-                pinColor="#16a34a"
-              />
-            )}
-            {customerLat != null && customerLon != null && (
-              <Polyline
-                coordinates={[
-                  { latitude: tankerLat!, longitude: tankerLon! },
-                  { latitude: customerLat, longitude: customerLon },
-                ]}
-                strokeColor="#64748b"
-                strokeWidth={3}
-              />
-            )}
-          </MapView>
-        </View>
+        <SafeMapView
+          driver={{ lat: tankerLat!, lon: tankerLon!, label: state.driverName ?? "Tanker" }}
+          customer={customerLat != null && customerLon != null ? {
+            lat: customerLat,
+            lon: customerLon,
+            label: "Your location",
+            pinColor: "#16a34a",
+          } : null}
+          height={220}
+        />
       )}
 
       {/* Tanker details card */}

@@ -776,7 +776,7 @@ def create_tanker(payload: TankerCreate, db: Session = Depends(get_db)):
     existing = db.query(Tanker).filter(Tanker.tank_plate_number == normalized_plate).first()
     if existing:
         raise HTTPException(status_code=400, detail="Tank plate number already exists")
-    tanker = Tanker(driver_name=payload.driver_name, phone=payload.phone, tank_plate_number=normalized_plate, latitude=payload.latitude, longitude=payload.longitude, status="available", is_available=True, current_request_id=None, is_online=True)
+    tanker = Tanker(driver_name=payload.driver_name, phone=payload.phone, tank_plate_number=normalized_plate, latitude=payload.latitude, longitude=payload.longitude, status="available", is_available=True, current_request_id=None, is_online=False)
     db.add(tanker)
     db.commit()
     db.refresh(tanker)

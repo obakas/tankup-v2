@@ -87,7 +87,7 @@ def driver_signup(payload: DriverSignupPayload, db: Session = Depends(get_db)):
         # longitude=payload.longitude,
         status="available",
         is_available=True,
-        is_online=True,
+        is_online=False,
         current_request_id=None,
     )
 

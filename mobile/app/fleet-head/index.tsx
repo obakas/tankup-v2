@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { SafeMultiMapView } from "@/components/ui/SafeMapView";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
@@ -742,27 +742,20 @@ function MapTab({ tankers, theme }: { tankers: TankerCard[]; theme: TankupTheme 
     return <EmptyCard message="No tanker locations available yet. Locations appear once drivers start sending their position." theme={theme} />;
   }
 
-  const initialRegion = {
-    latitude: located[0].latitude!,
-    longitude: located[0].longitude!,
-    latitudeDelta: 0.08,
-    longitudeDelta: 0.08,
-  };
-
   return (
-    <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
-      <MapView style={{ height: 500 }} initialRegion={initialRegion}>
-        {located.map((tanker) => (
-          <Marker
-            key={tanker.id}
-            coordinate={{ latitude: tanker.latitude!, longitude: tanker.longitude! }}
-            title={tanker.driver_name ?? `Tanker #${tanker.id}`}
-            description={`${tanker.status} · ${tanker.tank_plate_number}`}
-            pinColor={TANKER_PIN[tanker.status] ?? "#64748b"}
-          />
-        ))}
-      </MapView>
-    </View>
+    <SafeMultiMapView
+      markers={located.map((tanker) => ({
+        id: tanker.id,
+        lat: tanker.latitude!,
+        lon: tanker.longitude!,
+        title: tanker.driver_name ?? `Tanker #${tanker.id}`,
+        description: `${tanker.status} · ${tanker.tank_plate_number}`,
+        pinColor: TANKER_PIN[tanker.status] ?? "#64748b",
+      }))}
+      initialLat={located[0].latitude!}
+      initialLon={located[0].longitude!}
+      height={500}
+    />
   );
 }
 

@@ -85,3 +85,8 @@ class BatchLiveResponse(BaseModel):
     notes: Optional[str] = None
     stop_order: Optional[int] = None
     stops_ahead: Optional[int] = None
+
+    remaining_capacity_liters: Optional[float] = None
+    boost_available: bool = False
+    boost_cost_per_liter: Optional[float] = None
+    time_until_expiry_seconds: Optional[int] = None

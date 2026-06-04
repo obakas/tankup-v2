@@ -213,11 +213,38 @@ export interface BatchLiveResponse {
   notes?: string | null;
   stop_order?: number | null;
   stops_ahead?: number | null;
+
+  remaining_capacity_liters?: number | null;
+  boost_available?: boolean | null;
+  boost_cost_per_liter?: number | null;
+  time_until_expiry_seconds?: number | null;
 }
 
 export function getBatchLive(batchId: number, memberId?: number) {
   const query = memberId !== undefined ? `?member_id=${memberId}` : "";
   return apiRequest<BatchLiveResponse>(`/batches/${batchId}/live${query}`);
+}
+
+export interface BoostInitiateResponse {
+  payment_id: number;
+  member_id: number;
+  additional_volume: number;
+  amount: number;
+  status: string;
+  message: string;
+}
+
+export function initiateBatchBoost(memberId: number, additionalVolume: number) {
+  return apiRequest<BoostInitiateResponse>(`/batch-members/${memberId}/boost`, {
+    method: "POST",
+    body: { additional_volume: additionalVolume },
+  });
+}
+
+export function confirmBoostPayment(paymentId: number) {
+  return apiRequest<{ message: string }>(`/payments/confirm-boost/${paymentId}`, {
+    method: "POST",
+  });
 }
 
 export interface ClientHistoryItem {
