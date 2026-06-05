@@ -98,9 +98,18 @@ export interface OverviewData {
   };
 }
 
+export interface FinancialSummary {
+  total_revenue: number;
+  total_refunded: number;
+  net_revenue: number;
+  payment_counts: Record<string, number>;
+  refund_counts: Record<string, number>;
+}
+
 export const getFleetHeadLive = () => fleetRequest<LiveData>("/admin/live");
 export const getFleetHeadTankers = () => fleetRequest<{ items: TankerCard[] }>("/admin/tankers");
 export const getFleetHeadOverview = () => fleetRequest<OverviewData>("/admin/overview");
+export const getFleetHeadFinancials = () => fleetRequest<FinancialSummary>("/admin/financials/summary");
 
 export interface CreateTankerPayload {
   driver_name: string;

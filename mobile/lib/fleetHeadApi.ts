@@ -102,6 +102,14 @@ export interface OverviewData {
   };
 }
 
+export interface FinancialSummary {
+  total_revenue: number;
+  total_refunded: number;
+  net_revenue: number;
+  payment_counts: Record<string, number>;
+  refund_counts: Record<string, number>;
+}
+
 export interface CreateTankerPayload {
   driver_name: string;
   phone: string;
@@ -118,6 +126,9 @@ export const getFleetHeadTankers = (token: string) =>
 
 export const getFleetHeadOverview = (token: string) =>
   fleetRequest<OverviewData>(token, "/admin/overview");
+
+export const getFleetHeadFinancials = (token: string) =>
+  fleetRequest<FinancialSummary>(token, "/admin/financials/summary");
 
 export const registerTanker = (payload: CreateTankerPayload) =>
   apiRequest<TankerCard>("/tankers/", { method: "POST", body: payload });

@@ -33,6 +33,7 @@ import { LiveTab } from "@/components/admin/LiveTab";
 import { HistoryTab } from "@/components/admin/HistoryTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
 import { EmergencyTab } from "@/components/admin/EmergencyTab";
+import { FinancialsTab } from "@/components/admin/FinancialsTab";
 
 type ConfirmState = {
   title: string;
@@ -223,6 +224,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="live" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Live</TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">History</TabsTrigger>
             <TabsTrigger value="payments" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Payments &amp; Tankers</TabsTrigger>
+            <TabsTrigger value="financials" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Financials</TabsTrigger>
             <TabsTrigger value="emergency" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Emergency</TabsTrigger>
           </TabsList>
 
@@ -256,6 +258,10 @@ export default function AdminDashboard() {
               isActionLoading={isActionLoading}
               askConfirm={askConfirm}
             />
+          </TabsContent>
+
+          <TabsContent value="financials" className="mt-6">
+            <FinancialsTab canLoad={canLoad} />
           </TabsContent>
 
           <TabsContent value="emergency" className="mt-6">

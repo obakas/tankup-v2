@@ -449,6 +449,39 @@ def admin_overview(db: Session = Depends(get_db), current_admin: dict = Depends(
     }
 
 
+@router.get("/financials/summary")
+def admin_financials_summary(db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
+    total_revenue = float(
+        db.query(func.coalesce(func.sum(Payment.amount), 0)).filter(Payment.status == "paid").scalar() or 0
+    )
+    total_refunded = float(
+        db.query(func.coalesce(func.sum(BatchMember.refund_amount), 0))
+        .filter(BatchMember.refund_status == "refunded")
+        .scalar() or 0
+    )
+    net_revenue = total_revenue - total_refunded
+
+    payment_counts = {
+        status: count
+        for status, count in db.query(Payment.status, func.count(Payment.id)).group_by(Payment.status).all()
+    }
+    refund_counts = {
+        status: count
+        for status, count in db.query(BatchMember.refund_status, func.count(BatchMember.id))
+        .filter(BatchMember.refund_status != "none")
+        .group_by(BatchMember.refund_status)
+        .all()
+    }
+
+    return {
+        "total_revenue": total_revenue,
+        "total_refunded": total_refunded,
+        "net_revenue": net_revenue,
+        "payment_counts": payment_counts,
+        "refund_counts": refund_counts,
+    }
+
+
 @router.get("/live")
 def admin_live(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
     active_batches = (

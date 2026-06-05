@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   clearFleetHeadToken,
+  getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
   getFleetHeadTankers,
@@ -22,13 +23,15 @@ import {
   setFleetHeadToken,
   type BatchCard,
   type DeliveryCard,
+  type FinancialSummary,
   type LiveData,
   type OverviewData,
   type TankerCard,
 } from "@/lib/fleetHeadApi";
+import { FleetHeadFinancialsTab } from "@/components/FleetHeadFinancialsTab";
 
 const POLL_MS = 15_000;
-type Tab = "live" | "tankers" | "overview";
+type Tab = "live" | "tankers" | "overview" | "financials";
 
 interface FleetHeadViewProps {
   onBack: () => void;
@@ -639,6 +642,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
   const [live, setLive] = useState<LiveData | null>(null);
   const [tankers, setTankers] = useState<TankerCard[]>([]);
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -649,14 +653,16 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [liveData, tankersData, overviewData] = await Promise.all([
+      const [liveData, tankersData, overviewData, financialsData] = await Promise.all([
         getFleetHeadLive(),
         getFleetHeadTankers(),
         getFleetHeadOverview(),
+        getFleetHeadFinancials(),
       ]);
       setLive(liveData);
       setTankers(tankersData.items ?? []);
       setOverview(overviewData);
+      setFinancials(financialsData);
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e.message);
@@ -687,6 +693,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
     setLive(null);
     setTankers([]);
     setOverview(null);
+    setFinancials(null);
     onBack();
   };
 
@@ -746,7 +753,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
 
         {/* Tab bar */}
         <div className="flex border-t border-border">
-          {(["live", "tankers", "overview"] as Tab[]).map((t) => (
+          {(["live", "tankers", "overview", "financials"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -781,6 +788,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
               <TankersTab tankers={tankers} onTankerAdded={() => fetchAll(true)} />
             )}
             {tab === "overview" && <OverviewTab overview={overview} />}
+            {tab === "financials" && <FleetHeadFinancialsTab data={financials} />}
           </>
         )}
       </main>

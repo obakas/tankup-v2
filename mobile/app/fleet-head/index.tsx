@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/lib/toast";
 import {
   clearFleetHeadToken,
+  getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
   getFleetHeadTankers,
@@ -45,6 +46,7 @@ import {
   setFleetHeadToken,
   type BatchCard,
   type DeliveryCard,
+  type FinancialSummary,
   type LiveData,
   type OverviewData,
   type TankerCard,
@@ -56,7 +58,7 @@ const MAP_POLL_MS = 5_000;
 const VIOLET = "#8b5cf6";
 const VIOLET_SOFT = "rgba(139,92,246,0.12)";
 
-type Tab = "live" | "tankers" | "overview" | "map";
+type Tab = "live" | "tankers" | "overview" | "map" | "financials";
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -600,6 +602,104 @@ function OverviewTab({ overview, theme }: { overview: OverviewData | null; theme
   );
 }
 
+// ── Financials tab ────────────────────────────────────────────────────────────
+
+const PLATFORM_BATCH_COMMISSION_RATE = 0.2;
+
+function formatNGN(value: number) {
+  return `₦${new Intl.NumberFormat("en-NG").format(Math.round(value))}`;
+}
+
+function FinancialsTab({ data, theme }: { data: FinancialSummary | null; theme: TankupTheme }) {
+  if (!data) {
+    return (
+      <View style={{ padding: 20, alignItems: "center" }}>
+        <Text style={{ color: theme.mutedForeground, fontSize: 14 }}>No financial data available.</Text>
+      </View>
+    );
+  }
+
+  const estDriverPayouts = data.net_revenue * (1 - PLATFORM_BATCH_COMMISSION_RATE);
+  const estPlatformCommission = data.net_revenue * PLATFORM_BATCH_COMMISSION_RATE;
+
+  const kpiCards = [
+    { label: "Total Revenue", value: data.total_revenue, color: "#2eb67d" },
+    { label: "Total Refunded", value: data.total_refunded, color: "#ef4444" },
+    { label: "Net Revenue", value: data.net_revenue, color: "#3b82f6" },
+    { label: "Est. Driver Payouts", value: estDriverPayouts, color: "#f59e0b" },
+  ];
+
+  return (
+    <View style={{ gap: 16 }}>
+      {/* KPI cards — 2-col grid */}
+      <View style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 14 }}>
+            <Text style={{ color: theme.mutedForeground, fontSize: 12, marginBottom: 6 }}>{kpiCards[0].label}</Text>
+            <Text style={{ color: kpiCards[0].color, fontSize: 18, fontWeight: "800" }}>{formatNGN(kpiCards[0].value)}</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 14 }}>
+            <Text style={{ color: theme.mutedForeground, fontSize: 12, marginBottom: 6 }}>{kpiCards[1].label}</Text>
+            <Text style={{ color: kpiCards[1].color, fontSize: 18, fontWeight: "800" }}>{formatNGN(kpiCards[1].value)}</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={{ flex: 1, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 14 }}>
+            <Text style={{ color: theme.mutedForeground, fontSize: 12, marginBottom: 6 }}>{kpiCards[2].label}</Text>
+            <Text style={{ color: kpiCards[2].color, fontSize: 18, fontWeight: "800" }}>{formatNGN(kpiCards[2].value)}</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 14 }}>
+            <Text style={{ color: theme.mutedForeground, fontSize: 12, marginBottom: 6 }}>{kpiCards[3].label}</Text>
+            <Text style={{ color: kpiCards[3].color, fontSize: 18, fontWeight: "800" }}>{formatNGN(kpiCards[3].value)}</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+        Est. platform commission (20% of net): {formatNGN(estPlatformCommission)}. Driver payout uses batch rate.
+      </Text>
+
+      {/* Payment status breakdown */}
+      {Object.keys(data.payment_counts).length > 0 && (
+        <View style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16, gap: 10 }}>
+          <Text style={{ color: theme.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Payment Status
+          </Text>
+          {Object.entries(data.payment_counts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([status, count]) => (
+              <View key={status} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.mutedForeground, fontSize: 13, textTransform: "capitalize" }}>
+                  {status.replace(/_/g, " ")}
+                </Text>
+                <Text style={{ color: theme.foreground, fontSize: 13, fontWeight: "600" }}>{String(count)}</Text>
+              </View>
+            ))}
+        </View>
+      )}
+
+      {/* Refund status breakdown */}
+      {Object.keys(data.refund_counts).length > 0 && (
+        <View style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16, gap: 10 }}>
+          <Text style={{ color: theme.mutedForeground, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Refund Status
+          </Text>
+          {Object.entries(data.refund_counts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([status, count]) => (
+              <View key={status} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ color: theme.mutedForeground, fontSize: 13, textTransform: "capitalize" }}>
+                  {status.replace(/_/g, " ")}
+                </Text>
+                <Text style={{ color: theme.foreground, fontSize: 13, fontWeight: "600" }}>{String(count)}</Text>
+              </View>
+            ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ── Login screen ──────────────────────────────────────────────────────────────
 
 function LoginScreen({
@@ -761,7 +861,7 @@ function MapTab({ tankers, theme }: { tankers: TankerCard[]; theme: TankupTheme 
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-const TABS: Tab[] = ["live", "tankers", "overview", "map"];
+const TABS: Tab[] = ["live", "tankers", "overview", "map", "financials"];
 
 export default function FleetHeadScreen() {
   const { theme, isDark, toggleTheme } = useAppTheme();
@@ -771,6 +871,7 @@ export default function FleetHeadScreen() {
   const [live, setLive] = useState<LiveData | null>(null);
   const [tankers, setTankers] = useState<TankerCard[]>([]);
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [financials, setFinancials] = useState<FinancialSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -790,14 +891,16 @@ export default function FleetHeadScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [liveData, tankersData, overviewData] = await Promise.all([
+      const [liveData, tankersData, overviewData, financialsData] = await Promise.all([
         getFleetHeadLive(currentToken),
         getFleetHeadTankers(currentToken),
         getFleetHeadOverview(currentToken),
+        getFleetHeadFinancials(currentToken),
       ]);
       setLive(liveData);
       setTankers(tankersData.items ?? []);
       setOverview(overviewData);
+      setFinancials(financialsData);
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e.message);
@@ -1012,6 +1115,7 @@ export default function FleetHeadScreen() {
           }
         >
           {tab === "live" && <LiveTab live={live} theme={theme} />}
+          {tab === "financials" && <FinancialsTab data={financials} theme={theme} />}
           {tab === "tankers" && (
             <TankersTab
               tankers={tankers}

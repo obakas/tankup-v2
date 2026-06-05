@@ -303,3 +303,14 @@ export const adminForceOfferPriority = (requestId: number, tankerId: number) =>
   adminRequest(`/admin/requests/${requestId}/offer/${tankerId}`, {
     method: "POST",
   });
+
+export interface FinancialSummary {
+  total_revenue: number;
+  total_refunded: number;
+  net_revenue: number;
+  payment_counts: Record<string, number>;
+  refund_counts: Record<string, number>;
+}
+
+export const getAdminFinancials = () =>
+  adminRequest<FinancialSummary>("/admin/financials/summary");
