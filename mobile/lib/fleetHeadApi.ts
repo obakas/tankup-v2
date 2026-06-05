@@ -118,6 +118,21 @@ export interface CreateTankerPayload {
   longitude?: number;
 }
 
+export interface OperationAlert {
+  id: number;
+  alert_type: string;
+  severity: string;
+  job_type: string;
+  job_id: number;
+  request_id?: number | null;
+  batch_id?: number | null;
+  tanker_id?: number | null;
+  message: string;
+  status: string;
+  created_at?: string | null;
+  resolved_at?: string | null;
+}
+
 export const getFleetHeadLive = (token: string) =>
   fleetRequest<LiveData>(token, "/admin/live");
 
@@ -129,6 +144,12 @@ export const getFleetHeadOverview = (token: string) =>
 
 export const getFleetHeadFinancials = (token: string) =>
   fleetRequest<FinancialSummary>(token, "/admin/financials/summary");
+
+export const getFleetHeadAlerts = (token: string, status = "open") =>
+  fleetRequest<{ items: OperationAlert[] }>(token, `/admin/operation-alerts?status=${status}&limit=50`);
+
+export const dismissFleetHeadAlert = (token: string, alertId: number) =>
+  fleetRequest<{ success: boolean }>(token, `/admin/operation-alerts/${alertId}/dismiss`, { method: "POST" });
 
 export const registerTanker = (payload: CreateTankerPayload) =>
   apiRequest<TankerCard>("/tankers/", { method: "POST", body: payload });

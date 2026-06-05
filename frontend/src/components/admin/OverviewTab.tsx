@@ -56,17 +56,8 @@ export function OverviewTab({ canLoad, isActionLoading, runAction }: Props) {
     { label: "Paid value", value: paymentValue.paid ?? 0, icon: Wallet, currency: true },
   ];
 
-  const handleDismiss = (alertId: number) => {
-    runAction(
-      () => adminDismissOperationAlert(alertId),
-      "Alert archived",
-    ).then(() => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "alerts"] });
-      if (showArchived) {
-        queryClient.invalidateQueries({ queryKey: ["admin", "alerts", "archived"] });
-      }
-    });
-  };
+  const handleDismiss = (alertId: number) =>
+    runAction(() => adminDismissOperationAlert(alertId), "Alert archived");
 
   return (
     <div className="space-y-6">

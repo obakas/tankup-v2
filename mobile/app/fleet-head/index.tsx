@@ -16,9 +16,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import {
   Activity,
+  Archive,
   ArrowLeft,
   Bell,
   CheckCircle2,
+  ChevronDown,
   ChevronUp,
   LogOut,
   Moon,
@@ -36,6 +38,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/lib/toast";
 import {
   clearFleetHeadToken,
+  dismissFleetHeadAlert,
+  getFleetHeadAlerts,
   getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
@@ -48,6 +52,7 @@ import {
   type DeliveryCard,
   type FinancialSummary,
   type LiveData,
+  type OperationAlert,
   type OverviewData,
   type TankerCard,
 } from "@/lib/fleetHeadApi";
@@ -700,6 +705,172 @@ function FinancialsTab({ data, theme }: { data: FinancialSummary | null; theme: 
   );
 }
 
+// ── Operation alerts ──────────────────────────────────────────────────────────
+
+const SEVERITY_COLORS: Record<string, { border: string; bg: string }> = {
+  high:     { border: "#ef4444", bg: "rgba(239,68,68,0.08)" },
+  critical: { border: "#ef4444", bg: "rgba(239,68,68,0.08)" },
+  medium:   { border: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
+  warning:  { border: "#f59e0b", bg: "rgba(245,158,11,0.08)" },
+  info:     { border: "#3b82f6", bg: "rgba(59,130,246,0.08)" },
+};
+
+function severityColor(severity: string) {
+  return SEVERITY_COLORS[severity] ?? { border: "#64748b", bg: "rgba(100,116,139,0.08)" };
+}
+
+function AlertCard({
+  alert,
+  onDismiss,
+  dismissing,
+  archived,
+  theme,
+}: {
+  alert: OperationAlert;
+  onDismiss?: (id: number) => void;
+  dismissing?: boolean;
+  archived?: boolean;
+  theme: TankupTheme;
+}) {
+  const colors = severityColor(alert.severity);
+  const ts = archived ? alert.resolved_at : alert.created_at;
+  return (
+    <View
+      style={{
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        borderLeftWidth: 4,
+        backgroundColor: colors.bg,
+        padding: 14,
+        opacity: archived ? 0.55 : 1,
+      }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 13 }}>
+            {alert.alert_type.replace(/_/g, " ")}
+          </Text>
+          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{alert.message}</Text>
+          <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+            {alert.job_type} #{alert.job_id}
+            {alert.tanker_id ? ` · Tanker #${alert.tanker_id}` : ""}
+            {ts ? ` · ${new Date(ts).toLocaleString()}` : ""}
+          </Text>
+        </View>
+        {onDismiss && (
+          <Pressable
+            onPress={() => onDismiss(alert.id)}
+            disabled={dismissing}
+            accessibilityLabel="Archive alert"
+            accessibilityRole="button"
+            style={{ padding: 8, opacity: dismissing ? 0.4 : 1 }}
+          >
+            {dismissing
+              ? <ActivityIndicator size="small" color={theme.mutedForeground} />
+              : <Archive color={theme.mutedForeground} size={18} />
+            }
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function AlertsSection({
+  alerts,
+  archivedAlerts,
+  showArchived,
+  dismissingId,
+  onDismiss,
+  onToggleArchived,
+  theme,
+}: {
+  alerts: OperationAlert[];
+  archivedAlerts: OperationAlert[];
+  showArchived: boolean;
+  dismissingId: number | null;
+  onDismiss: (id: number) => void;
+  onToggleArchived: () => void;
+  theme: TankupTheme;
+}) {
+  return (
+    <View style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16, gap: 14 }}>
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View>
+          <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 14 }}>Operation Alerts</Text>
+          {alerts.length > 0 && (
+            <Text style={{ color: "#f59e0b", fontSize: 12, marginTop: 2 }}>{alerts.length} open</Text>
+          )}
+        </View>
+      </View>
+
+      {/* Open alerts */}
+      {alerts.length === 0 ? (
+        <Text style={{ color: theme.mutedForeground, fontSize: 13, textAlign: "center", paddingVertical: 4 }}>
+          No open alerts — beautiful silence.
+        </Text>
+      ) : (
+        <View style={{ gap: 10 }}>
+          {alerts.map((a) => (
+            <AlertCard
+              key={a.id}
+              alert={a}
+              onDismiss={onDismiss}
+              dismissing={dismissingId === a.id}
+              theme={theme}
+            />
+          ))}
+        </View>
+      )}
+
+      {/* Archived toggle */}
+      <Pressable
+        onPress={onToggleArchived}
+        accessibilityRole="button"
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingTop: 12,
+          borderTopWidth: 1,
+          borderTopColor: theme.border,
+        }}
+      >
+        <Archive color={theme.mutedForeground} size={14} />
+        <Text style={{ color: theme.mutedForeground, fontSize: 13, flex: 1 }}>
+          {showArchived ? "Hide archived" : "Show archived alerts"}
+        </Text>
+        {!showArchived && archivedAlerts.length > 0 && (
+          <View style={{ backgroundColor: theme.muted, borderRadius: 10, paddingHorizontal: 7, paddingVertical: 2 }}>
+            <Text style={{ color: theme.mutedForeground, fontSize: 11, fontWeight: "500" }}>{archivedAlerts.length}</Text>
+          </View>
+        )}
+        {showArchived
+          ? <ChevronUp color={theme.mutedForeground} size={14} />
+          : <ChevronDown color={theme.mutedForeground} size={14} />
+        }
+      </Pressable>
+
+      {/* Archived list */}
+      {showArchived && (
+        <View style={{ gap: 10 }}>
+          {archivedAlerts.length === 0 ? (
+            <Text style={{ color: theme.mutedForeground, fontSize: 13, textAlign: "center", paddingVertical: 4 }}>
+              No archived alerts.
+            </Text>
+          ) : (
+            archivedAlerts.map((a) => (
+              <AlertCard key={a.id} alert={a} archived theme={theme} />
+            ))
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
 // ── Login screen ──────────────────────────────────────────────────────────────
 
 function LoginScreen({
@@ -876,6 +1047,10 @@ export default function FleetHeadScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [alerts, setAlerts] = useState<OperationAlert[]>([]);
+  const [archivedAlerts, setArchivedAlerts] = useState<OperationAlert[]>([]);
+  const [showAlertArchive, setShowAlertArchive] = useState(false);
+  const [dismissingAlertId, setDismissingAlertId] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tabRef = useRef(tab);
   tabRef.current = tab;
@@ -891,16 +1066,18 @@ export default function FleetHeadScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [liveData, tankersData, overviewData, financialsData] = await Promise.all([
+      const [liveData, tankersData, overviewData, financialsData, alertsData] = await Promise.all([
         getFleetHeadLive(currentToken),
         getFleetHeadTankers(currentToken),
         getFleetHeadOverview(currentToken),
         getFleetHeadFinancials(currentToken),
+        getFleetHeadAlerts(currentToken),
       ]);
       setLive(liveData);
       setTankers(tankersData.items ?? []);
       setOverview(overviewData);
       setFinancials(financialsData);
+      setAlerts(alertsData.items ?? []);
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e.message);
@@ -973,6 +1150,35 @@ export default function FleetHeadScreen() {
     setRefreshing(true);
     await fetchAll(token, true);
     setRefreshing(false);
+  };
+
+  const handleDismissAlert = async (alertId: number) => {
+    if (!token) return;
+    setDismissingAlertId(alertId);
+    try {
+      await dismissFleetHeadAlert(token, alertId);
+      setAlerts((prev) => prev.filter((a) => a.id !== alertId));
+      toast.success("Alert archived");
+      if (showAlertArchive) {
+        const archived = await getFleetHeadAlerts(token, "resolved");
+        setArchivedAlerts(archived.items ?? []);
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to archive alert");
+    } finally {
+      setDismissingAlertId(null);
+    }
+  };
+
+  const handleToggleAlertArchive = async () => {
+    if (!token) return;
+    if (!showAlertArchive) {
+      try {
+        const archived = await getFleetHeadAlerts(token, "resolved");
+        setArchivedAlerts(archived.items ?? []);
+      } catch {}
+    }
+    setShowAlertArchive((v) => !v);
   };
 
   const openNotificationSettings = () => {
@@ -1123,7 +1329,20 @@ export default function FleetHeadScreen() {
               onTankerAdded={() => token && fetchAll(token, true)}
             />
           )}
-          {tab === "overview" && <OverviewTab overview={overview} theme={theme} />}
+          {tab === "overview" && (
+            <View style={{ gap: 20 }}>
+              <OverviewTab overview={overview} theme={theme} />
+              <AlertsSection
+                alerts={alerts}
+                archivedAlerts={archivedAlerts}
+                showArchived={showAlertArchive}
+                dismissingId={dismissingAlertId}
+                onDismiss={handleDismissAlert}
+                onToggleArchived={handleToggleAlertArchive}
+                theme={theme}
+              />
+            </View>
+          )}
 
           {lastUpdated && (
             <Text style={{ color: theme.mutedForeground, fontSize: 11, textAlign: "center", marginTop: 20 }}>
