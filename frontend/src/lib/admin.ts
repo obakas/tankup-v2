@@ -293,6 +293,11 @@ export const adminReassignOperationAlert = (alertId: number) =>
     method: "POST",
   });
 
+export const adminDismissOperationAlert = (alertId: number) =>
+  adminRequest(`/admin/operation-alerts/${alertId}/dismiss`, {
+    method: "POST",
+  });
+
 export const adminCancelPriorityRequest = (requestId: number, reason: string) =>
   adminRequest(`/admin/requests/${requestId}/cancel`, {
     method: "POST",

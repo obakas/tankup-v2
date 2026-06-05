@@ -117,7 +117,7 @@ export function DriverDeliveringStep({
             lat: stopLat,
             lon: stopLon,
             label: stop?.customer?.name ?? "Delivery stop",
-            pinColor: "#16a34a",
+            pinColor: theme.success,
           } : null}
           navigateTo={stopLat != null && stopLon != null ? {
             lat: stopLat,

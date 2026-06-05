@@ -1194,3 +1194,16 @@ def admin_reassign_from_operation_alert(
         "message": "Manual reassignment attempt completed",
         "result": result,
     }
+
+
+@router.post("/operation-alerts/{alert_id}/dismiss", dependencies=[Depends(require_admin)])
+def admin_dismiss_operation_alert(alert_id: int, db: Session = Depends(get_db)):
+    alert = db.query(OperationAlert).filter(OperationAlert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Operation alert not found")
+    if alert.status != "open":
+        return {"success": True, "already_resolved": True}
+    alert.status = "resolved"
+    alert.resolved_at = datetime.utcnow()
+    db.commit()
+    return {"success": True, "alert_id": alert.id}

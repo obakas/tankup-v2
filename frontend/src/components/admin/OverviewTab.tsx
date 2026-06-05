@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, CircleAlert, Droplets, RefreshCw, Truck, Wallet } from "lucide-react";
+import { Activity, Archive, ChevronDown, ChevronUp, CircleAlert, Droplets, RefreshCw, Truck, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatNigeriaDateTime } from "@/lib/datetime";
 import {
+  adminDismissOperationAlert,
   adminReassignOperationAlert,
   getAdminOperationAlerts,
   getAdminOverview,
@@ -19,6 +21,7 @@ type Props = {
 
 export function OverviewTab({ canLoad, isActionLoading, runAction }: Props) {
   const queryClient = useQueryClient();
+  const [showArchived, setShowArchived] = useState(false);
 
   const overviewQuery = useQuery({
     queryKey: ["admin", "overview"],
@@ -34,10 +37,17 @@ export function OverviewTab({ canLoad, isActionLoading, runAction }: Props) {
     enabled: canLoad,
   });
 
+  const archivedAlertsQuery = useQuery({
+    queryKey: ["admin", "alerts", "archived"],
+    queryFn: () => getAdminOperationAlerts({ limit: 50, status: "resolved" }),
+    enabled: canLoad && showArchived,
+  });
+
   const totals = overviewQuery.data?.totals || {};
   const paymentValue = overviewQuery.data?.payment_value || {};
   const breakdown = overviewQuery.data?.status_breakdown || {};
   const alerts = alertsQuery.data?.items || [];
+  const archivedAlerts = archivedAlertsQuery.data?.items || [];
 
   const metricCards = [
     { label: "Active batches", value: totals.active_batches ?? 0, icon: Droplets },
@@ -45,6 +55,18 @@ export function OverviewTab({ canLoad, isActionLoading, runAction }: Props) {
     { label: "Online tankers", value: totals.online_tankers ?? 0, icon: Truck },
     { label: "Paid value", value: paymentValue.paid ?? 0, icon: Wallet, currency: true },
   ];
+
+  const handleDismiss = (alertId: number) => {
+    runAction(
+      () => adminDismissOperationAlert(alertId),
+      "Alert archived",
+    ).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "alerts"] });
+      if (showArchived) {
+        queryClient.invalidateQueries({ queryKey: ["admin", "alerts", "archived"] });
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -135,26 +157,88 @@ export function OverviewTab({ canLoad, isActionLoading, runAction }: Props) {
                       {formatNigeriaDateTime(alert.created_at)}
                     </p>
                   </div>
-                  {["loading_timeout", "offer_expiry_repeated_failure"].includes(alert.alert_type) && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    {["loading_timeout", "offer_expiry_repeated_failure"].includes(alert.alert_type) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isActionLoading}
+                        onClick={() =>
+                          runAction(
+                            () => adminReassignOperationAlert(alert.id),
+                            "Manual reassignment triggered",
+                          )
+                        }
+                      >
+                        Reassign
+                      </Button>
+                    )}
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="ghost"
                       disabled={isActionLoading}
-                      onClick={() =>
-                        runAction(
-                          () => adminReassignOperationAlert(alert.id),
-                          "Manual reassignment triggered",
-                        )
-                      }
+                      title="Archive alert"
+                      onClick={() => handleDismiss(alert.id)}
                     >
-                      Reassign
+                      <Archive className="h-4 w-4" />
                     </Button>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {/* Archived section */}
+        <div className="mt-4 border-t pt-4">
+          <button
+            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            <Archive className="h-4 w-4" />
+            {showArchived ? "Hide archived" : "Show archived alerts"}
+            {!showArchived && archivedAlertsQuery.data && archivedAlerts.length > 0 && (
+              <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs font-medium">
+                {archivedAlerts.length}
+              </span>
+            )}
+            {showArchived ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+
+          {showArchived && (
+            <div className="mt-3 space-y-2">
+              {archivedAlerts.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">No archived alerts.</p>
+              ) : (
+                archivedAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className={`rounded-xl border border-l-4 bg-card p-4 opacity-50 ${severityAccent(alert.severity)}`}
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <CircleAlert className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="font-semibold text-foreground">{alert.alert_type}</span>
+                        <SeverityPill severity={alert.severity} />
+                      </div>
+                      <p className="text-sm text-muted-foreground">{alert.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {alert.job_type} #{alert.job_id}
+                        {alert.tanker_id ? ` • Tanker #${alert.tanker_id}` : ""}
+                        {" • Archived "}
+                        {formatNigeriaDateTime(alert.resolved_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

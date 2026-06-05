@@ -2,8 +2,10 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { driverLogin, driverSignup, DriverResponse } from "@/lib/api";
 import { Input } from "@/components/ui/Input";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse) => void }) {
+  const { theme } = useAppTheme();
   const [isNew, setIsNew] = useState(false);
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
@@ -77,13 +79,14 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
       <Pressable
         onPress={isNew ? handleSignup : handleLogin}
         disabled={loading}
-        className="bg-success rounded-xl py-4 items-center mt-2"
+        className="rounded-xl py-4 items-center mt-2"
+        style={{ backgroundColor: theme.success }}
       >
         {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">{isNew ? "Register" : "Sign In"}</Text>}
       </Pressable>
 
       <Pressable onPress={() => { setIsNew(!isNew); setError(null); }} className="items-center py-2">
-        <Text className="text-success text-sm">{isNew ? "Already registered? Sign in" : "New driver? Register"}</Text>
+        <Text className="text-sm" style={{ color: theme.success }}>{isNew ? "Already registered? Sign in" : "New driver? Register"}</Text>
       </Pressable>
     </View>
   );
