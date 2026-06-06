@@ -2,15 +2,18 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { Phone, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
+import { SafeMapView, SafeMultiMapView } from "@/components/ui/SafeMapView";
 
 type Props = {
   job: any;
   onStartLoading: () => void;
   onLoaded: () => void;
   loading: boolean;
+  driverLat?: number | null;
+  driverLon?: number | null;
 };
 
-export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Props) {
+export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driverLat, driverLon }: Props) {
   const { theme } = useAppTheme();
   const totalVol =
     job?.active_job?.total_volume_liters ??
@@ -24,6 +27,38 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
 
   const members: any[] = job?.active_job?.members ?? [];
   const priorityCustomer = job?.active_job?.customer ?? null;
+
+  const firstStopLat: number | null =
+    jobType === "priority"
+      ? (priorityCustomer?.latitude ?? null)
+      : (members[0]?.latitude ?? null);
+  const firstStopLon: number | null =
+    jobType === "priority"
+      ? (priorityCustomer?.longitude ?? null)
+      : (members[0]?.longitude ?? null);
+
+  const stopMarkers = (jobType === "priority" && firstStopLat != null && firstStopLon != null)
+    ? [{
+        id: 0,
+        lat: firstStopLat,
+        lon: firstStopLon,
+        title: priorityCustomer?.name ?? "Customer",
+        description: priorityCustomer?.address ?? priorityCustomer?.site?.address ?? undefined,
+        pinColor: "#16a34a",
+      }]
+    : members
+        .filter((m) => m.latitude != null && m.longitude != null)
+        .map((m, i) => ({
+          id: m.id ?? i,
+          lat: m.latitude,
+          lon: m.longitude,
+          title: m.name ?? `Stop ${i + 1}`,
+          description: m.address ?? m.site?.address ?? undefined,
+          pinColor: "#16a34a",
+        }));
+
+  const hasDriverLocation = driverLat != null && driverLon != null;
+  const hasStopLocations = stopMarkers.length > 0;
 
   return (
     <View className="gap-4">
@@ -39,6 +74,34 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
           Fill {typeof totalVol === "number" ? totalVol.toLocaleString() : totalVol}L at the depot before heading out.
         </Text>
       </View>
+
+      {/* Map — driver location + first delivery stop */}
+      {hasDriverLocation && hasStopLocations && (
+        <SafeMapView
+          driver={{ lat: driverLat!, lon: driverLon!, label: "Your tanker" }}
+          customer={{
+            lat: firstStopLat!,
+            lon: firstStopLon!,
+            label: jobType === "priority" ? (priorityCustomer?.name ?? "Customer") : (members[0]?.name ?? "First stop"),
+            pinColor: "#16a34a",
+          }}
+          navigateTo={{
+            lat: firstStopLat!,
+            lon: firstStopLon!,
+            label: jobType === "priority" ? (priorityCustomer?.name ?? "Customer") : "First stop",
+          }}
+          height={220}
+          showPolyline={false}
+        />
+      )}
+      {!hasDriverLocation && hasStopLocations && (
+        <SafeMultiMapView
+          markers={stopMarkers}
+          initialLat={stopMarkers[0].lat}
+          initialLon={stopMarkers[0].lon}
+          height={220}
+        />
+      )}
 
       {/* Priority — single customer site */}
       {jobType === "priority" && priorityCustomer && (
@@ -59,6 +122,9 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
             )}
           </View>
           <SiteCard site={priorityCustomer.site} volume={priorityCustomer.volume_liters} />
+          {!priorityCustomer.site && priorityCustomer.address && (
+            <Text className="text-sm mt-2" style={{ color: theme.mutedForeground }}>{priorityCustomer.address}</Text>
+          )}
         </View>
       )}
 
@@ -89,6 +155,9 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
             )}
           </View>
           <SiteCard site={member.site} volume={member.volume_liters} />
+          {!member.site && member.address && (
+            <Text className="text-sm mt-2" style={{ color: theme.mutedForeground }}>{member.address}</Text>
+          )}
         </View>
       ))}
 
@@ -112,7 +181,7 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading }: Pr
           onPress={onLoaded}
           disabled={loading}
           className="rounded-xl py-4 items-center"
-          style={{ backgroundColor: theme.primary }}
+          style={{ backgroundColor: theme.success }}
         >
           {loading ? (
             <ActivityIndicator color={theme.primaryForeground} />

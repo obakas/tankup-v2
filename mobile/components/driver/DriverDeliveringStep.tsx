@@ -237,7 +237,7 @@ export function DriverDeliveringStep({
                 disabled={stopLoading || !meterStart}
                 onPress={() => doAction(() => startMeasurement(stop.delivery_id, driver.tankerId, parseFloat(meterStart)))}
                 className="rounded-xl py-3 items-center"
-                style={{ backgroundColor: theme.primary }}
+                style={{ backgroundColor: theme.success }}
               >
                 {stopLoading ? (
                   <ActivityIndicator color={theme.primaryForeground} />
@@ -290,7 +290,7 @@ export function DriverDeliveringStep({
                 disabled={stopLoading || !meterEnd}
                 onPress={() => doAction(() => finishMeasurement(stop.delivery_id, driver.tankerId, parseFloat(meterEnd)))}
                 className="rounded-xl py-3 items-center"
-                style={{ backgroundColor: theme.primary }}
+                style={{ backgroundColor: theme.success }}
               >
                 {stopLoading ? (
                   <ActivityIndicator color={theme.primaryForeground} />
@@ -441,9 +441,9 @@ export function DriverDeliveringStep({
                       onPress={() => setSiteRoadDifficulty(n)}
                       className="flex-1 py-2 rounded-lg items-center"
                       style={{
-                        backgroundColor: siteRoadDifficulty === n ? theme.primary : theme.background,
+                        backgroundColor: siteRoadDifficulty === n ? theme.success : theme.background,
                         borderWidth: 1,
-                        borderColor: siteRoadDifficulty === n ? theme.primary : theme.border,
+                        borderColor: siteRoadDifficulty === n ? theme.success : theme.border,
                       }}
                     >
                       <Text
@@ -487,7 +487,7 @@ export function DriverDeliveringStep({
                     }
                   }}
                   className="flex-1 rounded-xl py-3 items-center"
-                  style={{ backgroundColor: theme.primary }}
+                  style={{ backgroundColor: theme.success }}
                 >
                   {siteSubmitLoading ? (
                     <ActivityIndicator color={theme.primaryForeground} />
