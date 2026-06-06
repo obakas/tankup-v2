@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { AlertTriangle, ArrowLeft, Bell, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
+import { AlertTriangle, Archive, ArrowLeft, Bell, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
 import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -83,10 +83,14 @@ const api = {
     ),
   tankers: (tok: string) =>
     adminReq<{ items: any[] }>(tok, "/admin/tankers?limit=100"),
+  financials: (tok: string) =>
+    adminReq<any>(tok, "/admin/financials/summary"),
 
   // Actions
   reassignAlert: (tok: string, id: number) =>
     adminReq(tok, `/admin/operation-alerts/${id}/reassign`, { method: "POST" }),
+  archiveAlert: (tok: string, id: number) =>
+    adminReq(tok, `/admin/operation-alerts/${id}/dismiss`, { method: "POST" }),
   forceOfferPriority: (tok: string, reqId: number, tnkId: number) =>
     adminReq(tok, `/admin/requests/${reqId}/offer/${tnkId}`, { method: "POST" }),
   cancelPriority: (tok: string, reqId: number) =>
@@ -135,7 +139,7 @@ function fmtDate(s?: string | null) {
   });
 }
 
-type Tab = "overview" | "live" | "history" | "payments" | "emergency" | "incidents";
+type Tab = "overview" | "live" | "history" | "payments" | "financials" | "emergency" | "incidents";
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -151,6 +155,7 @@ export default function AdminDashboard() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [tankers, setTankers] = useState<any[]>([]);
+  const [financials, setFinancials] = useState<any>(null);
   const [incidents, setIncidents] = useState<any[]>([]);
   const [incidentStatus, setIncidentStatus] = useState("");
 
@@ -204,16 +209,18 @@ export default function AdminDashboard() {
     const { reqSearch, reqStatus, reqType, delSearch, delStatus, paySearch, payStatus } =
       searchRef.current;
     try {
-      const [req, del, pay, tnk] = await Promise.all([
+      const [req, del, pay, tnk, fin] = await Promise.all([
         api.requests(tok, reqSearch, reqStatus, reqType),
         api.deliveries(tok, delSearch, delStatus),
         api.payments(tok, paySearch, payStatus),
         api.tankers(tok),
+        api.financials(tok),
       ]);
       setRequests(req.items ?? []);
       setDeliveries(del.items ?? []);
       setPayments(pay.items ?? []);
       setTankers(tnk.items ?? []);
+      setFinancials(fin);
     } catch (_) {}
   }, []);
 
@@ -293,6 +300,7 @@ export default function AdminDashboard() {
     setDeliveries([]);
     setPayments([]);
     setTankers([]);
+    setFinancials(null);
     setIncidents([]);
     router.replace("/");
   };
@@ -305,6 +313,7 @@ export default function AdminDashboard() {
     { key: "live", label: "Live" },
     { key: "history", label: "History" },
     { key: "payments", label: "Payments" },
+    { key: "financials", label: "Financials" },
     { key: "incidents", label: openIncidents > 0 ? `Incidents (${openIncidents})` : "Incidents" },
     { key: "emergency", label: "Emergency" },
   ];
@@ -446,6 +455,9 @@ export default function AdminDashboard() {
               onReassign={(id) =>
                 runAction(() => api.reassignAlert(token, id), "Reassignment triggered")
               }
+              onArchive={(id) =>
+                runAction(() => api.archiveAlert(token, id), "Alert archived")
+              }
             />
           )}
 
@@ -510,6 +522,10 @@ export default function AdminDashboard() {
                 })
               }
             />
+          )}
+
+          {tab === "financials" && (
+            <FinancialsTab theme={theme} financials={financials} />
           )}
 
           {tab === "incidents" && token && (
@@ -896,12 +912,14 @@ function OverviewTab({
   alerts,
   actionLoading,
   onReassign,
+  onArchive,
 }: {
   theme: TankupTheme;
   overview: any;
   alerts: any[];
   actionLoading: boolean;
   onReassign: (id: number) => void;
+  onArchive: (id: number) => void;
 }) {
   if (!overview) return <EmptyState theme={theme} message="Loading overview..." />;
 
@@ -975,6 +993,7 @@ function OverviewTab({
             alert={a}
             actionLoading={actionLoading}
             onReassign={onReassign}
+            onArchive={onArchive}
           />
         ))
       )}
@@ -1430,6 +1449,116 @@ function IncidentsTab({
   );
 }
 
+// ── Financials Tab ────────────────────────────────────────────────────────────
+
+const PLATFORM_BATCH_COMMISSION_RATE = 0.2;
+
+const KPI_CONFIGS = [
+  { key: "total_revenue",  label: "Total Revenue",      color: "#16a34a", soft: "rgba(22,163,74,0.12)" },
+  { key: "total_refunded", label: "Total Refunded",     color: "#dc2626", soft: "rgba(220,38,38,0.12)" },
+  { key: "net_revenue",    label: "Net Revenue",        color: "#2563eb", soft: "rgba(37,99,235,0.12)" },
+  { key: "_driver_payout", label: "Est. Driver Payouts",color: "#d97706", soft: "rgba(217,119,6,0.12)" },
+] as const;
+
+function FinancialsTab({ theme, financials }: { theme: TankupTheme; financials: any }) {
+  if (!financials) {
+    return (
+      <>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={{ flex: 1, minWidth: "45%", backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, gap: 8 }}>
+              <Skeleton height={10} width="55%" borderRadius={6} theme={theme} />
+              <Skeleton height={28} width="60%" borderRadius={6} theme={theme} />
+            </View>
+          ))}
+        </View>
+        <View style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, gap: 8 }}>
+          <Skeleton height={10} width="40%" borderRadius={6} theme={theme} />
+          {[0, 1, 2].map((i) => <Skeleton key={i} height={12} width="80%" borderRadius={6} theme={theme} />)}
+        </View>
+      </>
+    );
+  }
+
+  const estDriverPayouts = financials.net_revenue * (1 - PLATFORM_BATCH_COMMISSION_RATE);
+  const estPlatformCommission = financials.net_revenue * PLATFORM_BATCH_COMMISSION_RATE;
+
+  const kpiValues: Record<string, number> = {
+    total_revenue:  financials.total_revenue ?? 0,
+    total_refunded: financials.total_refunded ?? 0,
+    net_revenue:    financials.net_revenue ?? 0,
+    _driver_payout: estDriverPayouts,
+  };
+
+  return (
+    <>
+      {/* KPI cards */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+        {KPI_CONFIGS.map(({ key, label, color, soft }) => (
+          <View
+            key={key}
+            style={{ flex: 1, minWidth: "45%", backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14 }}
+          >
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <Text style={{ color: theme.mutedForeground, fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, flex: 1 }}>
+                {label}
+              </Text>
+              <View style={{ backgroundColor: soft, borderRadius: 8, width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ color, fontSize: 13 }}>₦</Text>
+              </View>
+            </View>
+            <Text style={{ color: theme.foreground, fontSize: 20, fontWeight: "800" }}>
+              ₦{fmt(kpiValues[key])}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <Text style={{ color: theme.mutedForeground, fontSize: 11, lineHeight: 16 }}>
+        Est. platform commission ({Math.round(PLATFORM_BATCH_COMMISSION_RATE * 100)}% of net): ₦{fmt(estPlatformCommission)}. Driver payout estimate uses batch rate — actual splits may vary for priority jobs.
+      </Text>
+
+      {/* Payment status breakdown */}
+      <View style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, gap: 4 }}>
+        <Text style={{ color: theme.mutedForeground, fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+          Payment Status
+        </Text>
+        {financials.payment_counts && Object.keys(financials.payment_counts).length > 0 ? (
+          Object.entries(financials.payment_counts as Record<string, number>)
+            .sort(([, a], [, b]) => b - a)
+            .map(([status, count]) => (
+              <View key={status} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
+                <StatusBadge status={status} theme={theme} />
+                <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 13 }}>{count}</Text>
+              </View>
+            ))
+        ) : (
+          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>No payments yet.</Text>
+        )}
+      </View>
+
+      {/* Refund status breakdown */}
+      <View style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border, borderRadius: 14, padding: 14, gap: 4 }}>
+        <Text style={{ color: theme.mutedForeground, fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+          Refund Status
+        </Text>
+        {financials.refund_counts && Object.keys(financials.refund_counts).length > 0 ? (
+          Object.entries(financials.refund_counts as Record<string, number>)
+            .sort(([, a], [, b]) => b - a)
+            .map(([status, count]) => (
+              <View key={status} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 }}>
+                <StatusBadge status={status} theme={theme} />
+                <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 13 }}>{count}</Text>
+              </View>
+            ))
+        ) : (
+          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>No refunds issued yet.</Text>
+        )}
+      </View>
+    </>
+  );
+}
+
 // ── Emergency Tab ─────────────────────────────────────────────────────────────
 
 function EmergencyTab({
@@ -1555,9 +1684,10 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function AlertCard({
-  theme, alert, actionLoading, onReassign,
+  theme, alert, actionLoading, onReassign, onArchive,
 }: {
-  theme: TankupTheme; alert: any; actionLoading: boolean; onReassign: (id: number) => void;
+  theme: TankupTheme; alert: any; actionLoading: boolean;
+  onReassign: (id: number) => void; onArchive: (id: number) => void;
 }) {
   const sev = SEVERITY_COLORS[alert.severity?.toLowerCase()] ?? SEVERITY_COLORS.low;
   const canReassign = ["loading_timeout", "offer_expiry_repeated_failure"].includes(alert.alert_type);
@@ -1580,10 +1710,21 @@ function AlertCard({
             {alert.alert_type?.replace(/_/g, " ")}
           </Text>
         </View>
-        <View style={{ backgroundColor: sev.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-          <Text style={{ color: sev.text, fontSize: 11, fontWeight: "600", textTransform: "capitalize" }}>
-            {alert.severity}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <View style={{ backgroundColor: sev.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ color: sev.text, fontSize: 11, fontWeight: "600", textTransform: "capitalize" }}>
+              {alert.severity}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => onArchive(alert.id)}
+            disabled={actionLoading}
+            accessibilityLabel="Archive alert"
+            accessibilityRole="button"
+            style={{ padding: 4, opacity: actionLoading ? 0.5 : 1 }}
+          >
+            <Archive color={theme.mutedForeground} size={16} />
+          </Pressable>
         </View>
       </Row>
       <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{alert.message}</Text>
