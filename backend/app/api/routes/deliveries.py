@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.DeliveryRecord import DeliveryRecord
+from app.models.customer_site_profile import CustomerSiteProfile
 from app.schemas.delivery import (
     ConfirmOtpIn,
     DeliveryOut,
@@ -389,12 +390,20 @@ def verify_site_conditions(
             detail=f"Delivery already resolved as '{delivery.delivery_status}'",
         )
 
-    if payload.tank_height_m is not None:
-        delivery.driver_reported_tank_height_m = payload.tank_height_m
+    if payload.tank_floor_level is not None and delivery.site_profile_id:
+        site = db.query(CustomerSiteProfile).filter(
+            CustomerSiteProfile.id == delivery.site_profile_id
+        ).first()
+        if site:
+            site.tank_floor_level = payload.tank_floor_level
+            db.add(site)
     if payload.hose_distance_m is not None:
         delivery.driver_reported_hose_distance_m = payload.hose_distance_m
     if payload.road_difficulty is not None:
         delivery.driver_reported_road_difficulty = payload.road_difficulty
+
+    delivery.site_verified = True
+    delivery.site_verified_at = datetime.utcnow()
 
     db.add(delivery)
     db.commit()

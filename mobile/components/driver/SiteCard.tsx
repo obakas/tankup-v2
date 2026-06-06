@@ -1,12 +1,28 @@
 import { Text, View } from "react-native";
-import { CheckCircle, Droplets, Lock, MapPin, Navigation, Truck } from "lucide-react-native";
+import { CheckCircle, Droplets, Layers, Lock, MapPin, Navigation, Truck } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
+
+const FLOOR_LABELS: Record<string, string> = {
+  ground: "Ground floor",
+  first_floor: "1st floor",
+  second_floor: "2nd floor",
+  third_floor: "3rd floor",
+  rooftop: "Rooftop",
+};
+const FLOOR_HOSE_HINTS: Record<string, string> = {
+  ground: "~5–15m hose",
+  first_floor: "~20–30m hose",
+  second_floor: "~30–40m hose",
+  third_floor: "~40–55m hose",
+  rooftop: "55m+ hose",
+};
 
 export type SiteProfile = {
   label?: string | null;
   address?: string | null;
   landmark_notes?: string | null;
   tank_capacity_liters?: number | null;
+  tank_floor_level?: string | null;
   hose_distance_m?: number | null;
   has_gate?: boolean;
   gate_notes?: string | null;
@@ -92,6 +108,20 @@ export function SiteCard({ site, volume }: Props) {
             <Navigation color={theme.mutedForeground} size={12} />
             <Text className="text-xs" style={{ color: theme.mutedForeground }}>
               Hose: {site.hose_distance_m}m
+            </Text>
+          </View>
+        )}
+        {site.tank_floor_level != null && (
+          <View
+            className="flex-row items-center gap-1 rounded-lg px-2 py-1"
+            style={{ backgroundColor: theme.cardSoft }}
+          >
+            <Layers color={theme.mutedForeground} size={12} />
+            <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+              {FLOOR_LABELS[site.tank_floor_level] ?? site.tank_floor_level}
+            </Text>
+            <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+              · {FLOOR_HOSE_HINTS[site.tank_floor_level] ?? ""}
             </Text>
           </View>
         )}

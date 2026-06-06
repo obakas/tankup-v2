@@ -98,6 +98,8 @@ export default function DriverFlow() {
             onStartLoading={flow.handleStartLoading}
             onLoaded={flow.handleLoaded}
             loading={flow.actionLoading}
+            driverLat={flow.driverLocation?.latitude ?? null}
+            driverLon={flow.driverLocation?.longitude ?? null}
           />
         )}
 

@@ -222,11 +222,15 @@ def build_priority_offer_payload(db: Session, request: LiquidRequest, seconds_le
             "address": site.address,
             "landmark_notes": site.landmark_notes,
             "tank_capacity_liters": site.tank_capacity_liters,
+            "tank_floor_level": site.tank_floor_level,
             "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
             "has_gate": site.has_gate,
             "gate_notes": site.gate_notes,
             "road_difficulty": site.driver_verified_road_difficulty or site.road_difficulty,
             "parking_difficulty": site.parking_difficulty,
+            "verification_status": site.verification_status,
+            "is_driver_verified": site.verification_status in ("verified", "partially_verified"),
+            "last_verified_at": site.last_verified_at.isoformat() if site.last_verified_at else None,
         } if site else None,
     }
 
@@ -252,12 +256,16 @@ def build_batch_offer_payload(db: Session, batch: Batch, seconds_left: int) -> d
             "latitude": member.latitude,
             "longitude": member.longitude,
             "tank_capacity_liters": site.tank_capacity_liters if site else None,
+            "tank_floor_level": site.tank_floor_level if site else None,
             "hose_distance_m": (site.driver_verified_hose_distance_m or site.hose_distance_m) if site else None,
             "has_gate": site.has_gate if site else False,
             "gate_notes": site.gate_notes if site else None,
             "landmark_notes": site.landmark_notes if site else None,
             "road_difficulty": (site.driver_verified_road_difficulty or site.road_difficulty) if site else 1,
             "parking_difficulty": site.parking_difficulty if site else 1,
+            "verification_status": site.verification_status if site else None,
+            "is_driver_verified": site.verification_status in ("verified", "partially_verified") if site else False,
+            "last_verified_at": site.last_verified_at.isoformat() if site and site.last_verified_at else None,
         })
 
     return {

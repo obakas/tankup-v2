@@ -57,7 +57,9 @@ export function DriverDeliveringStep({
   const [meterEnd, setMeterEnd] = useState("");
   const [stopLoading, setStopLoading] = useState(false);
   const [siteVerificationDone, setSiteVerificationDone] = useState(false);
-  const [siteTankHeight, setSiteTankHeight] = useState("");
+  const [siteFloorLevel, setSiteFloorLevel] = useState<string | null>(
+    stop?.customer?.site?.tank_floor_level ?? null
+  );
   const [siteHoseDistance, setSiteHoseDistance] = useState("");
   const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
   const [siteSubmitLoading, setSiteSubmitLoading] = useState(false);
@@ -407,16 +409,39 @@ export function DriverDeliveringStep({
               </Text>
 
               <View className="gap-1">
-                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Tank height (m)</Text>
-                <TextInput
-                  value={siteTankHeight}
-                  onChangeText={setSiteTankHeight}
-                  keyboardType="decimal-pad"
-                  placeholder="e.g. 2.5"
-                  placeholderTextColor={theme.mutedForeground}
-                  className="rounded-xl px-4 py-3"
-                  style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, color: theme.foreground }}
-                />
+                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Tank floor level</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {(
+                    [
+                      { value: "ground", label: "Ground" },
+                      { value: "first_floor", label: "1st Floor" },
+                      { value: "second_floor", label: "2nd Floor" },
+                      { value: "third_floor", label: "3rd Floor" },
+                      { value: "rooftop", label: "Roof" },
+                    ] as const
+                  ).map((opt) => {
+                    const selected = siteFloorLevel === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => setSiteFloorLevel(selected ? null : opt.value)}
+                        className="rounded-lg px-3 py-2"
+                        style={{
+                          borderWidth: 1,
+                          borderColor: selected ? theme.primary : theme.border,
+                          backgroundColor: selected ? theme.primary + "22" : theme.background,
+                        }}
+                      >
+                        <Text
+                          className="text-xs font-medium"
+                          style={{ color: selected ? theme.primary : theme.mutedForeground }}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
 
               <View className="gap-1">
@@ -469,8 +494,8 @@ export function DriverDeliveringStep({
                 <Pressable
                   disabled={siteSubmitLoading}
                   onPress={async () => {
-                    const payload: { tank_height_m?: number; hose_distance_m?: number; road_difficulty?: number } = {};
-                    if (siteTankHeight) payload.tank_height_m = parseFloat(siteTankHeight);
+                    const payload: { tank_floor_level?: string; hose_distance_m?: number; road_difficulty?: number } = {};
+                    if (siteFloorLevel) payload.tank_floor_level = siteFloorLevel;
                     if (siteHoseDistance) payload.hose_distance_m = parseFloat(siteHoseDistance);
                     if (siteRoadDifficulty) payload.road_difficulty = siteRoadDifficulty;
                     setSiteSubmitLoading(true);

@@ -462,6 +462,7 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
         "address": site.address,
         "landmark_notes": site.landmark_notes,
         "tank_capacity_liters": site.tank_capacity_liters,
+        "tank_floor_level": site.tank_floor_level,
         "hose_distance_m": site.driver_verified_hose_distance_m or site.hose_distance_m,
         "has_gate": site.has_gate,
         "gate_notes": site.gate_notes,

@@ -30,6 +30,7 @@ class DeliveryOut(BaseModel):
     delivery_status: DeliveryStatus
     otp_required: bool
     otp_verified: bool
+    site_verified: bool
     customer_confirmed: bool
     dispatched_at: Optional[datetime] = None
     arrived_at: Optional[datetime] = None

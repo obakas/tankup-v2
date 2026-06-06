@@ -508,7 +508,7 @@ export const skipStop = (deliveryId: number, tankerId: number, reason: string) =
 export const verifySite = (
   deliveryId: number,
   tankerId: number,
-  payload: { tank_height_m?: number; hose_distance_m?: number; road_difficulty?: number },
+  payload: { tank_floor_level?: string; hose_distance_m?: number; road_difficulty?: number },
 ) =>
   apiRequest<any>(`/deliveries/${deliveryId}/verify-site?tanker_id=${tankerId}`, {
     method: "POST",

@@ -49,6 +49,9 @@ class DeliveryRecord(Base):
     otp_required = Column(Boolean, default=True, nullable=False)
     otp_verified = Column(Boolean, default=False, nullable=False)
     otp_verified_at = Column(DateTime, nullable=True)
+
+    site_verified = Column(Boolean, default=False, nullable=False)
+    site_verified_at = Column(DateTime, nullable=True)
     otp_expires_at = Column(DateTime, nullable=True)
     otp_consumed_at = Column(DateTime, nullable=True)
     otp_invalid_attempts = Column(Integer, default=0, nullable=False)

@@ -68,6 +68,7 @@ class DeliverySiteOut(BaseModel):
     address: Optional[str] = None
     landmark_notes: Optional[str] = None
     tank_capacity_liters: Optional[int] = None
+    tank_floor_level: Optional[str] = None
     hose_distance_m: Optional[float] = None
     has_gate: Optional[bool] = None
     gate_notes: Optional[str] = None
@@ -182,6 +183,6 @@ class SkipDeliveryIn(BaseModel):
 
 
 class SiteVerificationIn(BaseModel):
-    tank_height_m: Optional[float] = Field(None, ge=0, le=50)
+    tank_floor_level: Optional[str] = None
     hose_distance_m: Optional[float] = Field(None, ge=0, le=200)
     road_difficulty: Optional[int] = Field(None, ge=1, le=5)
