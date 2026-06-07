@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 
-import requests as http_requests
 from sqlalchemy.orm import Session
 
 from app.models.batch import Batch
@@ -14,6 +12,7 @@ from app.models.request import LiquidRequest
 from app.models.user import User
 from app.services.routing_service import calculate_distance_km
 from app.services.notification_preference_service import is_enabled
+from app.services.push_service import _send_expo_push
 
 _ACTIVE_REQUEST_STATUSES = {
     "pending",
@@ -23,28 +22,6 @@ _ACTIVE_REQUEST_STATUSES = {
     "delivering",
     "arrived",
 }
-
-_EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
-
-
-def _send_expo_push(token: str, title: str, body: str, data: dict | None = None) -> bool:
-    try:
-        payload = {
-            "to": token,
-            "title": title,
-            "body": body,
-            "data": data or {},
-            "sound": "default",
-        }
-        resp = http_requests.post(
-            _EXPO_PUSH_URL,
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(payload),
-            timeout=10,
-        )
-        return resp.status_code == 200
-    except Exception:
-        return False
 
 
 def _find_eligible_users(db: Session, batch: Batch) -> list[User]:

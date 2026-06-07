@@ -21,6 +21,7 @@ from app.services.driver_scoring_service import (
 from app.models.customer_site_profile import CustomerSiteProfile
 from app.services.site_intelligence_service import compute_site_difficulty_score
 from app.services.operation_alert_service import create_operation_alert
+from app.services import push_service
 from app.utils.time_policy import (
     OFFER_TIMEOUT_BLACKLIST_MINUTES, 
     OFFER_EXPIRY_ALERT_AFTER_FAILURES,
@@ -442,6 +443,13 @@ def assign_best_tanker_for_priority(
     db.refresh(tanker)
     db.refresh(request)
 
+    push_service.notify_driver(
+        db, tanker.id,
+        title="New delivery offer",
+        body="Tap to view and accept",
+        data={"type": "job_offer"},
+    )
+
     return {
         "tanker": tanker,
         "offer_id": offer.id,
@@ -807,6 +815,13 @@ def assign_best_tanker_for_batch(
     db.commit()
     db.refresh(tanker)
     db.refresh(batch)
+
+    push_service.notify_driver(
+        db, tanker.id,
+        title="New delivery offer",
+        body="Tap to view and accept",
+        data={"type": "job_offer"},
+    )
 
     return {
         "assigned": True,

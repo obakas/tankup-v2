@@ -16,6 +16,7 @@ from app.models.user import User
 from app.models.customer_site_profile import CustomerSiteProfile
 from app.utils.status_rules import ensure_valid_transition, TANKER_STATUS_TRANSITIONS
 from app.services.site_intelligence_service import update_site_on_delivery_complete
+from app.services import push_service
 
 OTP_WINDOW_MINUTES = 15
 ANOMALY_FACTOR = 1.2
@@ -632,6 +633,13 @@ def finish_measurement(db: Session, *, tanker_id: int, delivery_id: int, meter_e
     db.add(delivery)
     db.commit()
     db.refresh(delivery)
+    if delivery.user_id:
+        push_service.notify_user(
+            db, delivery.user_id,
+            title="Enter your OTP",
+            body="Your driver is ready — confirm delivery in the app",
+            data={"type": "delivery_otp", "delivery_id": delivery.id},
+        )
     return delivery
 
 

@@ -850,3 +850,10 @@ export function updatePushToken(userId: number, token: string) {
     body: JSON.stringify({ expo_push_token: token }),
   });
 }
+
+export function updateDriverPushToken(tankerId: number, token: string) {
+  return apiRequest(`/tankers/${tankerId}/push-token`, {
+    method: "PATCH",
+    body: JSON.stringify({ expo_push_token: token }),
+  });
+}

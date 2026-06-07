@@ -26,7 +26,9 @@ import {
   markPriorityStartLoading,
   rejectOffer,
   setDriverOnline,
+  updateDriverPushToken,
 } from "@/lib/api";
+import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 
 const POLL_INTERVAL_MS = 4000;
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -224,6 +226,10 @@ export function useDriverFlow() {
     (d: DriverResponse) => {
       setDriver(d);
       setOnline(d.is_online);
+
+      registerForPushNotificationsAsync().then((token) => {
+        if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
+      });
 
       if (["assigned", "loading", "delivering", "arrived"].includes(d.status)) {
         refreshJob(d);

@@ -14,8 +14,9 @@ from app.models.driver_metric import DriverMetric
 from app.models.tanker import Tanker
 from app.models.user import User
 from app.models.customer_site_profile import CustomerSiteProfile
-from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle
+from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle, TankerPushTokenUpdate
 from app.services.operation_alert_service import create_operation_alert
+from app.services import push_service
 from app.services.assignment_service import (
     clear_tanker_offer,
     mark_offer_accepted,
@@ -548,6 +549,13 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         db.refresh(tanker)
         db.refresh(request)
 
+        push_service.notify_user(
+            db, request.user_id,
+            title="Tanker assigned",
+            body="Your tanker is loading water",
+            data={"type": "delivery_status", "status": "assigned"},
+        )
+
         return {
             "message": "Offer accepted. Start loading when ready.",
             "tanker_id": tanker.id,
@@ -587,6 +595,13 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(tanker)
         db.refresh(batch)
+
+        push_service.notify_batch_members(
+            db, batch.id,
+            title="Tanker assigned",
+            body="Your tanker is loading water",
+            data={"type": "delivery_status", "status": "assigned"},
+        )
 
         return {
             "message": "Batch accepted. Start loading when ready.",
@@ -661,6 +676,13 @@ def accept_batch_job_legacy(tanker_id: int, batch_id: int, db: Session = Depends
     db.refresh(tanker)
     db.refresh(batch)
 
+    push_service.notify_batch_members(
+        db, batch.id,
+        title="Tanker loading",
+        body="Your tanker is being loaded with water",
+        data={"type": "delivery_status", "status": "loading"},
+    )
+
     return {
         "message": "Batch moved to loading.",
         "tanker_id": tanker.id,
@@ -715,6 +737,13 @@ def accept_priority_job_legacy(tanker_id: int, request_id: int, db: Session = De
     db.refresh(tanker)
     db.refresh(request)
 
+    push_service.notify_user(
+        db, request.user_id,
+        title="Tanker loading",
+        body="Your tanker is being loaded with water",
+        data={"type": "delivery_status", "status": "loading"},
+    )
+
     return {
         "message": "Priority request moved to loading.",
         "tanker_id": tanker.id,
@@ -748,6 +777,12 @@ def mark_batch_loaded(tanker_id: int, batch_id: int, db: Session = Depends(get_d
     db.commit()
     db.refresh(tanker)
     db.refresh(batch)
+    push_service.notify_batch_members(
+        db, batch.id,
+        title="Tanker on the way",
+        body="Your water delivery is en route",
+        data={"type": "delivery_status", "status": "delivering"},
+    )
     return {"message": "Tanker marked as loaded. Delivery details are now available.", "tanker_id": tanker.id, "batch_id": batch.id, "tanker_status": tanker.status, "batch_status": batch.status}
 
 
@@ -775,6 +810,12 @@ def mark_priority_loaded(tanker_id: int, request_id: int, db: Session = Depends(
     db.commit()
     db.refresh(tanker)
     db.refresh(request)
+    push_service.notify_user(
+        db, request.user_id,
+        title="Tanker on the way",
+        body="Your water delivery is en route",
+        data={"type": "delivery_status", "status": "delivering"},
+    )
     return {"message": "Priority tanker marked as loaded. Delivery details are now available.", "tanker_id": tanker.id, "request_id": request.id, "tanker_status": tanker.status, "request_status": request.status}
 
 
@@ -799,6 +840,14 @@ def list_tankers(db: Session = Depends(get_db)):
 @router.get("/{tanker_id}", response_model=TankerOut)
 def get_tanker(tanker_id: int, db: Session = Depends(get_db)):
     return get_tanker_or_404(db, tanker_id)
+
+
+@router.patch("/{tanker_id}/push-token")
+def update_tanker_push_token(tanker_id: int, payload: TankerPushTokenUpdate, db: Session = Depends(get_db)):
+    tanker = get_tanker_or_404(db, tanker_id)
+    tanker.expo_push_token = payload.expo_push_token
+    db.commit()
+    return {"tanker_id": tanker_id, "updated": True}
 
 
 @router.put("/{tanker_id}", response_model=TankerOut)
@@ -836,6 +885,12 @@ def tanker_arrived(tanker_id: int, batch_id: int, db: Session = Depends(get_db))
     db.commit()
     db.refresh(batch)
     db.refresh(tanker)
+    push_service.notify_batch_members(
+        db, batch.id,
+        title="Tanker arrived!",
+        body="Your delivery driver is at your location",
+        data={"type": "delivery_status", "status": "arrived"},
+    )
     return {"message": "Tanker has arrived at the delivery area", "tanker_id": tanker.id, "batch_id": batch.id, "tanker_status": tanker.status, "batch_status": batch.status}
 
 
@@ -860,6 +915,12 @@ def complete_batch_delivery(tanker_id: int, batch_id: int, db: Session = Depends
         db.commit()
         db.refresh(batch)
         db.refresh(tanker)
+        push_service.notify_batch_members(
+            db, batch.id,
+            title="Delivery complete",
+            body="Your water has been delivered",
+            data={"type": "delivery_status", "status": "completed"},
+        )
     validate_transition_or_400(tanker.status, "available", TANKER_STATUS_TRANSITIONS, "Tanker")
     tanker.status = "available"
     tanker.is_available = True
@@ -893,6 +954,12 @@ def complete_priority_delivery(tanker_id: int, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(tanker)
         db.refresh(request)
+        push_service.notify_user(
+            db, request.user_id,
+            title="Delivery complete",
+            body="Your water has been delivered",
+            data={"type": "delivery_status", "status": "completed"},
+        )
     validate_transition_or_400(tanker.status, "available", TANKER_STATUS_TRANSITIONS, "Tanker")
     tanker.current_request_id = None
     tanker.status = "available"

@@ -61,6 +61,12 @@ export default function RoleSelect() {
         if (data?.type === "batch_invite") {
           router.push("/client");
         }
+        if (data?.type === "job_offer") {
+          router.push("/driver");
+        }
+        if (data?.type === "delivery_status" || data?.type === "delivery_otp") {
+          router.push("/client");
+        }
       });
       return () => sub.remove();
     } catch {

@@ -435,7 +435,7 @@ export function useClientFlow() {
             try {
               await leaveBatchMember(requestResp.member_id!);
               toast.success("You left the batch. Your payment was forfeited.");
-              goRoleHome();
+              handleStartNewRequest();
             } catch (e: any) {
               toast.error(e.message);
             } finally {
@@ -488,7 +488,7 @@ export function useClientFlow() {
             try {
               await cancelPriorityRequest(requestResp.request_id!);
               toast.success("Priority delivery cancelled.");
-              goRoleHome();
+              handleStartNewRequest();
             } catch (e: any) {
               toast.error(e.message ?? "Failed to cancel delivery");
             } finally {

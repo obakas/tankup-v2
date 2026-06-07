@@ -62,6 +62,10 @@ class OnlineToggle(BaseModel):
     reason: Optional[str] = None
 
 
+class TankerPushTokenUpdate(BaseModel):
+    expo_push_token: str
+
+
 class TankerOut(TankerBase):
     id: int
     status: TankerStatus
