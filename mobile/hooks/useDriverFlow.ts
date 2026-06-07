@@ -179,7 +179,7 @@ export function useDriverFlow() {
 
   useLocationHeartbeat({
     tankerId: driver?.tankerId ?? null,
-    enabled: online && ["loading", "delivering"].includes(step),
+    enabled: online && step !== "offline" && step !== "auth",
     onLocationUpdate: (latitude, longitude) => setDriverLocation({ latitude, longitude }),
   });
 
