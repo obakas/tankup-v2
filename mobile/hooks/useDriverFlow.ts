@@ -15,8 +15,6 @@ const DRIVER_STATUS_MESSAGES: Record<string, string> = {
 };
 import {
   acceptOffer,
-  completeBatchDelivery,
-  completePriorityDelivery,
   driverHeartbeat,
   DriverResponse,
   getCurrentJob,
@@ -132,11 +130,13 @@ export function useDriverFlow() {
       }
 
       if (["available", "completed"].includes(tankerStatus)) {
+        const wasDelivering = ["delivering", "arrived"].includes(prevTankerStatusRef.current);
         prevTankerStatusRef.current = "";
         setStep("available");
         setJob(null);
         stopPolling();
         pollRef.current = setInterval(pollOffer, POLL_INTERVAL_MS);
+        if (wasDelivering) toast.success("Job complete — well done!");
       }
     } catch {
       // Keep screen stable while backend/network breathes.
@@ -378,33 +378,6 @@ export function useDriverFlow() {
     }
   }, [driver, job]);
 
-  const handleCompleteJob = useCallback(async () => {
-    if (!driver || !job) return;
-
-    setActionLoading(true);
-    setError(null);
-
-    try {
-      if (job.job_type === "batch" || job.active_job?.batch_id) {
-        const batchId = job.active_job?.batch_id ?? job.batch_id;
-        await completeBatchDelivery(driver.tankerId, batchId);
-      } else {
-        await completePriorityDelivery(driver.tankerId);
-      }
-
-      setJob(null);
-      setCurrentStop(null);
-      setStep("available");
-      setOffer(null);
-      toast.success("Job complete — well done!");
-    } catch (e: any) {
-      setError(e.message);
-      toast.error(e.message);
-    } finally {
-      setActionLoading(false);
-    }
-  }, [driver, job]);
-
   const markCompletedAsAvailable = useCallback(() => {
     setStep("available");
     setOffer(null);
@@ -447,7 +420,6 @@ export function useDriverFlow() {
     handleRejectOffer,
     handleStartLoading,
     handleLoaded,
-    handleCompleteJob,
     markCompletedAsAvailable,
     setDriver,
   };

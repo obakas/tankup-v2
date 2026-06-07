@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+import re
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 # from fastapi_cloud_cli.logging import setup_logging
 
@@ -27,6 +28,72 @@ from app.core.logging_config import setup_logging
 from app.middleware.request_logging import RequestLoggingMiddleware
 
 setup_logging()
+
+_NAIVE_DT_RE = re.compile(
+    r'"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?)"'
+)
+
+
+class UTCDatetimeMiddleware:
+    """Appends Z to naive ISO 8601 datetime strings in JSON responses."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        response_started = False
+        response_headers = None
+        response_status = None
+        body_chunks: list[bytes] = []
+        is_json = False
+
+        async def send_wrapper(message):
+            nonlocal response_started, response_headers, response_status, is_json
+
+            if message["type"] == "http.response.start":
+                response_status = message["status"]
+                headers = dict(message.get("headers", []))
+                content_type = headers.get(b"content-type", b"").decode()
+                is_json = content_type.startswith("application/json")
+                response_headers = message
+                if not is_json:
+                    await send(message)
+                response_started = True
+
+            elif message["type"] == "http.response.body":
+                if not is_json:
+                    await send(message)
+                    return
+                body_chunks.append(message.get("body", b""))
+                if not message.get("more_body", False):
+                    full_body = b"".join(body_chunks)
+                    fixed = _NAIVE_DT_RE.sub(r'"\1Z"', full_body.decode("utf-8"))
+                    fixed_bytes = fixed.encode("utf-8")
+                    new_headers = []
+                    for k, v in response_headers.get("headers", []):
+                        if k.lower() == b"content-length":
+                            new_headers.append((b"content-length", str(len(fixed_bytes)).encode()))
+                        else:
+                            new_headers.append((k, v))
+                    await send({
+                        "type": "http.response.start",
+                        "status": response_status,
+                        "headers": new_headers,
+                    })
+                    await send({
+                        "type": "http.response.body",
+                        "body": fixed_bytes,
+                        "more_body": False,
+                    })
+            else:
+                await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
 
 app = FastAPI()
 
@@ -67,6 +134,7 @@ origins = [
     "http://192.168.8.189:8000"
 ]
 
+app.add_middleware(UTCDatetimeMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

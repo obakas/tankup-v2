@@ -18,11 +18,8 @@ import {
 
 type Props = {
   driver: DriverResponse;
-  job: any;
   currentStop: any;
   onRefresh: () => void;
-  onCompleteJob: () => void;
-  actionLoading: boolean;
   setError: (e: string | null) => void;
   onReportIncident?: () => void;
   driverLat?: number | null;
@@ -35,8 +32,6 @@ export function DriverDeliveringStep({
   driver,
   currentStop,
   onRefresh,
-  onCompleteJob,
-  actionLoading,
   setError,
   onReportIncident,
   driverLat,
@@ -48,7 +43,6 @@ export function DriverDeliveringStep({
   const summary = currentStop?.stops_summary ?? [];
   const deliveredCount = summary.filter((s: any) => s.delivery_status === "delivered").length;
   const totalCount = summary.length;
-  const allDone = totalCount > 0 && deliveredCount === totalCount;
   const stopStatus: string = stop?.delivery_status ?? "";
 
   const { theme } = useAppTheme();
@@ -189,7 +183,7 @@ export function DriverDeliveringStep({
         </View>
       ))}
 
-      {stop && !allDone && (
+      {stop && (
         <View
           className="rounded-2xl p-5 gap-3"
           style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.success + "66" }}
@@ -591,21 +585,6 @@ export function DriverDeliveringStep({
         <RefreshCw color={theme.mutedForeground} size={16} />
         <Text className="font-medium" style={{ color: theme.mutedForeground }}>Refresh</Text>
       </Pressable>
-
-      {allDone && (
-        <Pressable
-          onPress={onCompleteJob}
-          disabled={actionLoading}
-          className="rounded-xl py-4 items-center"
-          style={{ backgroundColor: theme.success }}
-        >
-          {actionLoading ? (
-            <ActivityIndicator color={theme.primaryForeground} />
-          ) : (
-            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Complete Job</Text>
-          )}
-        </Pressable>
-      )}
 
       {onReportIncident && (
         <Pressable

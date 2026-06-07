@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BatchLifecycleCard } from "@/components/client/BatchLifecycleCard";
 import { BatchBoostCard } from "@/components/client/BatchBoostCard";
 import type { BatchLiveResponse } from "@/lib/batches";
+import { parseApiDate } from "@/lib/datetime";
 
 interface BatchStepProps {
     otp: string;
@@ -24,10 +25,14 @@ interface BatchStepProps {
 const formatDateTime = (value: string | null) => {
     if (!value) return "—";
 
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+    const date = parseApiDate(value);
+    if (!date) return value;
 
-    return date.toLocaleString();
+    return new Intl.DateTimeFormat("en-NG", {
+        timeZone: "Africa/Lagos",
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(date);
 };
 
 const getBatchHeadline = (status?: string) => {

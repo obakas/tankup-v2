@@ -82,6 +82,9 @@ cd mobile && npx expo start --tunnel --clear
 - `ADMIN_SECRET` — intended `x-admin-secret` header value (enforcement is implemented but currently disabled at router level)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` — credentials for `POST /admin/login`
 - `SECRET_KEY` — JWT signing key
+- `SUPABASE_URL` / `SUPABASE_SERVICE_KEY` — Supabase storage integration
+- `PAYMENT_PROVIDER` — payment backend selection (default: `paystack`)
+- `WEB_PUSH_PRIVATE_KEY_FILE` / `WEB_PUSH_PUBLIC_KEY_FILE` / `WEB_PUSH_SUBJECT` — web push key file paths
 
 **Route structure** (all under `app/api/routes/`):
 
@@ -109,12 +112,14 @@ cd mobile && npx expo start --tunnel --clear
 
 Fleet heads currently use admin credentials (MVP simplification — no fleet-head-specific auth endpoint exists yet).
 
-**Background scheduler** (`app/core/scheduler.py`): APScheduler starts on startup with 6 jobs:
+**Background scheduler** (`app/core/scheduler.py`): APScheduler starts on startup with 8 jobs:
 - Offer expiry monitor — 15s
 - Priority assignment timeout — 30s
 - Loading timeout — 30s
 - Late arrival flagging — 30s
+- Driver offline monitor — 30s
 - Batch health monitor — 60s
+- Nearby notification monitor — 60s
 - Delivery timeout — 5min
 
 **Status machines** — all defined in `app/utils/status_rules.py`. Every transition must go through `ensure_valid_transition()`.
@@ -135,6 +140,7 @@ Terminal states: `completed`, `partially_completed`, `failed`, `expired`, `assig
 - `Batch` — groups multiple customer requests onto one tanker; has fill percentage and health scoring
 - `DeliveryRecord` (`models/DeliveryRecord.py` — note PascalCase, unlike all other model files) — one row per customer stop; tracks OTP, meter readings, and timestamps
 - `DriverMetric` — per-zone scoring used by the assignment service to rank tankers
+- `OperationAlert` — surfaced in the admin ops dashboard; fields: `alert_type`, `severity`, `job_type`, `job_id`, `status` (`open`/`resolved`). Admins can trigger re-assignment from an open alert via `POST /admin/operation-alerts/{id}/reassign`
 
 **Schemas** (`app/schemas/`): Pydantic models for request/response validation. Separate from SQLAlchemy models. Named after their domain: `batch.py`, `delivery.py`, `tanker.py`, etc. `DeliveryOut.py` is the exception (PascalCase) and mirrors the model file naming.
 
@@ -147,16 +153,25 @@ Terminal states: `completed`, `partially_completed`, `failed`, `expired`, `assig
 | `batch_orchestration_service.py` | Batch state machine orchestration |
 | `batch_monitor_service.py` | Scheduler-driven batch health checks |
 | `batch_scoring_service.py` | Batch fill-level and priority scoring |
+| `batch_live_service.py` | Builds live snapshot for client-side batch polling (next action hint, fill %, stop list) |
+| `batch_service.py` | Batch read helpers (`get_batch_by_id`, `get_batch_members`) |
+| `batch_member_service.py` | Member leave and batch-membership lifecycle helpers |
 | `driver_flow_service.py` | Driver offer accept/reject, loading, delivery step transitions |
 | `driver_scoring_service.py` | Zone-based `DriverMetric` updates after each delivery |
+| `driver_offline_service.py` | Detects tankers with stale heartbeats; creates `OperationAlert`; escalates with push if actively delivering |
 | `delivery_service.py` | `DeliveryRecord` state transitions (arrive, measure, OTP, complete) |
 | `delivery_timeout_service.py` | Scheduler-driven delivery timeout enforcement |
 | `loading_timeout_service.py` | Scheduler-driven loading timeout enforcement |
 | `late_arrival_service.py` | Flags tankers that haven't arrived within the SLA |
+| `nearby_notification_service.py` | Sends Expo push when a relevant batch forms near a customer's registered site |
+| `notification_preference_service.py` | Checks per-user notification opt-ins before sending any push |
+| `operation_alert_service.py` | Creates `OperationAlert` rows surfaced in admin dashboard for operational issues |
 | `payment_service.py` | Payment creation and status transitions |
 | `payout_service.py` | Driver payout calculations |
+| `refund_service.py` | Executes member refunds via payment provider |
 | `client_flow_service.py` | Customer-facing request lifecycle helpers |
 | `site_intelligence_service.py` | Site difficulty scoring from delivery history |
+| `routing_service.py` | Haversine distance calculation between coordinates (used in scoring + nearby notifications) |
 | `admin_audit_service.py` | `AuditLog` writes for all admin mutations |
 
 ---
@@ -211,7 +226,7 @@ Admin is always at `/admin` — never shown as a role card. Access is via 5 rapi
 | `useDriverLocationHeartbeat` | Sends GPS coords to backend on interval |
 | `useDriverOfferAlarm` | Plays sound/vibration when a new offer arrives |
 | `useClientDeliveryAlerts` | Surfaces delivery status changes as toasts |
-| `useWebPushNotifications` | Browser push notification subscription |
+| `useWebPushNotifications` | Browser push notification subscription (frontend) — mobile equivalent is `usePushNotifications` |
 
 ---
 
@@ -236,6 +251,8 @@ Both patterns pass theme values as inline `style={{ color: theme.foreground }}` 
 **Skeleton loaders:** `<Skeleton theme={theme} width={200} height={20} borderRadius={8} />` from `components/ui/Skeleton.tsx`. Uses Reanimated v4 `withRepeat` on the UI thread. Swap out for real content once the first fetch resolves.
 
 **API libs:** `lib/api.ts` (base `apiRequest`), `lib/driverApi.ts`, `lib/fleetHeadApi.ts` (fleet head — Bearer token stored in AsyncStorage as `fleet_head_auth`). All requests include `ngrok-skip-browser-warning: true` to bypass ngrok's interstitial when tunnelling.
+
+**Mobile hooks** (`hooks/`): `useAppTheme`, `useAppStatePause`, `useClientFlow`, `useDriverFlow`, `useDriverOfferAlarm`, `useLocationHeartbeat` (GPS heartbeat — named differently from the frontend's `useDriverLocationHeartbeat`), `usePushNotifications` (Expo push — named differently from the frontend's `useWebPushNotifications`), `useToast`.
 
 **Background polling:** Two patterns must be used together in any hook that polls the backend:
 

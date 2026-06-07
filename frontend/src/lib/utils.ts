@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { parseApiDate } from "./datetime";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,13 +9,12 @@ export function cn(...inputs: ClassValue[]) {
 export function formatScheduledDateTime(value?: string) {
   if (!value) return "";
 
-  const date = new Date(value);
+  const date = parseApiDate(value);
 
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (!date) return value;
 
   return new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
     weekday: "short",
     day: "numeric",
     month: "short",

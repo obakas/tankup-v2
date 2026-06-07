@@ -108,11 +108,8 @@ export default function DriverFlow() {
           <DriverDeliveringStep
             key={flow.currentStop?.current_stop?.delivery_id}
             driver={flow.driver}
-            job={flow.job}
             currentStop={flow.currentStop}
             onRefresh={flow.pollJob}
-            onCompleteJob={flow.handleCompleteJob}
-            actionLoading={flow.actionLoading}
             setError={flow.setError}
             onReportIncident={() => setIncidentVisible(true)}
             driverLat={flow.driverLocation?.latitude}
