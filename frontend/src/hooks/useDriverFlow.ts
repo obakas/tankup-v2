@@ -264,6 +264,10 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   const currentStop = stopResponse?.current_stop ?? null;
   const allowedActions = stopResponse?.allowed_actions ?? [];
 
+  useEffect(() => {
+    resetInputs();
+  }, [currentStop?.delivery_id, resetInputs]);
+
   const activeDeliveryIdx = useMemo(() => {
     if (!deliveries.length) return -1;
 
