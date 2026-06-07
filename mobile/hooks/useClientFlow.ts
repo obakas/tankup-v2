@@ -421,26 +421,30 @@ export function useClientFlow() {
   const handleLeave = async () => {
     if (!requestResp?.member_id) return;
 
-    Alert.alert("Leave Batch", "Are you sure you want to leave this batch?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Leave",
-        style: "destructive",
-        onPress: async () => {
-          setLoading(true);
+    Alert.alert(
+      "Leave Batch?",
+      "You are already part of a shared batch. Leaving now will cancel your request, affect the batch, and your payment will be forfeited.\n\nPenalty applies — you will lose the money already paid.",
+      [
+        { text: "Keep My Spot", style: "cancel" },
+        {
+          text: "Leave Batch",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
 
-          try {
-            await leaveBatchMember(requestResp.member_id!);
-            toast.success("You left the batch. Your payment was forfeited.");
-            goRoleHome();
-          } catch (e: any) {
-            toast.error(e.message);
-          } finally {
-            setLoading(false);
-          }
+            try {
+              await leaveBatchMember(requestResp.member_id!);
+              toast.success("You left the batch. Your payment was forfeited.");
+              goRoleHome();
+            } catch (e: any) {
+              toast.error(e.message);
+            } finally {
+              setLoading(false);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleCancelPriority = useCallback(() => {
