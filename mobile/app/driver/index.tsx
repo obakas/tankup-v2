@@ -172,7 +172,7 @@ export default function DriverFlow() {
                 Going offline during delivery?
               </Text>
               <Text style={{ fontSize: 14, color: theme.mutedForeground, marginBottom: 20, lineHeight: 20 }}>
-                You have an active delivery. Going offline will affect your job rating. Please select a reason.
+                You have an active job. Going offline will cancel your current assignment and affect your driver rating. Please select a reason.
               </Text>
 
               {OFFLINE_REASONS.map((r) => (

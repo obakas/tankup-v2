@@ -904,6 +904,7 @@ def complete_priority_delivery(tanker_id: int, db: Session = Depends(get_db)):
 
 _VALID_OFFLINE_REASONS = {"breakdown", "emergency", "technical"}
 _ACTIVE_DELIVERY_STATUSES = {"delivering", "arrived", "measuring"}
+_PRE_DELIVERY_JOB_STATUSES = {"assigned", "loading"}
 
 
 @router.post("/{tanker_id}/heartbeat")
@@ -967,6 +968,74 @@ def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depen
                 f"Reason: {reason or 'none provided'}."
             ),
         )
+
+    elif not payload.online and tanker.status in _PRE_DELIVERY_JOB_STATUSES:
+        metric = db.query(DriverMetric).filter(DriverMetric.tanker_id == tanker_id).first()
+        if metric:
+            prior_count = metric.abandoned_delivery_count or 0
+            metric.abandoned_delivery_count = prior_count + 1
+        else:
+            prior_count = 0
+
+        if prior_count == 0:
+            tanker.paused_until = datetime.utcnow() + timedelta(hours=2)
+        elif prior_count == 1:
+            tanker.paused_until = datetime.utcnow() + timedelta(hours=24)
+        else:
+            tanker.paused_until = datetime.utcnow() + timedelta(hours=48)
+
+        # Find and release the linked job
+        batch = (
+            db.query(Batch)
+            .filter(Batch.tanker_id == tanker_id, Batch.status.in_(_PRE_DELIVERY_JOB_STATUSES))
+            .first()
+        )
+        priority_request = None
+        if not batch and tanker.current_request_id:
+            priority_request = (
+                db.query(LiquidRequest)
+                .filter(
+                    LiquidRequest.id == tanker.current_request_id,
+                    LiquidRequest.status.in_(_PRE_DELIVERY_JOB_STATUSES),
+                )
+                .first()
+            )
+
+        create_operation_alert(
+            db,
+            alert_type="driver_abandoned_pre_delivery",
+            severity="warning",
+            job_type="batch" if batch else "priority",
+            job_id=batch.id if batch else (priority_request.id if priority_request else tanker_id),
+            tanker_id=tanker_id,
+            batch_id=batch.id if batch else None,
+            request_id=priority_request.id if priority_request else None,
+            message=(
+                f"Driver {tanker.driver_name} (tanker #{tanker_id}) went offline while "
+                f"in {tanker.status} state, abandoning their job before delivery started."
+            ),
+        )
+
+        tanker.current_request_id = None
+        tanker.pending_offer_type = None
+        tanker.pending_offer_id = None
+        tanker.offer_expires_at = None
+        tanker.status = "available"
+        tanker.is_available = True
+
+        if batch:
+            batch.tanker_id = None
+            batch.loading_deadline = None
+            batch.status = "ready_for_assignment"
+            db.add(batch)
+            db.commit()
+            retry_batch_assignment(db, batch.id, excluded_tanker_ids=[tanker_id])
+        elif priority_request:
+            priority_request.loading_deadline = None
+            priority_request.status = "searching_driver"
+            db.add(priority_request)
+            db.commit()
+            retry_priority_assignment(db, priority_request.id, excluded_tanker_ids=[tanker_id], failure_reason="driver_abandoned")
 
     tanker.is_online = payload.online
 

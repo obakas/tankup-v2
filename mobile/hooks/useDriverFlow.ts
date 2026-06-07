@@ -230,7 +230,7 @@ export function useDriverFlow() {
       if (!driver) return;
 
       // If going offline during an active delivery, show the reason modal instead
-      if (!val && step === "delivering") {
+      if (!val && (step === "delivering" || step === "loading")) {
         setShowOfflineModal(true);
         return;
       }
