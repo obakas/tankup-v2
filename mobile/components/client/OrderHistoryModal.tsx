@@ -43,7 +43,7 @@ function formatDate(value?: string | null) {
   if (!value) return "—";
   const date = parseApiDate(value);
   if (!date) return "—";
-  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short", hour12: true }).format(date);
 }
 
 export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {

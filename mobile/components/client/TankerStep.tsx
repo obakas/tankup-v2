@@ -31,7 +31,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "—";
   const date = parseApiDate(value);
   if (!date) return value;
-  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short", hour12: true }).format(date);
 }
 
 function getBatchTankerState(liveData: any) {

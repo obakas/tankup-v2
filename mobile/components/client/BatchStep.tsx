@@ -162,7 +162,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
             <View className="flex-1">
               <Text className="text-sm font-semibold" style={{ color: "#92400e" }}>Payment deadline</Text>
               <Text className="text-sm" style={{ color: "#92400e" }}>
-                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(parseApiDate(paymentDeadline) ?? new Date())}
+                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short", hour12: true }).format(parseApiDate(paymentDeadline) ?? new Date())}
               </Text>
             </View>
           </View>

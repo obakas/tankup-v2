@@ -515,7 +515,7 @@ function OverviewTab({ overview }: { overview: OverviewData | null }) {
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
-        Last updated: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(parseApiDate(overview.generated_at) ?? new Date())}
+        Last updated: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(parseApiDate(overview.generated_at) ?? new Date())}
       </p>
 
       {/* Key metrics */}
@@ -731,7 +731,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
           <div className="flex items-center gap-2">
             {lastUpdated && (
               <span className="text-xs text-muted-foreground hidden sm:block">
-                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(lastUpdated)}
+                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(lastUpdated)}
               </span>
             )}
             <button

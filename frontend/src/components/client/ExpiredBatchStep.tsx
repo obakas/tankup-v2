@@ -28,6 +28,7 @@ function formatDateTime(value?: string | null) {
     timeZone: "Africa/Lagos",
     dateStyle: "medium",
     timeStyle: "short",
+    hour12: true,
   }).format(date);
 }
 

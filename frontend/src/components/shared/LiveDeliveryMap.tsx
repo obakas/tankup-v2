@@ -68,7 +68,7 @@ function formatUpdatedAt(value?: string | null) {
   if (!value) return "No location update yet";
   const date = parseApiDate(value);
   if (!date) return "No location update yet";
-  return `Updated ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(date)}`;
+  return `Updated ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(date)}`;
 }
 
 function renderMarker(marker: MarkerData) {

@@ -104,7 +104,7 @@ export const DriverIncomingOfferStep = ({
 
           {offer.scheduled_for && (
             <div className="text-sm text-muted-foreground">
-              Scheduled for: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(parseApiDate(offer.scheduled_for) ?? new Date())}
+              Scheduled for: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short", hour12: true }).format(parseApiDate(offer.scheduled_for) ?? new Date())}
             </div>
           )}
         </div>

@@ -564,7 +564,7 @@ function OverviewTab({ overview, theme }: { overview: OverviewData | null; theme
   return (
     <View style={{ gap: 16 }}>
       <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
-        Last updated: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(parseApiDate(overview.generated_at) ?? new Date())}
+        Last updated: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(parseApiDate(overview.generated_at) ?? new Date())}
       </Text>
 
       {/* Key metrics — 2-col grid */}
@@ -756,7 +756,7 @@ function AlertCard({
           <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
             {alert.job_type} #{alert.job_id}
             {alert.tanker_id ? ` · Tanker #${alert.tanker_id}` : ""}
-            {ts ? ` · ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(parseApiDate(ts) ?? new Date())}` : ""}
+            {ts ? ` · ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short", hour12: true }).format(parseApiDate(ts) ?? new Date())}` : ""}
           </Text>
         </View>
         {onDismiss && (
@@ -1304,7 +1304,7 @@ export default function FleetHeadScreen() {
           <MapTab tankers={tankers} theme={theme} />
           {lastUpdated && (
             <Text style={{ color: theme.mutedForeground, fontSize: 11, textAlign: "center", marginTop: 12 }}>
-              Updated {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(lastUpdated)}
+              Updated {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(lastUpdated)}
             </Text>
           )}
         </View>
@@ -1347,7 +1347,7 @@ export default function FleetHeadScreen() {
 
           {lastUpdated && (
             <Text style={{ color: theme.mutedForeground, fontSize: 11, textAlign: "center", marginTop: 20 }}>
-              Updated {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(lastUpdated)}
+              Updated {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(lastUpdated)}
             </Text>
           )}
         </ScrollView>
