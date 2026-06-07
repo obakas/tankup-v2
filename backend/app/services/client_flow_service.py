@@ -19,6 +19,7 @@ from app.services.request_service import (
     get_request_by_id,
 )
 from app.services.batch_orchestration_service import refresh_batch_state
+from app.services.operation_alert_service import create_operation_alert
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.tanker import Tanker
 from app.models.request import LiquidRequest
@@ -171,6 +172,17 @@ def create_client_request_flow(db: Session, data: RequestCreate) -> dict[str, An
 
     if warning:
         result["warning"] = warning
+        request_id = result.get("request_id")
+        if request_id:
+            create_operation_alert(
+                db=db,
+                alert_type="request_exceeds_tank_capacity",
+                severity="warning",
+                job_type=data.delivery_type,
+                job_id=request_id,
+                request_id=request_id,
+                message=warning,
+            )
     return result
 
 
