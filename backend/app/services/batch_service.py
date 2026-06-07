@@ -171,23 +171,26 @@ def _batch_can_accept_request(db: Session, batch: Batch, request: LiquidRequest)
     if committed_volume + requested_volume > target_volume:
         return False
 
-    batch_lat = getattr(batch, "latitude", None)
-    batch_lon = getattr(batch, "longitude", None)
-    req_lat = getattr(request, "latitude", None)
-    req_lon = getattr(request, "longitude", None)
+    # TODO: uncomment before prod — enforce same-compound radius
+    # batch_lat = getattr(batch, "latitude", None)
+    # batch_lon = getattr(batch, "longitude", None)
+    # req_lat = getattr(request, "latitude", None)
+    # req_lon = getattr(request, "longitude", None)
+    #
+    # if None in {batch_lat, batch_lon, req_lat, req_lon}:
+    #     return False
+    #
+    # radius_km = float(getattr(batch, "search_radius_km", None) or RADIUS_KM)
+    # distance_km = calculate_distance_km(
+    #     batch.longitude,
+    #     batch.latitude,
+    #     request.longitude,
+    #     request.latitude,
+    # )
+    #
+    # return distance_km <= radius_km
 
-    if None in {batch_lat, batch_lon, req_lat, req_lon}:
-        return False
-
-    radius_km = float(getattr(batch, "search_radius_km", None) or RADIUS_KM)
-    distance_km = calculate_distance_km(
-        batch.longitude,
-        batch.latitude,
-        request.longitude,
-        request.latitude,
-    )
-
-    return distance_km <= radius_km
+    return True
 
 
 def find_or_create_batch(db: Session, request: LiquidRequest) -> dict[str, Any]:
