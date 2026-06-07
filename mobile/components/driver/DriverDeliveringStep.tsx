@@ -57,12 +57,19 @@ export function DriverDeliveringStep({
   const [meterEnd, setMeterEnd] = useState("");
   const [stopLoading, setStopLoading] = useState(false);
   const [siteVerificationDone, setSiteVerificationDone] = useState(false);
+  const [showReverifyForm, setShowReverifyForm] = useState(false);
   const [siteFloorLevel, setSiteFloorLevel] = useState<string | null>(
     stop?.customer?.site?.tank_floor_level ?? null
   );
   const [siteHoseDistance, setSiteHoseDistance] = useState("");
   const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
   const [siteSubmitLoading, setSiteSubmitLoading] = useState(false);
+
+  const siteIsVerified = !!stop?.customer?.site?.is_driver_verified;
+  const lastVerifiedAt = stop?.customer?.site?.last_verified_at;
+  const lastVerifiedStr = lastVerifiedAt
+    ? new Date(lastVerifiedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
 
   const doAction = async (fn: () => Promise<any>) => {
     setStopLoading(true);
@@ -401,8 +408,38 @@ export function DriverDeliveringStep({
                 <Text className="text-sm font-semibold" style={{ color: theme.success }}>OTP verified</Text>
               </View>
 
+            {siteIsVerified && !showReverifyForm ? (
+              <View className="gap-3">
+                <View>
+                  <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>
+                    Site already verified
+                  </Text>
+                  <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+                    {lastVerifiedStr ? `Last verified ${lastVerifiedStr}.` : "Previously verified."}{" "}
+                    Conditions looked different? You can update the record.
+                  </Text>
+                </View>
+                <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => setSiteVerificationDone(true)}
+                    className="flex-1 rounded-xl py-3 items-center"
+                    style={{ borderWidth: 1, borderColor: theme.border }}
+                  >
+                    <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setShowReverifyForm(true)}
+                    className="flex-1 rounded-xl py-3 items-center"
+                    style={{ borderWidth: 1, borderColor: theme.primary, backgroundColor: theme.primary + "22" }}
+                  >
+                    <Text className="font-semibold" style={{ color: theme.primary }}>Update details</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <>
               <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>
-                Verify site conditions
+                {showReverifyForm ? "Update site details" : "Verify site conditions"}
               </Text>
               <Text className="text-xs" style={{ color: theme.mutedForeground }}>
                 These are optional. Accurate observations improve future routing.
@@ -521,7 +558,9 @@ export function DriverDeliveringStep({
                   )}
                 </Pressable>
               </View>
-            </View>
+            </>
+            )}
+          </View>
           )}
 
           {stopStatus === "awaiting_otp" && stop.otp_verified && siteVerificationDone && (
