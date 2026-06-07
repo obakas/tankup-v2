@@ -20,7 +20,7 @@ from app.services.site_intelligence_service import (
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
-_ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic"}
+_ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"}
 _MAX_PHOTO_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
@@ -107,6 +107,9 @@ async def upload_site_photo(site_id: int, file: UploadFile, db: Session = Depend
         content_type = guessed or ""
     if content_type not in _ALLOWED_PHOTO_TYPES:
         raise HTTPException(status_code=415, detail="Unsupported file type. Use JPEG, PNG, WebP, or HEIC.")
+
+    if content_type == "image/jpg":
+        content_type = "image/jpeg"
 
     data = await file.read()
     if len(data) > _MAX_PHOTO_BYTES:

@@ -396,8 +396,16 @@ export async function uploadSitePhoto(
     }
   );
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Upload failed (${response.status})`);
+    let message = `Upload failed (${response.status})`;
+    try {
+      const data = await response.json();
+      if (typeof data?.detail === "string") message = data.detail;
+      else if (typeof data?.message === "string") message = data.message;
+    } catch {
+      const text = await response.text().catch(() => "");
+      if (text) message = text;
+    }
+    throw new Error(message);
   }
   return response.json();
 }
