@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import * as Location from "expo-location";
 import { updateTankerLocation } from "@/lib/driverApi";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
+import { LOCATION_TASK_NAME } from "@/tasks/locationTask";
 
 const INTERVAL_MS = 4000;
 
@@ -59,14 +60,49 @@ export function useLocationHeartbeat({
     intervalRef.current = setInterval(() => void sendLocation(), INTERVAL_MS);
   }, [sendLocation, stopHeartbeat]);
 
+  const stopBackgroundTask = useCallback(async () => {
+    try {
+      const running = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (running) await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+    } catch {
+      // ignore — task may not have started yet
+    }
+  }, []);
+
+  const startBackgroundTask = useCallback(async () => {
+    if (!enabledRef.current || !tankerIdRef.current) return;
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== "granted") return;
+      const running = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (!running) {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 15000,
+          distanceInterval: 10,
+          showsBackgroundLocationIndicator: true,
+        });
+      }
+    } catch {
+      // Silent — background permission denied or task failed to start
+    }
+  }, []);
+
   useEffect(() => {
     if (enabled && tankerId) {
       startHeartbeat();
     } else {
       stopHeartbeat();
+      void stopBackgroundTask();
     }
-    return stopHeartbeat;
-  }, [enabled, tankerId, startHeartbeat, stopHeartbeat]);
+    return () => {
+      stopHeartbeat();
+      void stopBackgroundTask();
+    };
+  }, [enabled, tankerId, startHeartbeat, stopHeartbeat, stopBackgroundTask]);
 
-  useAppStatePause(stopHeartbeat, startHeartbeat);
+  useAppStatePause(
+    () => { stopHeartbeat(); void startBackgroundTask(); },
+    () => { void stopBackgroundTask(); startHeartbeat(); },
+  );
 }

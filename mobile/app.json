@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.obakas.tankupmobile",
+      "permissions": ["android.permission.ACCESS_BACKGROUND_LOCATION"],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBW8c66xs0BFZRy44FKZG2chMn_97v3WeI"
@@ -53,7 +54,8 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "TankUp needs your location to track your delivery route.",
-          "locationWhenInUsePermission": "TankUp needs your location to track your delivery route."
+          "locationWhenInUsePermission": "TankUp needs your location to track your delivery route.",
+          "isIOS14": true
         }
       ],
       [
