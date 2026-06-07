@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { Phone, User } from "lucide-react-native";
+import { CheckCircle2, Droplets, Package, Phone, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
 import { SafeMapView, SafeMultiMapView } from "@/components/ui/SafeMapView";
@@ -22,6 +22,8 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
     "—";
 
   const jobType = job?.active_job?.job_type ?? job?.job_type ?? "batch";
+  const jobId = job?.active_job?.id ?? job?.id ?? "—";
+  const liquidName = job?.active_job?.liquid_name ?? job?.liquid_name ?? null;
   const tankerStatus = job?.tanker_status ?? "assigned";
   const isLoading = tankerStatus === "loading";
 
@@ -59,19 +61,23 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
 
   const hasDriverLocation = driverLat != null && driverLon != null;
   const hasStopLocations = stopMarkers.length > 0;
+  const stopsCount = jobType === "priority" ? 1 : members.length;
 
   return (
     <View className="gap-4">
-      {/* Summary */}
-      <View
-        className="rounded-2xl p-5"
-        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-      >
-        <Text className="font-semibold capitalize" style={{ color: theme.foreground }}>
-          {jobType} job — Load tanker
+      {/* Header — spinner + "Loading Water" */}
+      <View className="items-center py-4 gap-3">
+        <View
+          className="w-16 h-16 rounded-full items-center justify-center"
+          style={{ backgroundColor: theme.warningSoft }}
+        >
+          <ActivityIndicator size="large" color={theme.warning} />
+        </View>
+        <Text className="text-xl font-bold" style={{ color: theme.foreground }}>
+          Loading Water
         </Text>
-        <Text className="mt-2" style={{ color: theme.mutedForeground }}>
-          Fill {typeof totalVol === "number" ? totalVol.toLocaleString() : totalVol}L at the depot before heading out.
+        <Text className="text-sm text-center" style={{ color: theme.mutedForeground }}>
+          Confirm when the tanker is loaded and ready to move.
         </Text>
       </View>
 
@@ -102,6 +108,58 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
           height={220}
         />
       )}
+
+      {/* Job details */}
+      <View
+        className="rounded-2xl p-5 gap-3"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
+        <View className="flex-row justify-between">
+          <Text className="text-sm" style={{ color: theme.mutedForeground }}>Job</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.foreground }}>#{jobId}</Text>
+        </View>
+        <View className="flex-row justify-between">
+          <Text className="text-sm" style={{ color: theme.mutedForeground }}>Type</Text>
+          <Text className="text-sm font-medium capitalize" style={{ color: theme.foreground }}>{jobType}</Text>
+        </View>
+        {liquidName && (
+          <View className="flex-row justify-between">
+            <Text className="text-sm" style={{ color: theme.mutedForeground }}>Liquid</Text>
+            <Text className="text-sm font-medium" style={{ color: theme.foreground }}>{liquidName}</Text>
+          </View>
+        )}
+        <View className="flex-row justify-between">
+          <Text className="text-sm" style={{ color: theme.mutedForeground }}>Total volume</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
+            {typeof totalVol === "number" ? totalVol.toLocaleString() : totalVol}L
+          </Text>
+        </View>
+        <View className="flex-row justify-between">
+          <Text className="text-sm" style={{ color: theme.mutedForeground }}>Stops</Text>
+          <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
+            {stopsCount} {stopsCount === 1 ? "stop" : "stops"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Checklist */}
+      <View
+        className="rounded-2xl p-4 gap-2"
+        style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+      >
+        <View className="flex-row items-center gap-2">
+          <Droplets size={16} color={theme.mutedForeground} />
+          <Text className="text-sm flex-1" style={{ color: theme.mutedForeground }}>
+            Tanker should be fully loaded before departure.
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          <Package size={16} color={theme.mutedForeground} />
+          <Text className="text-sm flex-1" style={{ color: theme.mutedForeground }}>
+            Make sure delivery details are ready before leaving.
+          </Text>
+        </View>
+      </View>
 
       {/* Priority — single customer site */}
       {jobType === "priority" && priorityCustomer && (
@@ -161,6 +219,7 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
         </View>
       ))}
 
+      {/* CTA */}
       {!isLoading ? (
         <Pressable
           onPress={onStartLoading}
@@ -180,15 +239,18 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
         <Pressable
           onPress={onLoaded}
           disabled={loading}
-          className="rounded-xl py-4 items-center"
-          style={{ backgroundColor: theme.success }}
+          className="h-14 rounded-xl items-center justify-center"
+          style={{ backgroundColor: theme.warning }}
         >
           {loading ? (
             <ActivityIndicator color={theme.primaryForeground} />
           ) : (
-            <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
-              Loaded — Start Delivery
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <CheckCircle2 size={20} color={theme.primaryForeground} />
+              <Text className="font-semibold text-base" style={{ color: theme.primaryForeground }}>
+                Water Loaded — Start Delivery
+              </Text>
+            </View>
           )}
         </Pressable>
       )}
