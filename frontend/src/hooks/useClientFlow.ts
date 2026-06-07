@@ -17,7 +17,7 @@ import {
 } from "@/lib/api";
 import { leaveBatchMember, initiateBatchBoost, confirmBoostPayment } from "@/lib/batches";
 import { useLivePriorityRequest } from "@/hooks/useLivePriorityRequest";
-import { fetchActivePriorityRequest } from "@/lib/requests";
+import { fetchActivePriorityRequest, cancelPriorityRequest, type CancelPriorityResponse } from "@/lib/requests";
 
 interface UseClientFlowParams {
   onBack: () => void;
@@ -82,6 +82,10 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
   const [showHelp, setShowHelp] = useState(false);
   const [showLeaveBatchWarning, setShowLeaveBatchWarning] = useState(false);
+  const [showCancelPriorityModal, setShowCancelPriorityModal] = useState(false);
+  const [cancelPriorityStage, setCancelPriorityStage] = useState<CancelPriorityResponse["cancellation_stage"] | null>(null);
+  const [cancelPriorityRefundPct, setCancelPriorityRefundPct] = useState<number | null>(null);
+  const [isCancellingPriority, setIsCancellingPriority] = useState(false);
   const [otp, setOtp] = useState<string>("");
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
@@ -121,6 +125,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     if (
       requestStatus === "failed" ||
       requestStatus === "expired" ||
+      requestStatus === "cancelled" ||
       deliveryStatus === "failed" ||
       deliveryStatus === "skipped"
     ) {
@@ -466,6 +471,10 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setScheduledFor("");
     setShowHelp(false);
     setShowLeaveBatchWarning(false);
+    setShowCancelPriorityModal(false);
+    setCancelPriorityStage(null);
+    setCancelPriorityRefundPct(null);
+    setIsCancellingPriority(false);
     setOtp("");
     setIsSubmittingRequest(false);
     setRequestId(null);
@@ -695,6 +704,59 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     }
   };
 
+  const handleOpenCancelPriorityModal = () => {
+    const dr = livePriorityRequest;
+    const reqStatus = dr?.request_status ?? "";
+    const drStatus = dr?.delivery_status ?? null;
+
+    if (drStatus === "awaiting_otp" || drStatus === "delivered") {
+      toast.error("Cancellation is not allowed — water has already been fully pumped.");
+      return;
+    }
+
+    let stage: CancelPriorityResponse["cancellation_stage"] = "en_route";
+    let refundPct = 0;
+
+    if (reqStatus === "assigned" && (!drStatus || drStatus === "pending")) {
+      stage = "pre_loading";
+      refundPct = 0.5;
+    } else if (drStatus === "measuring") {
+      const start = dr?.meter_start_reading ?? null;
+      const end = dr?.meter_end_reading ?? null;
+      const planned = dr?.planned_liters ?? null;
+      if (start != null && end != null && planned && planned > 0) {
+        const actual = end - start;
+        refundPct = Math.max(0, 1 - actual / planned);
+        stage = "partial_delivery";
+      } else {
+        stage = "arrived";
+      }
+    } else if (drStatus === "arrived") {
+      stage = "arrived";
+    }
+
+    setCancelPriorityStage(stage);
+    setCancelPriorityRefundPct(refundPct);
+    setShowCancelPriorityModal(true);
+  };
+
+  const handleConfirmCancelPriority = async () => {
+    if (!requestId) return;
+    setIsCancellingPriority(true);
+    try {
+      await cancelPriorityRequest(requestId);
+      localStorage.removeItem(CLIENT_SESSION_KEY);
+      toast.success("Priority delivery cancelled.");
+      resetClientFlow();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to cancel delivery";
+      toast.error(message);
+    } finally {
+      setIsCancellingPriority(false);
+      setShowCancelPriorityModal(false);
+    }
+  };
+
   const handleBackClick = () => {
     if (activeTab === "history") {
       setActiveTab("request");
@@ -789,6 +851,14 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
     showLeaveBatchWarning,
     setShowLeaveBatchWarning,
+
+    showCancelPriorityModal,
+    setShowCancelPriorityModal,
+    cancelPriorityStage,
+    cancelPriorityRefundPct,
+    isCancellingPriority,
+    handleOpenCancelPriorityModal,
+    handleConfirmCancelPriority,
 
     otp,
     price,

@@ -8,6 +8,7 @@ from app.services.client_flow_service import (
     get_client_request_status_flow,
     get_priority_request_live_flow,
     get_active_priority_request_for_user_flow,
+    cancel_priority_mid_delivery_flow,
 )
 
 router = APIRouter(prefix="/requests", tags=["requests"])
@@ -60,4 +61,14 @@ def get_priority_request_live(request_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch priority live status: {str(e)}")
-    
+
+
+@router.post("/{request_id}/cancel")
+def cancel_priority_request(request_id: int, db: Session = Depends(get_db)):
+    try:
+        return cancel_priority_mid_delivery_flow(db, request_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to cancel request: {str(e)}")
+

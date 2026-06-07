@@ -721,6 +721,18 @@ export interface PriorityLiveResponse {
 export const getPriorityRequestLive = (requestId: number) =>
   apiRequest<PriorityLiveResponse>(`/requests/${requestId}/live`);
 
+export interface CancelPriorityResponse {
+  message: string;
+  request_id: number;
+  status: string;
+  cancellation_stage: "pre_loading" | "en_route" | "arrived" | "partial_delivery";
+  refund_percentage: number;
+  refund_eligible: boolean;
+}
+
+export const cancelPriorityRequest = (requestId: number) =>
+  apiRequest<CancelPriorityResponse>(`/requests/${requestId}/cancel`, { method: "POST" });
+
 // export const getActivePriorityRequest = (userId: number) =>
 //   apiRequest<any>(`/requests/users/${userId}/active-priority`);
 

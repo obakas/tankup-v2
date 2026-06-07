@@ -23,6 +23,7 @@ type Props = {
   size?: number | null;
   onArrived: () => void;
   onRefresh?: () => void;
+  onCancelPriority?: () => void;
 };
 
 function formatDateTime(value?: string | null) {
@@ -239,6 +240,7 @@ export function TankerStep({
   size,
   onArrived,
   onRefresh,
+  onCancelPriority,
 }: Props) {
   const { theme } = useAppTheme();
   const isPriority = mode === "priority";
@@ -539,6 +541,22 @@ export function TankerStep({
           </Text>
         </Pressable>
       )}
+
+      {/* Cancel priority delivery button — hidden once water is pumped */}
+      {isPriority && onCancelPriority && (() => {
+        const drStatus = liveData?.delivery_status ?? null;
+        const canCancel = drStatus !== "awaiting_otp" && drStatus !== "delivered";
+        return canCancel ? (
+          <Pressable
+            onPress={onCancelPriority}
+            className="items-center py-3"
+          >
+            <Text className="font-medium text-sm" style={{ color: theme.destructive }}>
+              Cancel Delivery
+            </Text>
+          </Pressable>
+        ) : null;
+      })()}
     </View>
   );
 }

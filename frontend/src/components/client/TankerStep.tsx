@@ -18,6 +18,7 @@ interface TankerStepProps {
   scheduledFor: string;
   selectedSize: number;
   onArrived: () => void;
+  onCancelPriority?: () => void;
 
   liveBatch?: BatchLiveResponse | null;
   liveBatchLoading?: boolean;
@@ -242,6 +243,7 @@ export default function TankerStep({
   scheduledFor,
   selectedSize,
   onArrived,
+  onCancelPriority,
 
   liveBatch,
   liveBatchLoading = false,
@@ -486,6 +488,21 @@ export default function TankerStep({
             Refresh Status
           </Button>
         )}
+
+        {isPriority && onCancelPriority && (() => {
+          const drStatus = livePriorityRequest?.delivery_status;
+          const canCancel = drStatus !== "awaiting_otp" && drStatus !== "delivered";
+          return canCancel ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onCancelPriority}
+            >
+              Cancel Delivery
+            </Button>
+          ) : null;
+        })()}
       </div>
     </div>
   );

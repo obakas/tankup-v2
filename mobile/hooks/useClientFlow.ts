@@ -26,6 +26,7 @@ import {
   getBatchLive,
   getPriorityRequestLive,
   leaveBatchMember,
+  cancelPriorityRequest,
   listUserSites,
   updatePushToken,
   initiateBatchBoost,
@@ -442,6 +443,59 @@ export function useClientFlow() {
     ]);
   };
 
+  const handleCancelPriority = useCallback(() => {
+    if (!requestResp?.request_id) return;
+
+    const drStatus = liveData?.delivery_status ?? null;
+    const reqStatus = liveData?.request_status ?? "";
+
+    if (drStatus === "awaiting_otp" || drStatus === "delivered") {
+      Alert.alert("Cannot Cancel", "Water has already been fully pumped and cannot be reversed.");
+      return;
+    }
+
+    let stageLabel = "The tanker has already committed to your trip.";
+    let refundLine = "No refund will be issued.";
+
+    if (reqStatus === "assigned" && (!drStatus || drStatus === "pending")) {
+      stageLabel = "Tanker assigned but not yet loaded.";
+      refundLine = "You will receive a 50% refund.";
+    } else if (drStatus === "measuring") {
+      const start = liveData?.meter_start_reading ?? null;
+      const end = liveData?.meter_end_reading ?? null;
+      const planned = liveData?.planned_liters ?? null;
+      if (start != null && end != null && planned && planned > 0) {
+        const pct = Math.round(Math.max(0, 1 - (end - start) / planned) * 100);
+        stageLabel = "Water partially pumped.";
+        refundLine = `You will receive a ${pct}% refund proportional to undelivered volume.`;
+      }
+    }
+
+    Alert.alert(
+      "Cancel Priority Delivery?",
+      `${stageLabel}\n\n${refundLine}`,
+      [
+        { text: "Keep Delivery", style: "cancel" },
+        {
+          text: "Cancel Delivery",
+          style: "destructive",
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await cancelPriorityRequest(requestResp.request_id!);
+              toast.success("Priority delivery cancelled.");
+              goRoleHome();
+            } catch (e: any) {
+              toast.error(e.message ?? "Failed to cancel delivery");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [requestResp, liveData]);
+
   const back = () => {
     if (step === "auth") return goRoleHome();
     if (step === "request") return goRoleHome();
@@ -500,6 +554,7 @@ export function useClientFlow() {
     handleConfirmPayment,
     handleDeliveryConfirmed,
     handleLeave,
+    handleCancelPriority,
     handleBoost,
     isBoostLoading,
     setStep,

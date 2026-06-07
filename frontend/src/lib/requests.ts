@@ -68,6 +68,45 @@ export interface ActivePriorityResponse {
   request: PriorityLiveResponse | null;
 }
 
+export interface CancelPriorityResponse {
+  message: string;
+  request_id: number;
+  status: string;
+  cancellation_stage: "pre_loading" | "en_route" | "arrived" | "partial_delivery";
+  refund_percentage: number;
+  refund_eligible: boolean;
+}
+
+export async function cancelPriorityRequest(
+  requestId: number
+): Promise<CancelPriorityResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/requests/${requestId}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+
+  const rawText = await response.text();
+  let data: unknown = null;
+  try {
+    data = rawText ? JSON.parse(rawText) : null;
+  } catch {
+    data = rawText;
+  }
+
+  if (!response.ok) {
+    const detail =
+      data && typeof data === "object" && "detail" in data
+        ? (data as { detail: string }).detail
+        : JSON.stringify(data);
+    throw new Error(detail || `Cancel failed: ${response.status}`);
+  }
+
+  return data as CancelPriorityResponse;
+}
+
 export async function fetchLivePriorityRequest(
   requestId: number
 ): Promise<PriorityLiveResponse | null> {

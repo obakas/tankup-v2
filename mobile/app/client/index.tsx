@@ -127,6 +127,7 @@ export default function ClientFlow() {
             size={flow.size}
             onArrived={() => flow.setStep("delivery")}
             onRefresh={flow.fetchLive}
+            onCancelPriority={flow.mode === "priority" ? flow.handleCancelPriority : undefined}
           />
         )}
 

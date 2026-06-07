@@ -12,6 +12,7 @@ import DeliveryOutcomeStep from "@/components/client/DeliveryOutcomeStep";
 import HelpModal from "@/components/client/HelpModal";
 import ReportIncidentModal from "@/components/client/ReportIncidentModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
+import CancelPriorityDeliveryModal from "@/components/client/CancelPriorityDeliveryModal";
 import { ProfileDialog } from "@/components/client/ProfileDialog";
 import { SitesDialog } from "@/components/client/SitesDialog";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -43,6 +44,13 @@ const ClientView = ({ onBack }: ClientViewProps) => {
     setShowHelp,
     showLeaveBatchWarning,
     setShowLeaveBatchWarning,
+    showCancelPriorityModal,
+    setShowCancelPriorityModal,
+    cancelPriorityStage,
+    cancelPriorityRefundPct,
+    isCancellingPriority,
+    handleOpenCancelPriorityModal,
+    handleConfirmCancelPriority,
 
     otp,
     price,
@@ -191,6 +199,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             scheduledFor={scheduledFor}
             selectedSize={selectedSize ?? 0}
             onArrived={() => setStep("delivery")}
+            onCancelPriority={handleOpenCancelPriorityModal}
             liveBatch={liveBatch}
             liveBatchLoading={liveBatchLoading}
             liveBatchError={liveBatchError}
@@ -456,6 +465,16 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         <LeaveBatchWarningModal
           onClose={() => setShowLeaveBatchWarning(false)}
           onConfirmLeave={handleLeaveBatch}
+        />
+      )}
+
+      {showCancelPriorityModal && (
+        <CancelPriorityDeliveryModal
+          stage={cancelPriorityStage}
+          refundPct={cancelPriorityRefundPct}
+          isLoading={isCancellingPriority}
+          onClose={() => setShowCancelPriorityModal(false)}
+          onConfirm={handleConfirmCancelPriority}
         />
       )}
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -21,6 +22,7 @@ from app.services.batch_orchestration_service import refresh_batch_state
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.tanker import Tanker
 from app.models.request import LiquidRequest
+from app.utils.status_rules import ensure_valid_transition, REQUEST_STATUS_TRANSITIONS
 
 
 def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, Any]:
@@ -293,4 +295,90 @@ def cancel_client_request_flow(db: Session, request_id: int) -> dict[str, Any]:
         "message": "Request cancelled successfully",
         "request_id": request.id,
         "status": request.status,
+    }
+
+
+def _compute_cancellation(
+    request: LiquidRequest,
+    delivery: DeliveryRecord | None,
+) -> tuple[str, float]:
+    """
+    Return (stage_label, refund_pct) for a priority cancellation.
+    stage_label: pre_loading | en_route | arrived | partial_delivery
+    refund_pct:  0.0–1.0 fraction of the full price to refund
+    Raises HTTPException(409) if cancellation is no longer allowed.
+    """
+    dr_status = delivery.delivery_status if delivery else None
+
+    if dr_status in ("awaiting_otp", "delivered"):
+        raise HTTPException(
+            status_code=409,
+            detail="Cancellation not allowed — water has already been fully pumped.",
+        )
+
+    # Pre-loading: offer accepted but tanker hasn't started loading yet
+    if request.status == "assigned" and dr_status in (None, "pending"):
+        return "pre_loading", 0.5
+
+    # Measuring with both meter readings: prorate by liters actually delivered
+    if dr_status == "measuring" and delivery:
+        if (
+            delivery.meter_start_reading is not None
+            and delivery.meter_end_reading is not None
+            and delivery.planned_liters > 0
+        ):
+            actual = delivery.meter_end_reading - delivery.meter_start_reading
+            refund_frac = max(0.0, 1.0 - actual / delivery.planned_liters)
+            return "partial_delivery", round(refund_frac, 4)
+
+    # All other stages: tanker committed, full forfeit
+    if dr_status in ("arrived", "measuring"):
+        return "arrived", 0.0
+
+    return "en_route", 0.0
+
+
+def cancel_priority_mid_delivery_flow(db: Session, request_id: int) -> dict[str, Any]:
+    request = get_request_by_id(db, request_id)
+
+    if request.delivery_type != "priority":
+        raise HTTPException(status_code=400, detail="Only priority requests support mid-delivery cancellation.")
+
+    terminal = {"completed", "partially_completed", "failed", "cancelled", "assignment_failed"}
+    if request.status in terminal:
+        raise HTTPException(status_code=409, detail=f"Cannot cancel a request in status '{request.status}'.")
+
+    delivery = (
+        db.query(DeliveryRecord)
+        .filter(
+            DeliveryRecord.request_id == request_id,
+            DeliveryRecord.job_type == "priority",
+        )
+        .order_by(DeliveryRecord.id.desc())
+        .first()
+    )
+
+    stage, refund_pct = _compute_cancellation(request, delivery)
+
+    ensure_valid_transition(request.status, "cancelled", REQUEST_STATUS_TRANSITIONS, "Request")
+    request.status = "cancelled"
+    request.cancelled_at = datetime.utcnow()
+    request.cancellation_stage = stage
+    request.cancellation_refund_pct = refund_pct
+
+    if delivery and delivery.delivery_status not in ("delivered", "failed", "skipped"):
+        delivery.delivery_status = "failed"
+        delivery.failure_reason = "client_cancelled"
+        delivery.failed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(request)
+
+    return {
+        "message": "Priority delivery cancelled.",
+        "request_id": request.id,
+        "status": request.status,
+        "cancellation_stage": stage,
+        "refund_percentage": refund_pct,
+        "refund_eligible": refund_pct > 0,
     }

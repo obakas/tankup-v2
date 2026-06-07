@@ -36,5 +36,12 @@ class LiquidRequest(Base):
     delivering_started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
 
+    # Mid-delivery cancellation fields (priority only)
+    cancelled_at = Column(DateTime, nullable=True)
+    # pre_loading | en_route | arrived | partial_delivery
+    cancellation_stage = Column(String, nullable=True)
+    # fraction of price to refund: 0.0 = forfeit, 0.5 = half back, etc.
+    cancellation_refund_pct = Column(Float, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
