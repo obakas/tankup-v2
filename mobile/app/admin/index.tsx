@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -428,6 +430,7 @@ export default function AdminDashboard() {
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, gap: 12 }}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={RED} />
           }
@@ -665,7 +668,8 @@ export default function AdminDashboard() {
 
       {/* Reason modal for fail / skip */}
       <Modal visible={reasonModal !== null} transparent animationType="fade">
-        <View
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{
             flex: 1,
             backgroundColor: "rgba(0,0,0,0.55)",
@@ -755,7 +759,7 @@ export default function AdminDashboard() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -824,7 +828,10 @@ function LoginScreen({
         </Pressable>
       </View>
 
-      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 48, gap: 16 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, paddingHorizontal: 24, paddingTop: 48, gap: 16 }}
+      >
         {error && (
           <View
             style={{
@@ -899,7 +906,7 @@ function LoginScreen({
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Sign In as Admin</Text>
           )}
         </Pressable>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
