@@ -11,6 +11,7 @@ import { ClipboardList, X } from "lucide-react-native";
 
 import { fetchClientHistory, type ClientHistoryItem } from "@/lib/api";
 import type { CurrentUser } from "@/types/client";
+import { parseApiDate } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -40,11 +41,9 @@ function statusLabel(item: ClientHistoryItem) {
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
-
-  return new Date(value).toLocaleString("en-NG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const date = parseApiDate(value);
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {

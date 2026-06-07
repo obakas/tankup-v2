@@ -4,6 +4,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import * as Clipboard from "expo-clipboard";
 
 import type { BatchLiveResponse, CreateRequestResponse } from "@/lib/api";
+import { parseApiDate } from "@/lib/utils";
 import { Row } from "@/components/ui/Row";
 import {
   BatchProgressCard,
@@ -161,7 +162,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
             <View className="flex-1">
               <Text className="text-sm font-semibold" style={{ color: "#92400e" }}>Payment deadline</Text>
               <Text className="text-sm" style={{ color: "#92400e" }}>
-                {new Date(paymentDeadline).toLocaleString()}
+                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(parseApiDate(paymentDeadline) ?? new Date())}
               </Text>
             </View>
           </View>

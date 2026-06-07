@@ -13,6 +13,7 @@ import {
 import { useAppTheme } from "@/hooks/useAppTheme";
 import type { RequestMode } from "@/types/client";
 import type { CreateRequestResponse } from "@/lib/api";
+import { parseApiDate } from "@/lib/utils";
 
 type Props = {
   mode: RequestMode;
@@ -28,9 +29,9 @@ type Props = {
 
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString();
+  const date = parseApiDate(value);
+  if (!date) return value;
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function getBatchTankerState(liveData: any) {

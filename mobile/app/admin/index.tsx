@@ -17,6 +17,7 @@ import { AlertTriangle, Archive, ArrowLeft, Bell, LogOut, Moon, RefreshCw, Sun, 
 import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { parseApiDate } from "@/lib/utils";
 import { type TankupTheme } from "@/components/ui/theme";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -133,12 +134,9 @@ function fmt(n?: number | null) {
 
 function fmtDate(s?: string | null) {
   if (!s) return "—";
-  return new Date(s).toLocaleString("en-NG", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = parseApiDate(s);
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
 }
 
 type Tab = "overview" | "live" | "history" | "payments" | "financials" | "emergency" | "incidents";

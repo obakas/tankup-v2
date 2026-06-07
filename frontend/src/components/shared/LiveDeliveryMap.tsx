@@ -9,6 +9,7 @@ import {
 } from "react-leaflet";
 import type { LatLngExpression } from "leaflet";
 import { Clock3, Navigation, UserRound } from "lucide-react";
+import { parseApiDate } from "@/lib/datetime";
 
 type MarkerData = {
   label: string;
@@ -65,9 +66,9 @@ function FitBounds({ points }: { points: [number, number][] }) {
 
 function formatUpdatedAt(value?: string | null) {
   if (!value) return "No location update yet";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return `Updated ${date.toLocaleTimeString()}`;
+  const date = parseApiDate(value);
+  if (!date) return "No location update yet";
+  return `Updated ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(date)}`;
 }
 
 function renderMarker(marker: MarkerData) {

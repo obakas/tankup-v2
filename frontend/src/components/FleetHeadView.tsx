@@ -29,6 +29,7 @@ import {
   type TankerCard,
 } from "@/lib/fleetHeadApi";
 import { FleetHeadFinancialsTab } from "@/components/FleetHeadFinancialsTab";
+import { parseApiDate } from "@/lib/datetime";
 
 const POLL_MS = 15_000;
 type Tab = "live" | "tankers" | "overview" | "financials";
@@ -514,7 +515,7 @@ function OverviewTab({ overview }: { overview: OverviewData | null }) {
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
-        Last updated: {new Date(overview.generated_at).toLocaleTimeString()}
+        Last updated: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(parseApiDate(overview.generated_at) ?? new Date())}
       </p>
 
       {/* Key metrics */}
@@ -730,7 +731,7 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
           <div className="flex items-center gap-2">
             {lastUpdated && (
               <span className="text-xs text-muted-foreground hidden sm:block">
-                {lastUpdated.toLocaleTimeString()}
+                {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short" }).format(lastUpdated)}
               </span>
             )}
             <button

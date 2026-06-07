@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import LiveDeliveryMap from "@/components/shared/LiveDeliveryMap";
 import type { PriorityLiveResponse } from "@/lib/requests";
 import type { BatchLiveResponse } from "@/lib/batches";
+import { parseApiDate } from "@/lib/datetime";
 
 interface DeliveryStepProps {
   requestMode: "batch" | "priority";
@@ -31,10 +32,14 @@ interface DeliveryStepProps {
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseApiDate(value);
+  if (!date) return value;
 
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getPriorityDeliveryState(priority?: PriorityLiveResponse | null) {

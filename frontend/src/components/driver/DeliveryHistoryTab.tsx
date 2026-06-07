@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { fetchDriverHistory, type DriverHistoryItem } from "@/lib/history";
+import { parseApiDate } from "@/lib/datetime";
 
 function formatDate(value: string | null) {
     if (!value) return "—";
-    return new Date(value).toLocaleString();
+    const date = parseApiDate(value);
+    if (!date) return "—";
+    return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function prettyStatus(value: string) {

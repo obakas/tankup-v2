@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import type { BatchLiveResponse } from "@/lib/batches";
 import { requestBatchMemberRefund } from "@/lib/refunds";
 import { toast } from "sonner";
+import { parseApiDate } from "@/lib/datetime";
 
 interface ExpiredBatchStepProps {
   liveBatch: BatchLiveResponse | null;
@@ -20,10 +21,14 @@ function formatMoney(amount?: number | null) {
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseApiDate(value);
+  if (!date) return value;
 
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getRefundMessage(liveBatch: BatchLiveResponse | null) {

@@ -1,5 +1,6 @@
 import { Clock3, Droplets, MapPin, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { parseApiDate } from "@/lib/datetime";
 
 export interface IncomingDriverOffer {
   type: "priority" | "batch";
@@ -103,7 +104,7 @@ export const DriverIncomingOfferStep = ({
 
           {offer.scheduled_for && (
             <div className="text-sm text-muted-foreground">
-              Scheduled for: {new Date(offer.scheduled_for).toLocaleString()}
+              Scheduled for: {new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(parseApiDate(offer.scheduled_for) ?? new Date())}
             </div>
           )}
         </div>

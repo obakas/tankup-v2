@@ -11,6 +11,7 @@ import { ClipboardList, X } from "lucide-react-native";
 
 import { fetchDriverHistory, type DriverHistoryItem } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { parseApiDate } from "@/lib/utils";
 
 type Props = {
   visible: boolean;
@@ -20,10 +21,9 @@ type Props = {
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-NG", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const date = parseApiDate(value);
+  if (!date) return "—";
+  return new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function prettyStatus(value?: string | null) {

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import LiveDeliveryMap from "@/components/shared/LiveDeliveryMap";
 import type { BatchLiveResponse } from "@/lib/batches";
 import type { PriorityLiveResponse } from "@/lib/requests";
+import { parseApiDate } from "@/lib/datetime";
 
 interface TankerStepProps {
   requestMode: "batch" | "priority";
@@ -33,10 +34,14 @@ interface TankerStepProps {
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+  const date = parseApiDate(value);
+  if (!date) return value;
 
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function getBatchTankerState(batch?: BatchLiveResponse | null) {
