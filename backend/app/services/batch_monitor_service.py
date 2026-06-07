@@ -166,8 +166,8 @@ def process_single_batch(db: Session, batch: Batch) -> dict:
     }
 
     try:
-        refreshed = refresh_batch_state(db, batch.id)
-        batch = refreshed["batch"]
+        refresh_batch_state(db, batch.id)
+        db.refresh(batch)
         members = get_batch_members(db, batch.id)
 
         if is_batch_fill_timeout_expired(batch):
