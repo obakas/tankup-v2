@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, ActivityIndicator, Linking } from "react-native";
 import { SafeMapView } from "@/components/ui/SafeMapView";
 import {
   AlertCircle,
@@ -7,6 +7,7 @@ import {
   Copy,
   Droplets,
   MapPin,
+  Phone,
   Ruler,
   ShieldCheck,
 } from "lucide-react-native";
@@ -182,6 +183,7 @@ export function DeliveryStep({
   const customerLon: number | null = liveData?.customer_longitude ?? null;
   const hasMap = tankerLat != null && tankerLon != null;
   const driverName = liveData?.driver_name ?? null;
+  const tankerPhone: string | null = liveData?.tanker_phone ?? null;
 
   return (
     <View className="gap-4">
@@ -243,6 +245,26 @@ export function DeliveryStep({
           {state.subtext}
         </Text>
       </View>
+
+      {/* Call Driver */}
+      {!!tankerPhone && !isCompleted && (
+        <Pressable
+          onPress={() => Linking.openURL(`tel:${tankerPhone}`)}
+          className="rounded-2xl p-4 flex-row items-center gap-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
+          <View
+            className="w-10 h-10 rounded-xl items-center justify-center"
+            style={{ backgroundColor: theme.primary + "1a" }}
+          >
+            <Phone size={18} color={theme.primary} />
+          </View>
+          <View className="flex-1">
+            <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>Call Driver</Text>
+            <Text className="text-xs" style={{ color: theme.mutedForeground }}>{tankerPhone}</Text>
+          </View>
+        </Pressable>
+      )}
 
       {/* OTP card */}
       <View

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, Text, TextInput, View } from "react-native";
 import { SafeMapView } from "@/components/ui/SafeMapView";
 import { CheckCircle, Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -201,10 +201,13 @@ export function DriverDeliveringStep({
               {stop.customer?.name ?? "—"}
             </Text>
             {stop.customer?.phone && (
-              <View className="flex-row items-center gap-1">
-                <Phone color={theme.mutedForeground} size={13} />
-                <Text className="text-xs" style={{ color: theme.mutedForeground }}>{stop.customer.phone}</Text>
-              </View>
+              <Pressable
+                onPress={() => Linking.openURL(`tel:${stop.customer.phone}`)}
+                className="flex-row items-center gap-1"
+              >
+                <Phone color={theme.primary} size={13} />
+                <Text className="text-xs font-medium" style={{ color: theme.primary }}>{stop.customer.phone}</Text>
+              </Pressable>
             )}
           </View>
 
