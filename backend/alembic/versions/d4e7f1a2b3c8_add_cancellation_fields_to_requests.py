@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "d4e7f1a2b3c8"
-down_revision: Union[str, None] = "f3a9c1d2b4e5"
+down_revision: Union[str, None] = "61b3794d5337"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
