@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { AlertTriangle, Archive, ArrowLeft, Bell, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
+import { AlertTriangle, Archive, ArrowLeft, Bell, ChevronDown, ChevronUp, LogOut, Moon, RefreshCw, Sun, Zap } from "lucide-react-native";
 import Constants from "expo-constants";
 import { apiRequest } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -94,6 +94,8 @@ const api = {
     adminReq(tok, `/admin/operation-alerts/${id}/reassign`, { method: "POST" }),
   archiveAlert: (tok: string, id: number) =>
     adminReq(tok, `/admin/operation-alerts/${id}/dismiss`, { method: "POST" }),
+  archivedAlerts: (tok: string) =>
+    adminReq<{ items: any[] }>(tok, "/admin/operation-alerts?limit=50&status=resolved"),
   forceOfferPriority: (tok: string, reqId: number, tnkId: number) =>
     adminReq(tok, `/admin/requests/${reqId}/offer/${tnkId}`, { method: "POST" }),
   cancelPriority: (tok: string, reqId: number) =>
@@ -450,14 +452,15 @@ export default function AdminDashboard() {
           {tab === "overview" && (
             <OverviewTab
               theme={theme}
+              token={token!}
               overview={overview}
               alerts={alerts}
               actionLoading={actionLoading}
               onReassign={(id) =>
-                runAction(() => api.reassignAlert(token, id), "Reassignment triggered")
+                runAction(() => api.reassignAlert(token!, id), "Reassignment triggered")
               }
               onArchive={(id) =>
-                runAction(() => api.archiveAlert(token, id), "Alert archived")
+                runAction(() => api.archiveAlert(token!, id), "Alert archived")
               }
             />
           )}
@@ -913,6 +916,7 @@ function LoginScreen({
 
 function OverviewTab({
   theme,
+  token,
   overview,
   alerts,
   actionLoading,
@@ -920,12 +924,32 @@ function OverviewTab({
   onArchive,
 }: {
   theme: TankupTheme;
+  token: string;
   overview: any;
   alerts: any[];
   actionLoading: boolean;
   onReassign: (id: number) => void;
   onArchive: (id: number) => void;
 }) {
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedAlerts, setArchivedAlerts] = useState<any[]>([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
+
+  const handleToggleArchived = useCallback(async () => {
+    if (!showArchived && archivedAlerts.length === 0) {
+      setLoadingArchived(true);
+      try {
+        const res = await api.archivedAlerts(token);
+        setArchivedAlerts(res.items ?? []);
+      } catch {
+        // silently ignore — empty list shown
+      } finally {
+        setLoadingArchived(false);
+      }
+    }
+    setShowArchived((v) => !v);
+  }, [showArchived, archivedAlerts.length, token]);
+
   if (!overview) return <EmptyState theme={theme} message="Loading overview..." />;
 
   const t = overview.totals ?? {};
@@ -1002,6 +1026,86 @@ function OverviewTab({
           />
         ))
       )}
+
+      {/* Archived alerts toggle */}
+      <View style={{ borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 12, marginTop: 4 }}>
+        <Pressable
+          onPress={handleToggleArchived}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+        >
+          <Archive color={theme.mutedForeground} size={14} />
+          <Text style={{ color: theme.mutedForeground, fontSize: 13 }}>
+            {showArchived ? "Hide archived" : "Show archived alerts"}
+          </Text>
+          {!showArchived && archivedAlerts.length > 0 && (
+            <View
+              style={{
+                backgroundColor: theme.muted,
+                borderRadius: 10,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ color: theme.mutedForeground, fontSize: 11, fontWeight: "600" }}>
+                {archivedAlerts.length}
+              </Text>
+            </View>
+          )}
+          {loadingArchived ? (
+            <ActivityIndicator size="small" color={theme.mutedForeground} style={{ marginLeft: 4 }} />
+          ) : showArchived ? (
+            <ChevronUp color={theme.mutedForeground} size={14} />
+          ) : (
+            <ChevronDown color={theme.mutedForeground} size={14} />
+          )}
+        </Pressable>
+
+        {showArchived && (
+          <View style={{ marginTop: 10, gap: 8 }}>
+            {archivedAlerts.length === 0 ? (
+              <EmptyState theme={theme} message="No archived alerts." />
+            ) : (
+              archivedAlerts.map((a) => {
+                const sev = SEVERITY_COLORS[a.severity?.toLowerCase()] ?? SEVERITY_COLORS.low;
+                return (
+                  <View
+                    key={a.id}
+                    style={{
+                      backgroundColor: theme.card,
+                      borderWidth: 1,
+                      borderColor: sev.text + "50",
+                      borderRadius: 14,
+                      padding: 14,
+                      gap: 6,
+                      opacity: 0.6,
+                    }}
+                  >
+                    <Row>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flex: 1 }}>
+                        <Archive color={theme.mutedForeground} size={13} />
+                        <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 13 }}>
+                          {a.alert_type?.replace(/_/g, " ")}
+                        </Text>
+                      </View>
+                      <View style={{ backgroundColor: sev.bg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                        <Text style={{ color: sev.text, fontSize: 11, fontWeight: "600", textTransform: "capitalize" }}>
+                          {a.severity}
+                        </Text>
+                      </View>
+                    </Row>
+                    <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{a.message}</Text>
+                    <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>
+                      {a.job_type} #{a.job_id}
+                      {a.tanker_id ? ` • Tanker #${a.tanker_id}` : ""}
+                      {" • Archived "}{fmtDate(a.resolved_at)}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        )}
+      </View>
 
       {sb.tankers && Object.keys(sb.tankers).length > 0 && (
         <BreakdownCard theme={theme} title="Tanker Status" data={sb.tankers} />
