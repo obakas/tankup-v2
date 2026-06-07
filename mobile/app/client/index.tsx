@@ -1,8 +1,8 @@
 // app/(client)/index.tsx
 
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { router } from "expo-router";
 
 import { useClientFlow } from "@/hooks/useClientFlow";
@@ -32,6 +32,15 @@ export default function ClientFlow() {
   const [sitesVisible, setSitesVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [incidentVisible, setIncidentVisible] = useState(false);
+  const [showSignupBanner, setShowSignupBanner] = useState(false);
+  const isNewUserRef = useRef(false);
+
+  useEffect(() => {
+    if (isNewUserRef.current && flow.step === "request") {
+      isNewUserRef.current = false;
+      if (flow.userSites.length === 0) setShowSignupBanner(true);
+    }
+  }, [flow.userSites, flow.step]);
 
 
   return (
@@ -62,9 +71,23 @@ export default function ClientFlow() {
           <AuthStep
             onComplete={(user, isSignup) => {
               flow.handleAuthComplete(user);
-              if (isSignup) setSitesVisible(true);
+              if (isSignup) isNewUserRef.current = true;
             }}
           />
+        )}
+
+        {showSignupBanner && flow.step === "request" && (
+          <View style={{ marginBottom: 16, borderRadius: 12, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.cardSoft, flexDirection: "row", alignItems: "center", gap: 10, padding: 12 }}>
+            <Text style={{ flex: 1, fontSize: 14, color: theme.foreground }}>
+              Add a delivery site to get started
+            </Text>
+            <TouchableOpacity onPress={() => { setSitesVisible(true); setShowSignupBanner(false); }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: "#3b82f6" }}>Add site</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowSignupBanner(false)} style={{ padding: 4 }}>
+              <Text style={{ fontSize: 16, color: theme.mutedForeground }}>✕</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {flow.step === "request" && (

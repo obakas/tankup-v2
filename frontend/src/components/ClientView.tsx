@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, MapPin, UserCircle2, UserPen } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Bell, BellOff, CircleHelp, LogOut, MapPin, UserCircle2, UserPen, X } from "lucide-react";
 import AuthStep from "@/components/client/AuthStep";
 import RequestStep from "@/components/client/RequestStep";
 import PaymentStep from "@/components/client/PaymentStep";
@@ -97,6 +97,15 @@ const ClientView = ({ onBack }: ClientViewProps) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sitesOpen, setSitesOpen] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showSignupBanner, setShowSignupBanner] = useState(false);
+  const isNewUserRef = useRef(false);
+
+  useEffect(() => {
+    if (isNewUserRef.current && step === "request") {
+      isNewUserRef.current = false;
+      if (userSites.length === 0) setShowSignupBanner(true);
+    }
+  }, [userSites, step]);
 
   const {
     isSupported: webPushSupported,
@@ -130,7 +139,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
           <AuthStep
             onComplete={(user, isSignup) => {
               handleAuthSuccess(user);
-              if (isSignup) setSitesOpen(true);
+              if (isSignup) isNewUserRef.current = true;
             }}
           />
         );
@@ -435,6 +444,26 @@ const ClientView = ({ onBack }: ClientViewProps) => {
       </header>
 
       <main className="mx-auto max-w-md p-5">
+        {showSignupBanner && step === "request" && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm dark:border-blue-800 dark:bg-blue-950">
+            <MapPin className="h-4 w-4 shrink-0 text-blue-500" />
+            <span className="flex-1 text-blue-800 dark:text-blue-200">
+              Add a delivery site to get started
+            </span>
+            <button
+              onClick={() => { setSitesOpen(true); setShowSignupBanner(false); }}
+              className="font-medium text-blue-600 underline dark:text-blue-400"
+            >
+              Add site
+            </button>
+            <button
+              onClick={() => setShowSignupBanner(false)}
+              className="text-blue-400 hover:text-blue-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {/* {activeTab === "history" && currentUser ? (
           <OrderHistoryTab userId={currentUser.id} />
         ) : (
