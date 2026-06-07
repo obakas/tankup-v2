@@ -122,6 +122,7 @@ def create_delivery_record_for_priority(
         delivery_code=_generate_delivery_code(),
         latitude=request_obj.latitude,
         longitude=request_obj.longitude,
+        site_profile_id=request_obj.site_profile_id,
     )
     db.add(delivery)
     db.flush()
@@ -168,6 +169,7 @@ def create_delivery_records_for_batch(
 
     deliveries: list[DeliveryRecord] = []
     for index, member in enumerate(members, start=1):
+        req = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first() if member.request_id else None
         delivery = DeliveryRecord(
             job_type="batch",
             batch_id=batch_obj.id,
@@ -186,6 +188,7 @@ def create_delivery_records_for_batch(
             delivery_code=member.delivery_code,
             latitude=member.latitude,
             longitude=member.longitude,
+            site_profile_id=req.site_profile_id if req else None,
         )
         deliveries.append(delivery)
         db.add(delivery)
@@ -449,6 +452,14 @@ def get_current_delivery_for_tanker(db: Session, tanker_id: int) -> dict[str, An
     site = None
     if current.site_profile_id:
         site = db.query(CustomerSiteProfile).filter(CustomerSiteProfile.id == current.site_profile_id).first()
+    elif current.member_id:
+        member = db.query(BatchMember).filter(BatchMember.id == current.member_id).first()
+        if member and member.request_id:
+            req = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first()
+            if req and req.site_profile_id:
+                site = db.query(CustomerSiteProfile).filter(
+                    CustomerSiteProfile.id == req.site_profile_id
+                ).first()
 
     is_driver_verified = bool(
         site and (

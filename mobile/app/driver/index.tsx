@@ -105,6 +105,7 @@ export default function DriverFlow() {
 
         {!flow.loading && flow.step === "delivering" && flow.driver && (
           <DriverDeliveringStep
+            key={flow.currentStop?.current_stop?.delivery_id}
             driver={flow.driver}
             job={flow.job}
             currentStop={flow.currentStop}
