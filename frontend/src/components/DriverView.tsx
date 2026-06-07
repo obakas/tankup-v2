@@ -149,6 +149,16 @@ const DriverView = ({ onBack }: DriverViewProps) => {
   const { driver, isAuthenticated, isHydrated, loginDriver, logoutDriver, updateDriver } =
     useDriverAuth();
 
+  const handleBack = () => {
+    _applyOffline();
+    onBack();
+  };
+
+  const handleLogout = () => {
+    _applyOffline();
+    logoutDriver();
+  };
+
   const {
     isSupported: webPushSupported,
     isSubscribed: webPushSubscribed,
@@ -499,8 +509,8 @@ const DriverView = ({ onBack }: DriverViewProps) => {
       <DriverHeader
         step={step}
         driverName={driver?.name}
-        onBack={onBack}
-        onLogout={logoutDriver}
+        onBack={handleBack}
+        onLogout={handleLogout}
         onOpenHelp={() => setShowHelp(true)}
         onEditProfile={isAuthenticated ? () => setProfileOpen(true) : undefined}
         showOnlineToggle={isAuthenticated}

@@ -60,9 +60,18 @@ export function useDriverFlow() {
   const { triggerAlarm, cancelAlarm } = useDriverOfferAlarm();
 
   const goRoleHome = useCallback(async () => {
+    if (driver) {
+      stopPolling();
+      stopHeartbeat();
+      try {
+        await setDriverOnline(driver.tankerId, false);
+      } catch {
+        // best-effort
+      }
+    }
     await AsyncStorage.removeItem(ROLE_KEY);
     router.replace("/");
-  }, []);
+  }, [driver, stopPolling, stopHeartbeat]);
 
   const back = useCallback(() => {
     goRoleHome();
