@@ -264,6 +264,15 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   const currentStop = stopResponse?.current_stop ?? null;
   const allowedActions = stopResponse?.allowed_actions ?? [];
 
+  const resetInputs = useCallback(() => {
+    setOtpInput("");
+    setMeterStartReading("");
+    setMeterEndReading("");
+    setDeliveryNotes("");
+    setFailureReason("");
+    setSkipReason("");
+  }, []);
+
   useEffect(() => {
     resetInputs();
   }, [currentStop?.delivery_id, resetInputs]);
@@ -385,15 +394,6 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     enabled: shouldSendLocation,
     intervalMs: 4000,
   });
-
-  const resetInputs = useCallback(() => {
-    setOtpInput("");
-    setMeterStartReading("");
-    setMeterEndReading("");
-    setDeliveryNotes("");
-    setFailureReason("");
-    setSkipReason("");
-  }, []);
 
   const runAction = useCallback(
     async (
