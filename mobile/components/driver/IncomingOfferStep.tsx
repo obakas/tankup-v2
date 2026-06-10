@@ -3,8 +3,6 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { AlertTriangle, CheckCircle2, Droplets, Phone, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
-import { SafeMultiMapView } from "@/components/ui/SafeMapView";
-import type { MultiMarker } from "@/components/ui/SafeMapView";
 
 type Props = {
   offer: any;
@@ -27,28 +25,6 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
   const isPriority = (offer.offer_type ?? offer.type) === "priority";
   const totalVolume = offer.total_volume_liters ?? offer.total_volume ?? offer.volume_liters ?? 0;
   const urgent = secondsLeft <= 15;
-
-  const stopMarkers: MultiMarker[] = isPriority
-    ? (offer.latitude != null && offer.longitude != null
-      ? [{
-          id: 0,
-          lat: offer.latitude,
-          lon: offer.longitude,
-          title: offer.customer_name ?? "Customer",
-          description: [offer.site?.address, `${offer.volume_liters ?? totalVolume}L`].filter(Boolean).join(" · "),
-          pinColor: "#16a34a",
-        }]
-      : [])
-    : (offer.stops ?? [])
-        .filter((s: any) => s.latitude != null && s.longitude != null)
-        .map((s: any, i: number) => ({
-          id: s.id ?? i,
-          lat: s.latitude,
-          lon: s.longitude,
-          title: s.name ?? `Stop ${i + 1}`,
-          description: [s.address, `${s.volume_liters ?? ""}L`].filter(Boolean).join(" · "),
-          pinColor: "#16a34a",
-        }));
 
   return (
     <View className="gap-4">
@@ -101,16 +77,6 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
           )}
         </View>
       </View>
-
-      {/* Stop locations map */}
-      {stopMarkers.length > 0 && (
-        <SafeMultiMapView
-          markers={stopMarkers}
-          initialLat={stopMarkers[0].lat}
-          initialLon={stopMarkers[0].lon}
-          height={200}
-        />
-      )}
 
       {/* Priority — single customer + site */}
       {isPriority && (

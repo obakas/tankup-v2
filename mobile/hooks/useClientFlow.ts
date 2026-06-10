@@ -316,7 +316,7 @@ export function useClientFlow() {
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
     registerForPushNotificationsAsync().then((token) => {
       if (token) updatePushToken(u.id, token).catch(() => {});
-    });
+    }).catch(() => {});
   };
 
   const handleSubmitRequest = () => {

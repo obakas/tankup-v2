@@ -45,6 +45,10 @@ const ALL_ROLES: Array<{
   },
 ];
 
+// Prevents the auto-route from re-firing when the user presses the system back button
+// from a role screen (which remounts this screen). Resets on full app restart.
+let sessionRouted = false;
+
 export default function RoleSelect() {
   const { theme, isDark, toggleTheme } = useAppTheme();
   const [hydrated, setHydrated] = useState(false);
@@ -97,10 +101,13 @@ export default function RoleSelect() {
       setAuthedRoles(credentialed);
       setHydrated(true);
 
-      // Auto-route only when savedRole + matching auth are both present
-      if (savedRole === "driver" && driverAuth) { router.replace("/driver"); return; }
-      if (savedRole === "client" && (clientUser || clientSession)) { router.replace("/client"); return; }
-      if (savedRole === "fleet_head" && fleetHeadAuth) { router.replace("/fleet-head"); return; }
+      // Auto-route only when savedRole + matching auth are both present.
+      // Skip if already routed this session (user pressed system back from a role screen).
+      if (!sessionRouted) {
+        if (savedRole === "driver" && driverAuth) { sessionRouted = true; router.push("/driver"); return; }
+        if (savedRole === "client" && (clientUser || clientSession)) { sessionRouted = true; router.push("/client"); return; }
+        if (savedRole === "fleet_head" && fleetHeadAuth) { sessionRouted = true; router.push("/fleet-head"); return; }
+      }
     }
 
     hydrate();
@@ -109,9 +116,10 @@ export default function RoleSelect() {
 
   const selectRole = async (role: Role) => {
     await AsyncStorage.setItem(ROLE_KEY, role);
-    if (role === "client") router.replace("/client");
-    else if (role === "driver") router.replace("/driver");
-    else router.replace("/fleet-head");
+    sessionRouted = true;
+    if (role === "client") router.push("/client");
+    else if (role === "driver") router.push("/driver");
+    else router.push("/fleet-head");
   };
 
   // 5 rapid taps on the logo within 2 seconds opens the admin panel

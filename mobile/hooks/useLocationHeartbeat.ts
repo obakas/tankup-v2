@@ -31,7 +31,10 @@ export function useLocationHeartbeat({
     if (!enabledRef.current || !tankerIdRef.current || isSendingRef.current) return;
     isSendingRef.current = true;
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const { status: existing } = await Location.getForegroundPermissionsAsync();
+      const status = existing === "granted"
+        ? existing
+        : (await Location.requestForegroundPermissionsAsync()).status;
       if (status !== "granted") return;
       const loc = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,

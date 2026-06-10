@@ -59,24 +59,6 @@ export function useDriverFlow() {
 
   const { triggerAlarm, cancelAlarm } = useDriverOfferAlarm();
 
-  const goRoleHome = useCallback(async () => {
-    if (driver) {
-      stopPolling();
-      stopHeartbeat();
-      try {
-        await setDriverOnline(driver.tankerId, false);
-      } catch {
-        // best-effort
-      }
-    }
-    await AsyncStorage.removeItem(ROLE_KEY);
-    router.replace("/");
-  }, [driver, stopPolling, stopHeartbeat]);
-
-  const back = useCallback(() => {
-    goRoleHome();
-  }, [goRoleHome]);
-
   const stopHeartbeat = useCallback(() => {
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
@@ -99,6 +81,24 @@ export function useDriverFlow() {
       pollRef.current = null;
     }
   }, []);
+
+  const goRoleHome = useCallback(async () => {
+    if (driver) {
+      stopPolling();
+      stopHeartbeat();
+      try {
+        await setDriverOnline(driver.tankerId, false);
+      } catch {
+        // best-effort
+      }
+    }
+    await AsyncStorage.removeItem(ROLE_KEY);
+    router.replace("/");
+  }, [driver, stopPolling, stopHeartbeat]);
+
+  const back = useCallback(() => {
+    goRoleHome();
+  }, [goRoleHome]);
 
   const pollOffer = useCallback(async () => {
     if (!driver) return;
@@ -229,7 +229,7 @@ export function useDriverFlow() {
 
       registerForPushNotificationsAsync().then((token) => {
         if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
-      });
+      }).catch(() => {});
 
       if (["assigned", "loading", "delivering", "arrived"].includes(d.status)) {
         refreshJob(d);

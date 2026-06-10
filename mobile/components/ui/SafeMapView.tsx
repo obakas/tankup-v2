@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { ExternalLink, MapPin } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -155,7 +155,10 @@ function MultiMapFallback({ markers, theme }: MultiProps & { theme: any }) {
 // ── Native map content (functional so hooks work inside error boundary) ────────
 
 function MapContent({ driver, customer, height, showPolyline, navigateTo, theme }: MapProps & { theme: any }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
   const mapRef = useRef<any>(null);
+  if (!ready) return <View style={{ height: height ?? 220, borderRadius: 16, borderWidth: 1, borderColor: theme.border }} />;
   const coords = [
     { latitude: driver.lat, longitude: driver.lon },
     ...(customer ? [{ latitude: customer.lat, longitude: customer.lon }] : []),
@@ -168,7 +171,8 @@ function MapContent({ driver, customer, height, showPolyline, navigateTo, theme 
         <NativeMapView
           ref={mapRef}
           style={{ height: height ?? 220 }}
-          onLayout={() => {
+          scrollEnabled={false}
+          onMapReady={() => {
             mapRef.current?.fitToCoordinates(coords, {
               edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
               animated: false,
@@ -225,7 +229,10 @@ function MapContent({ driver, customer, height, showPolyline, navigateTo, theme 
 }
 
 function MultiMapContent({ markers, initialLat, initialLon, height, theme }: MultiProps & { theme: any }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
   const located = markers.filter((m) => m.lat != null && m.lon != null);
+  if (!ready) return <View style={{ height: height ?? 500, borderRadius: 16, borderWidth: 1, borderColor: theme.border }} />;
   const centerLat = initialLat ?? located[0]?.lat ?? 0;
   const centerLon = initialLon ?? located[0]?.lon ?? 0;
 
@@ -233,6 +240,7 @@ function MultiMapContent({ markers, initialLat, initialLon, height, theme }: Mul
     <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
       <NativeMapView
         style={{ height: height ?? 500 }}
+        scrollEnabled={false}
         initialRegion={{ latitude: centerLat, longitude: centerLon, latitudeDelta: 0.08, longitudeDelta: 0.08 }}
       >
         {located.map((m) => (

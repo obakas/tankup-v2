@@ -14,11 +14,6 @@
     "android": {
       "package": "com.obakas.tankupmobile",
       "permissions": ["android.permission.ACCESS_BACKGROUND_LOCATION"],
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBW8c66xs0BFZRy44FKZG2chMn_97v3WeI"
-        }
-      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -34,6 +29,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "AIzaSyBW8c66xs0BFZRy44FKZG2chMn_97v3WeI"
+        }
+      ],
       [
         "expo-splash-screen",
         {
