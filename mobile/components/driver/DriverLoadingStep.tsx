@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { CheckCircle2, Droplets, Package, Phone, User } from "lucide-react-native";
+import { CheckCircle2, Droplets, Package, Phone, Truck, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
 import { SafeMapView, SafeMultiMapView } from "@/components/ui/SafeMapView";
@@ -65,19 +65,25 @@ export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driv
 
   return (
     <View className="gap-4">
-      {/* Header — spinner + "Loading Water" */}
+      {/* Header */}
       <View className="items-center py-4 gap-3">
         <View
           className="w-16 h-16 rounded-full items-center justify-center"
           style={{ backgroundColor: theme.warningSoft }}
         >
-          <ActivityIndicator size="large" color={theme.warning} />
+          {isLoading ? (
+            <ActivityIndicator size="large" color={theme.warning} />
+          ) : (
+            <Truck size={32} color={theme.warning} />
+          )}
         </View>
         <Text className="text-xl font-bold" style={{ color: theme.foreground }}>
-          Loading Water
+          {isLoading ? "Loading Water" : "Ready to Load"}
         </Text>
         <Text className="text-sm text-center" style={{ color: theme.mutedForeground }}>
-          Confirm when the tanker is loaded and ready to move.
+          {isLoading
+            ? "Confirm when the tanker is loaded and ready to move."
+            : "Tap Start Loading when you begin filling the tanker."}
         </Text>
       </View>
 
