@@ -233,6 +233,8 @@ export function useDriverFlow() {
 
       if (["assigned", "loading", "delivering", "arrived"].includes(d.status)) {
         refreshJob(d);
+      } else if (!d.is_online) {
+        setStep("offline");
       } else {
         setStep("available");
       }

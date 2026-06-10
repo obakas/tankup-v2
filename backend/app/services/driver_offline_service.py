@@ -183,9 +183,45 @@ def _send_fleet_head_reminder(db: Session, tanker: Tanker, job: Batch | LiquidRe
     )
 
 
+_IDLE_STATUSES = {"available", "completed"}
+
+
+def expire_stale_online_flags(db: Session) -> list[str]:
+    """Auto-set is_online=False for available/completed drivers whose heartbeat has gone stale.
+
+    The explicit /online endpoint is the primary signal, but drivers who force-close the app
+    or lose connectivity without logging out never call it. After HEARTBEAT_GRACE_MINUTES of
+    silence we treat them as offline — safe to do for idle drivers with no active job.
+    """
+    now = datetime.utcnow()
+    stale_cutoff = now - timedelta(minutes=HEARTBEAT_GRACE_MINUTES)
+    log: list[str] = []
+
+    stale = (
+        db.query(Tanker)
+        .filter(
+            Tanker.is_online == True,  # noqa: E712
+            Tanker.status.in_(_IDLE_STATUSES),
+            (Tanker.last_heartbeat_at.is_(None)) | (Tanker.last_heartbeat_at < stale_cutoff),
+        )
+        .all()
+    )
+
+    for tanker in stale:
+        tanker.is_online = False
+        log.append(f"Tanker {tanker.id}: auto-marked offline (stale heartbeat, status={tanker.status})")
+
+    if stale:
+        db.commit()
+
+    return log
+
+
 def process_offline_drivers(db: Session) -> list[str]:
     now = datetime.utcnow()
     log: list[str] = []
+
+    log.extend(expire_stale_online_flags(db))
 
     # Find tankers that are mid-delivery AND heartbeat has gone stale (or never existed)
     stale_cutoff = now - timedelta(minutes=HEARTBEAT_GRACE_MINUTES)

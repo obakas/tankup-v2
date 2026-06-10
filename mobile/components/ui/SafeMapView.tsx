@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
-import { ExternalLink, MapPin } from "lucide-react-native";
+import { Clock3, ExternalLink, MapPin, Navigation, UserRound } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 // Lazy require — isolated so a missing / incompatible native module doesn't
@@ -30,6 +30,9 @@ type MapProps = {
   height?: number;
   showPolyline?: boolean;
   navigateTo?: Coord;
+  title?: string;
+  subtitle?: string;
+  lastUpdatedAt?: string | null;
 };
 
 export type MultiMarker = {
@@ -78,15 +81,83 @@ function distanceLabel(a: Coord, b: Coord): string {
   return km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`;
 }
 
+function formatUpdatedAt(value?: string | null) {
+  if (!value) return "No location update yet";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return "No location update yet";
+  return `Updated ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(date)}`;
+}
+
+// ── Card header (mirrors frontend LiveDeliveryMap) ────────────────────────────
+
+function MapCardHeader({
+  title,
+  subtitle,
+  lastUpdatedAt,
+  driver,
+  customer,
+  navigateTo,
+  theme,
+}: Pick<MapProps, "title" | "subtitle" | "lastUpdatedAt" | "driver" | "customer" | "navigateTo"> & { theme: any }) {
+  return (
+    <View style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: theme.border, gap: 8 }}>
+      <View className="flex-row items-start justify-between gap-2">
+        <View className="flex-1">
+          <Text style={{ fontSize: 15, fontWeight: "600", color: theme.foreground }}>{title}</Text>
+          {subtitle ? (
+            <Text style={{ fontSize: 13, color: theme.mutedForeground, marginTop: 2 }}>{subtitle}</Text>
+          ) : null}
+        </View>
+        {lastUpdatedAt !== undefined && (
+          <View
+            className="flex-row items-center gap-1 rounded-full px-2 py-1"
+            style={{ borderWidth: 1, borderColor: theme.border, backgroundColor: theme.background }}
+          >
+            <Clock3 size={11} color={theme.mutedForeground} />
+            <Text style={{ fontSize: 11, color: theme.mutedForeground }}>{formatUpdatedAt(lastUpdatedAt)}</Text>
+          </View>
+        )}
+      </View>
+      <View className="flex-row flex-wrap gap-2">
+        {driver ? (
+          <View
+            className="flex-row items-center gap-1 rounded-full px-2 py-1"
+            style={{ backgroundColor: theme.primarySoft }}
+          >
+            <Navigation size={11} color={theme.primary} />
+            <Text style={{ fontSize: 11, color: theme.primary }}>Driver</Text>
+          </View>
+        ) : null}
+        {customer ? (
+          <View
+            className="flex-row items-center gap-1 rounded-full px-2 py-1"
+            style={{ backgroundColor: theme.successSoft }}
+          >
+            <UserRound size={11} color={theme.success} />
+            <Text style={{ fontSize: 11, color: theme.success }}>Customer</Text>
+          </View>
+        ) : null}
+        {navigateTo ? (
+          <View
+            className="flex-row items-center gap-1 rounded-full px-2 py-1"
+            style={{ backgroundColor: theme.warningSoft }}
+          >
+            <Navigation size={11} color={theme.warning} />
+            <Text style={{ fontSize: 11, color: theme.warning }}>Next stop</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
 // ── Fallback UI ───────────────────────────────────────────────────────────────
 
-function MapFallback({ driver, customer, navigateTo, theme }: MapProps & { theme: any }) {
+function MapFallback({ driver, customer, navigateTo, title, theme }: MapProps & { theme: any }) {
   const navTarget = navigateTo ?? driver;
-  return (
-    <View
-      className="rounded-2xl p-4 gap-3"
-      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-    >
+  const cardMode = !!title;
+  const inner = (
+    <>
       <View className="flex-row items-center gap-2">
         <MapPin color={theme.mutedForeground} size={14} />
         <Text className="text-sm font-semibold" style={{ color: theme.foreground }}>
@@ -108,6 +179,15 @@ function MapFallback({ driver, customer, navigateTo, theme }: MapProps & { theme
           {navigateTo ? "Navigate to stop" : "View in Maps"}
         </Text>
       </Pressable>
+    </>
+  );
+  if (cardMode) return <View className="p-4 gap-3">{inner}</View>;
+  return (
+    <View
+      className="rounded-2xl p-4 gap-3"
+      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+    >
+      {inner}
     </View>
   );
 }
@@ -154,11 +234,12 @@ function MultiMapFallback({ markers, theme }: MultiProps & { theme: any }) {
 
 // ── Native map content (functional so hooks work inside error boundary) ────────
 
-function MapContent({ driver, customer, height, showPolyline, navigateTo, theme }: MapProps & { theme: any }) {
+function MapContent({ driver, customer, height, showPolyline, navigateTo, title, theme }: MapProps & { theme: any }) {
   const [ready, setReady] = useState(false);
   useEffect(() => { setReady(true); }, []);
   const mapRef = useRef<any>(null);
-  if (!ready) return <View style={{ height: height ?? 220, borderRadius: 16, borderWidth: 1, borderColor: theme.border }} />;
+  const cardMode = !!title;
+  if (!ready) return <View style={{ height: height ?? 220, ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }) }} />;
   const coords = [
     { latitude: driver.lat, longitude: driver.lon },
     ...(customer ? [{ latitude: customer.lat, longitude: customer.lon }] : []),
@@ -166,8 +247,8 @@ function MapContent({ driver, customer, height, showPolyline, navigateTo, theme 
   const navTarget = navigateTo ?? (customer ?? driver);
 
   return (
-    <View className="gap-2">
-      <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
+    <View className={cardMode ? "" : "gap-2"}>
+      <View style={{ overflow: "hidden", ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }) }}>
         <NativeMapView
           ref={mapRef}
           style={{ height: height ?? 220 }}
@@ -201,7 +282,7 @@ function MapContent({ driver, customer, height, showPolyline, navigateTo, theme 
         </NativeMapView>
       </View>
 
-      <View className="flex-row items-center gap-2">
+      <View className="flex-row items-center gap-2" style={cardMode ? { padding: 12, paddingTop: 8 } : {}}>
         {customer && (
           <View
             className="flex-row items-center gap-1 rounded-lg px-2 py-1"
@@ -287,6 +368,30 @@ class MultiMapBoundary extends React.Component<MultiProps & { theme: any }, Boun
 export function SafeMapView(props: MapProps) {
   const { theme } = useAppTheme();
   if (props.driver.lat == null || props.driver.lon == null) return null;
+  if (props.title) {
+    return (
+      <View
+        style={{
+          backgroundColor: theme.card,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: theme.border,
+          overflow: "hidden",
+        }}
+      >
+        <MapCardHeader
+          title={props.title}
+          subtitle={props.subtitle}
+          lastUpdatedAt={props.lastUpdatedAt}
+          driver={props.driver}
+          customer={props.customer}
+          navigateTo={props.navigateTo}
+          theme={theme}
+        />
+        <MapBoundary {...props} theme={theme} />
+      </View>
+    );
+  }
   return <MapBoundary {...props} theme={theme} />;
 }
 

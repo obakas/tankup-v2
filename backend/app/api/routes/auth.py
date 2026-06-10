@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -44,7 +46,8 @@ def driver_login(payload: LoginPayload, db: Session = Depends(get_db)):
     if not tanker:
         raise HTTPException(status_code=404, detail="Driver not found")
 
-    tanker.is_online = True
+    # Reset the heartbeat timer so the stale-online monitor doesn't immediately expire them
+    tanker.last_heartbeat_at = datetime.utcnow()
 
     # If driver has no active job, ensure they are assignable
     if not tanker.current_request_id and tanker.status in {"available", "completed"}:
