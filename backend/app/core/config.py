@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_KEY: str = ""
 
+    DEBUG: bool = False
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

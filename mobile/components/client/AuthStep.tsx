@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as Location from "expo-location";
 import { View, Text, Pressable, ActivityIndicator, Switch, ScrollView } from "react-native";
 import { Plus, X } from "lucide-react-native";
 import { createUser, loginUser, createSite } from "@/lib/api";
@@ -64,14 +65,27 @@ export function AuthStep({ onComplete }: AuthStepProps) {
         : await loginUser({ phone: phone.trim() });
 
       if (isSignup) {
+        let lat = DEFAULT_LAT;
+        let lng = DEFAULT_LNG;
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === "granted") {
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+          }
+        } catch {
+          // silently fall back to Abuja defaults
+        }
+
         try {
           await Promise.allSettled(
             sites.map((site) => {
               const rawCapacity = site.tankCapacity.trim();
               return createSite({
                 user_id: user.id,
-                latitude: DEFAULT_LAT,
-                longitude: DEFAULT_LNG,
+                latitude: lat,
+                longitude: lng,
                 label: site.label.trim() || "Home",
                 address: address.trim(),
                 landmark_notes: site.landmarkNotes.trim() || undefined,

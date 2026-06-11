@@ -122,17 +122,16 @@ if settings.DATABASE_URL.startswith("sqlite"):
 #     "http://127.0.0.1:5173",
 # ]
 
-origins = [
-    settings.FRONTEND_URL,
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://localhost:8081",
-    "http://127.0.0.1:8081",
-    "http://172.27.163.209:8080",
-    "http://192.168.8.189:8000"
-]
+origins = [settings.FRONTEND_URL]
+if settings.DEBUG:
+    origins += [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+    ]
 
 app.add_middleware(UTCDatetimeMiddleware)
 app.add_middleware(

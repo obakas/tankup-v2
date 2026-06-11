@@ -331,12 +331,13 @@ export function useClientFlow() {
     setError(null);
 
     try {
+      const selectedSite = userSites.find((s) => s.id === selectedSiteId);
       const resp = await createWaterRequest({
         user_id: user.id,
         liquid_id: LIQUID_ID,
         volume_liters: size,
-        latitude: DEFAULT_LAT,
-        longitude: DEFAULT_LNG,
+        latitude: selectedSite?.latitude ?? DEFAULT_LAT,
+        longitude: selectedSite?.longitude ?? DEFAULT_LNG,
         delivery_type: mode,
         site_profile_id: selectedSiteId,
         is_asap: mode === "priority" ? priorityMode === "asap" : undefined,

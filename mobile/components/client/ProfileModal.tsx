@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import * as Location from "expo-location";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -165,6 +166,21 @@ export function ProfileModal({ visible, user, theme, onClose, onSaved }: Props) 
     const gateNotes =
       form.has_gate && form.gate_notes.trim() ? form.gate_notes.trim() : undefined;
 
+    let lat = DEFAULT_LAT;
+    let lng = DEFAULT_LNG;
+    if (!editingSite) {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
+      } catch {
+        // silently fall back to Abuja defaults
+      }
+    }
+
     setSavingSite(true);
     setSiteError(null);
     try {
@@ -181,8 +197,8 @@ export function ProfileModal({ visible, user, theme, onClose, onSaved }: Props) 
       } else {
         const created = await createSite({
           user_id: user.id,
-          latitude: DEFAULT_LAT,
-          longitude: DEFAULT_LNG,
+          latitude: lat,
+          longitude: lng,
           label: form.label.trim(),
           address: form.address.trim(),
           landmark_notes: form.landmark_notes.trim() || undefined,

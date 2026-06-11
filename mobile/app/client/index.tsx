@@ -1,6 +1,6 @@
 // app/(client)/index.tsx
 
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect, useRef } from "react";
 import { router } from "expo-router";
@@ -62,9 +62,14 @@ export default function ClientFlow() {
         onOpenNotificationSettings={() => router.push("/client/settings")}
       />
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <ScrollView
         style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={{ padding: 16 }}
+        keyboardShouldPersistTaps="handled"
       >
 
         {flow.step === "auth" && (
@@ -181,6 +186,7 @@ export default function ClientFlow() {
           <FailedStep onHome={flow.handleStartNewRequest} />
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <OrderHistoryModal
         visible={historyVisible}
