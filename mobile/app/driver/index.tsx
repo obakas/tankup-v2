@@ -1,6 +1,6 @@
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { router } from "expo-router";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
@@ -32,6 +32,7 @@ export default function DriverFlow() {
   const [incidentVisible, setIncidentVisible] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [selectedOfflineReason, setSelectedOfflineReason] = useState<string | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -57,7 +58,12 @@ export default function DriverFlow() {
         onToggleTheme={toggleTheme}
       />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
       <ScrollView
+        ref={scrollViewRef}
         style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={{ padding: 16 }}
         keyboardShouldPersistTaps="handled"
@@ -116,6 +122,7 @@ export default function DriverFlow() {
             driverLon={flow.driverLocation?.longitude}
             stopLat={flow.currentStop?.current_stop?.location?.latitude}
             stopLon={flow.currentStop?.current_stop?.location?.longitude}
+            scrollViewRef={scrollViewRef}
           />
         )}
 
@@ -123,6 +130,7 @@ export default function DriverFlow() {
           <DriverCompletedStep onBackOnline={flow.markCompletedAsAvailable} />
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {flow.driver && (
         <DriverProfileModal

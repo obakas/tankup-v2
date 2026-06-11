@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Linking, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeMapView } from "@/components/ui/SafeMapView";
 import { CheckCircle, Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -26,6 +26,7 @@ type Props = {
   driverLon?: number | null;
   stopLat?: number | null;
   stopLon?: number | null;
+  scrollViewRef?: React.RefObject<ScrollView>;
 };
 
 export function DriverDeliveringStep({
@@ -38,7 +39,11 @@ export function DriverDeliveringStep({
   driverLon,
   stopLat,
   stopLon,
+  scrollViewRef,
 }: Props) {
+  const scrollToBottom = () => {
+    setTimeout(() => scrollViewRef?.current?.scrollToEnd({ animated: true }), 150);
+  };
   const stop = currentStop?.current_stop ?? currentStop?.stop;
   const summary = currentStop?.stops_summary ?? [];
   const deliveredCount = summary.filter((s: any) => s.delivery_status === "delivered").length;
@@ -233,6 +238,7 @@ export function DriverDeliveringStep({
               <TextInput
                 value={meterStart}
                 onChangeText={setMeterStart}
+                onFocus={scrollToBottom}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={theme.mutedForeground}
@@ -286,6 +292,7 @@ export function DriverDeliveringStep({
               <TextInput
                 value={meterEnd}
                 onChangeText={setMeterEnd}
+                onFocus={scrollToBottom}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={theme.mutedForeground}
@@ -339,6 +346,7 @@ export function DriverDeliveringStep({
               <TextInput
                 value={otpInput}
                 onChangeText={setOtpInput}
+                onFocus={scrollToBottom}
                 keyboardType="number-pad"
                 placeholder="0000"
                 placeholderTextColor={theme.mutedForeground}
@@ -483,6 +491,7 @@ export function DriverDeliveringStep({
                 <TextInput
                   value={siteHoseDistance}
                   onChangeText={setSiteHoseDistance}
+                  onFocus={scrollToBottom}
                   keyboardType="decimal-pad"
                   placeholder="e.g. 15"
                   placeholderTextColor={theme.mutedForeground}
