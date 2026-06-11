@@ -15,6 +15,8 @@ export interface IncomingDriverOffer {
   longitude?: number | null;
   delivery_type?: string;
   scheduled_for?: string | null;
+  estimated_earnings_naira?: number;
+  stop_bonus_naira?: number;
 }
 
 interface DriverIncomingOfferStepProps {
@@ -90,6 +92,26 @@ export const DriverIncomingOfferStep = ({
               <span className="text-foreground">
                 {offer.member_count ?? 0} stop{(offer.member_count ?? 0) === 1 ? "" : "s"}
               </span>
+            </div>
+          )}
+
+          {offer.estimated_earnings_naira != null && (
+            <div className="rounded-lg bg-success/10 border border-success/30 px-3 py-2 space-y-0.5">
+              {isPriority ? (
+                <p className="text-sm font-bold text-success">
+                  ₦{offer.estimated_earnings_naira.toLocaleString()} estimated earnings
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-success">
+                    ₦{offer.estimated_earnings_naira.toLocaleString()} delivery pay
+                    {offer.stop_bonus_naira ? ` + ₦${offer.stop_bonus_naira.toLocaleString()} batch bonus` : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ₦{(offer.estimated_earnings_naira + (offer.stop_bonus_naira ?? 0)).toLocaleString()} total ({offer.member_count} stops)
+                  </p>
+                </>
+              )}
             </div>
           )}
 

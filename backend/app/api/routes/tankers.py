@@ -44,6 +44,10 @@ ACTIVE_JOB_BATCH_STATUSES = {"assigned", "loading", "delivering", "arrived"}
 ACTIVE_JOB_REQUEST_STATUSES = {"assigned", "loading", "delivering", "arrived"}
 RESOLVED_DELIVERY_STATUSES = {"delivered", "failed", "skipped"}
 
+DRIVER_BATCH_RATE_PER_LITER = 4.0
+DRIVER_PRIORITY_RATE_PER_LITER = 6.30
+DRIVER_BATCH_STOP_BONUS_PER_STOP = 500
+
 
 
 @router.post("/{tanker_id}/location", response_model=TankerLocationOut)
@@ -234,6 +238,7 @@ def build_priority_offer_payload(db: Session, request: LiquidRequest, seconds_le
             "last_verified_at": site.last_verified_at.isoformat() if site.last_verified_at else None,
         } if site else None,
         "payment_confirmed": True,
+        "estimated_earnings_naira": round(float(request.volume_liters) * DRIVER_PRIORITY_RATE_PER_LITER),
     }
 
 
@@ -284,6 +289,8 @@ def build_batch_offer_payload(db: Session, batch: Batch, seconds_left: int) -> d
         "longitude": batch.longitude,
         "stops": stops,
         "payment_confirmed": True,
+        "estimated_earnings_naira": round(total_volume * DRIVER_BATCH_RATE_PER_LITER),
+        "stop_bonus_naira": DRIVER_BATCH_STOP_BONUS_PER_STOP * len(members),
     }
 
 

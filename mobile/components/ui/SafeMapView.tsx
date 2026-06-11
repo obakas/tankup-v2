@@ -276,18 +276,19 @@ function LeafletMapView({ driver, customer, height, navigateTo, title, theme }: 
     <View className={cardMode ? "" : "gap-2"}>
       <View
         style={{
-          overflow: "hidden",
+          overflow: Platform.OS === "android" ? "visible" : "hidden",
           ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }),
         }}
       >
         <WebView
-          source={{ html }}
-          style={{ height: height ?? 220 }}
+          source={{ html, baseUrl: "https://openstreetmap.org" }}
+          style={{ height: height ?? 220, borderRadius: Platform.OS === "android" && !cardMode ? 16 : 0 }}
           scrollEnabled={false}
           javaScriptEnabled
           originWhitelist={["*"]}
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
+          backgroundColor="#e5e3df"
         />
       </View>
 
@@ -332,15 +333,18 @@ function LeafletMultiMapView({ markers, initialLat, initialLon, height, theme }:
   const html = buildLeafletHtml(leafletMarkers, true, centerLat, centerLon);
 
   return (
-    <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
+    // overflow:hidden on a direct WebView parent collapses the view to 0 height on Android.
+    // Use borderRadius only (no overflow:hidden) and rely on WebView's own clipping.
+    <View style={{ borderRadius: 16, borderWidth: 1, borderColor: theme.border, overflow: Platform.OS === "android" ? "visible" : "hidden" }}>
       <WebView
-        source={{ html }}
-        style={{ height: height ?? 500 }}
+        source={{ html, baseUrl: "https://openstreetmap.org" }}
+        style={{ height: height ?? 500, borderRadius: Platform.OS === "android" ? 16 : 0 }}
         scrollEnabled={false}
         javaScriptEnabled
         originWhitelist={["*"]}
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
+        backgroundColor="#e5e3df"
       />
     </View>
   );

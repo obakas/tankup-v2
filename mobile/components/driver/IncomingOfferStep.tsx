@@ -140,6 +140,53 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
             </Text>
           </View>
         )}
+
+        {/* Earnings breakdown */}
+        {offer.estimated_earnings_naira != null && (
+          <View
+            className="mt-3 rounded-xl p-3"
+            style={{ backgroundColor: theme.success + "15", borderWidth: 1, borderColor: theme.success + "40" }}
+          >
+            {isPriority ? (
+              <View className="flex-row items-baseline gap-1">
+                <Text className="text-xl font-extrabold" style={{ color: theme.success }}>
+                  ₦{(offer.estimated_earnings_naira as number).toLocaleString()}
+                </Text>
+                <Text className="text-xs" style={{ color: theme.success }}>estimated earnings</Text>
+              </View>
+            ) : (
+              <>
+                <View className="flex-row items-baseline gap-1">
+                  <Text className="text-xl font-extrabold" style={{ color: theme.success }}>
+                    ₦{(offer.estimated_earnings_naira as number).toLocaleString()}
+                  </Text>
+                  <Text className="text-xs" style={{ color: theme.mutedForeground }}>delivery pay</Text>
+                </View>
+                {offer.stop_bonus_naira != null && (offer.stop_bonus_naira as number) > 0 && (
+                  <View className="flex-row items-baseline gap-1 mt-0.5">
+                    <Text className="text-base font-bold" style={{ color: theme.success }}>
+                      + ₦{(offer.stop_bonus_naira as number).toLocaleString()}
+                    </Text>
+                    <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+                      batch bonus ({offer.stops?.length ?? 0} {(offer.stops?.length ?? 0) === 1 ? "stop" : "stops"})
+                    </Text>
+                  </View>
+                )}
+                <View
+                  className="mt-1.5 pt-1.5"
+                  style={{ borderTopWidth: 1, borderColor: theme.success + "30" }}
+                >
+                  <View className="flex-row items-baseline gap-1">
+                    <Text className="text-base font-semibold" style={{ color: theme.success }}>
+                      ₦{((offer.estimated_earnings_naira as number) + ((offer.stop_bonus_naira as number) ?? 0)).toLocaleString()}
+                    </Text>
+                    <Text className="text-xs font-semibold" style={{ color: theme.success }}>total</Text>
+                  </View>
+                </View>
+              </>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Priority — single customer + site */}
