@@ -118,7 +118,7 @@ export function DriverDeliveringStep({
 
   return (
     <View className="gap-4">
-      {driverLat != null && driverLon != null && (
+      {driverLat != null && driverLon != null && (stopStatus === "en_route" || stopStatus === "pending") && (
         <SafeMapView
           driver={{ lat: driverLat, lon: driverLon, label: "Your tanker" }}
           customer={stopLat != null && stopLon != null ? {
