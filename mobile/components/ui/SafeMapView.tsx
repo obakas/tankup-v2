@@ -1,24 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
+import { WebView } from "react-native-webview";
 import { Clock3, ExternalLink, MapPin, Navigation, UserRound } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
-
-// Lazy require — isolated so a missing / incompatible native module doesn't
-// crash the importing file. If it fails, every exported component falls back.
-let NativeMapView: any = null;
-let NativeMarker: any = null;
-let NativePolyline: any = null;
-let mapsAvailable = false;
-
-try {
-  const M = require("react-native-maps");
-  NativeMapView = M.default;
-  NativeMarker = M.Marker;
-  NativePolyline = M.Polyline;
-  mapsAvailable = true;
-} catch {
-  // Native module unavailable — all renders will show the fallback instead.
-}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -88,7 +72,51 @@ function formatUpdatedAt(value?: string | null) {
   return `Updated ${new Intl.DateTimeFormat("en-NG", { timeZone: "Africa/Lagos", timeStyle: "short", hour12: true }).format(date)}`;
 }
 
-// ── Card header (mirrors frontend LiveDeliveryMap) ────────────────────────────
+// ── Leaflet HTML builder ──────────────────────────────────────────────────────
+
+type LeafletMarker = { lat: number; lon: number; color: string; popup?: string };
+
+function buildLeafletHtml(markers: LeafletMarker[], fitAll: boolean, centerLat?: number, centerLon?: number): string {
+  const safeMarkers = JSON.stringify(markers);
+  const center = centerLat != null ? `[${centerLat},${centerLon}]` : "null";
+  return `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#e5e3df}
+#map{width:100%;height:100vh}
+</style>
+</head><body>
+<div id="map"></div>
+<script>
+const map=L.map('map',{zoomControl:false,attributionControl:false});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+const data=${safeMarkers};
+const pts=[];
+data.forEach(function(m){
+  const icon=L.divIcon({
+    html:'<div style="background:'+m.color+';width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',
+    className:'',iconSize:[14,14],iconAnchor:[7,7]
+  });
+  const mk=L.marker([m.lat,m.lon],{icon}).addTo(map);
+  if(m.popup)mk.bindPopup(m.popup);
+  pts.push([m.lat,m.lon]);
+});
+if(pts.length>=2&&${fitAll}){
+  map.fitBounds(pts,{padding:[32,32],maxZoom:16});
+}else if(pts.length===1){
+  map.setView(pts[0],15);
+}else if(${center}){
+  map.setView(${center},13);
+}
+</script>
+</body></html>`;
+}
+
+// ── Card header ───────────────────────────────────────────────────────────────
 
 function MapCardHeader({
   title,
@@ -151,7 +179,7 @@ function MapCardHeader({
   );
 }
 
-// ── Fallback UI ───────────────────────────────────────────────────────────────
+// ── Fallback (no internet / error) ────────────────────────────────────────────
 
 function MapFallback({ driver, customer, navigateTo, title, theme }: MapProps & { theme: any }) {
   const navTarget = navigateTo ?? driver;
@@ -232,54 +260,35 @@ function MultiMapFallback({ markers, theme }: MultiProps & { theme: any }) {
   );
 }
 
-// ── Native map content (functional so hooks work inside error boundary) ────────
+// ── Leaflet map renders ───────────────────────────────────────────────────────
 
-function MapContent({ driver, customer, height, showPolyline, navigateTo, title, theme }: MapProps & { theme: any }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => { setReady(true); }, []);
-  const mapRef = useRef<any>(null);
+function LeafletMapView({ driver, customer, height, navigateTo, title, theme }: MapProps & { theme: any }) {
   const cardMode = !!title;
-  if (!ready) return <View style={{ height: height ?? 220, ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }) }} />;
-  const coords = [
-    { latitude: driver.lat, longitude: driver.lon },
-    ...(customer ? [{ latitude: customer.lat, longitude: customer.lon }] : []),
-  ];
   const navTarget = navigateTo ?? (customer ?? driver);
+
+  const leafletMarkers: LeafletMarker[] = [
+    { lat: driver.lat, lon: driver.lon, color: "#2563eb", popup: driver.label ?? "Tanker" },
+    ...(customer ? [{ lat: customer.lat, lon: customer.lon, color: "#16a34a", popup: customer.label ?? "Customer" }] : []),
+  ];
+  const html = buildLeafletHtml(leafletMarkers, true);
 
   return (
     <View className={cardMode ? "" : "gap-2"}>
-      <View style={{ overflow: "hidden", ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }) }}>
-        <NativeMapView
-          ref={mapRef}
+      <View
+        style={{
+          overflow: "hidden",
+          ...(!cardMode && { borderRadius: 16, borderWidth: 1, borderColor: theme.border }),
+        }}
+      >
+        <WebView
+          source={{ html }}
           style={{ height: height ?? 220 }}
           scrollEnabled={false}
-          onMapReady={() => {
-            mapRef.current?.fitToCoordinates(coords, {
-              edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
-              animated: false,
-            });
-          }}
-        >
-          <NativeMarker
-            coordinate={{ latitude: driver.lat, longitude: driver.lon }}
-            title={driver.label ?? "Tanker"}
-            pinColor={driver.pinColor ?? "#2563eb"}
-          />
-          {customer && (
-            <NativeMarker
-              coordinate={{ latitude: customer.lat, longitude: customer.lon }}
-              title={customer.label ?? "Destination"}
-              pinColor={customer.pinColor ?? "#16a34a"}
-            />
-          )}
-          {customer && showPolyline !== false && (
-            <NativePolyline
-              coordinates={coords}
-              strokeColor="#64748b"
-              strokeWidth={3}
-            />
-          )}
-        </NativeMapView>
+          javaScriptEnabled
+          originWhitelist={["*"]}
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        />
       </View>
 
       <View className="flex-row items-center gap-2" style={cardMode ? { padding: 12, paddingTop: 8 } : {}}>
@@ -309,31 +318,30 @@ function MapContent({ driver, customer, height, showPolyline, navigateTo, title,
   );
 }
 
-function MultiMapContent({ markers, initialLat, initialLon, height, theme }: MultiProps & { theme: any }) {
-  const [ready, setReady] = useState(false);
-  useEffect(() => { setReady(true); }, []);
+function LeafletMultiMapView({ markers, initialLat, initialLon, height, theme }: MultiProps & { theme: any }) {
   const located = markers.filter((m) => m.lat != null && m.lon != null);
-  if (!ready) return <View style={{ height: height ?? 500, borderRadius: 16, borderWidth: 1, borderColor: theme.border }} />;
-  const centerLat = initialLat ?? located[0]?.lat ?? 0;
-  const centerLon = initialLon ?? located[0]?.lon ?? 0;
+  const centerLat = initialLat ?? located[0]?.lat;
+  const centerLon = initialLon ?? located[0]?.lon;
+
+  const leafletMarkers: LeafletMarker[] = located.map((m) => ({
+    lat: m.lat,
+    lon: m.lon,
+    color: m.pinColor ?? "#2563eb",
+    popup: m.title + (m.description ? ` — ${m.description}` : ""),
+  }));
+  const html = buildLeafletHtml(leafletMarkers, true, centerLat, centerLon);
 
   return (
     <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: theme.border }}>
-      <NativeMapView
+      <WebView
+        source={{ html }}
         style={{ height: height ?? 500 }}
         scrollEnabled={false}
-        initialRegion={{ latitude: centerLat, longitude: centerLon, latitudeDelta: 0.08, longitudeDelta: 0.08 }}
-      >
-        {located.map((m) => (
-          <NativeMarker
-            key={m.id}
-            coordinate={{ latitude: m.lat, longitude: m.lon }}
-            title={m.title}
-            description={m.description}
-            pinColor={m.pinColor ?? "#2563eb"}
-          />
-        ))}
-      </NativeMapView>
+        javaScriptEnabled
+        originWhitelist={["*"]}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+      />
     </View>
   );
 }
@@ -347,19 +355,18 @@ class MapBoundary extends React.Component<MapProps & { theme: any }, BoundarySta
   static getDerivedStateFromError(): BoundaryState { return { hasError: true }; }
   componentDidCatch(e: Error) { console.warn("[SafeMapView]", e.message); }
   render() {
-    if (this.state.hasError || !mapsAvailable) return <MapFallback {...this.props} />;
-    return <MapContent {...this.props} />;
+    if (this.state.hasError) return <MapFallback {...this.props} />;
+    return <LeafletMapView {...this.props} />;
   }
 }
-
 
 class MultiMapBoundary extends React.Component<MultiProps & { theme: any }, BoundaryState> {
   state: BoundaryState = { hasError: false };
   static getDerivedStateFromError(): BoundaryState { return { hasError: true }; }
   componentDidCatch(e: Error) { console.warn("[SafeMultiMapView]", e.message); }
   render() {
-    if (this.state.hasError || !mapsAvailable) return <MultiMapFallback {...this.props} />;
-    return <MultiMapContent {...this.props} />;
+    if (this.state.hasError) return <MultiMapFallback {...this.props} />;
+    return <LeafletMultiMapView {...this.props} />;
   }
 }
 
