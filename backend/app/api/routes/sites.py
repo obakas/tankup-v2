@@ -96,6 +96,8 @@ def patch_site_profile(site_id: int, payload: SiteProfileUpdate, db: Session = D
         driver_verified_tank_height_m=payload.driver_verified_tank_height_m,
         driver_verified_hose_distance_m=payload.driver_verified_hose_distance_m,
         driver_verified_road_difficulty=payload.driver_verified_road_difficulty,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
     )
 
 

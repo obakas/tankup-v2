@@ -116,6 +116,8 @@ def update_site_profile(
     driver_verified_tank_height_m: Optional[float] = None,
     driver_verified_hose_distance_m: Optional[float] = None,
     driver_verified_road_difficulty: Optional[int] = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
 ) -> CustomerSiteProfile:
     profile = get_site_profile_by_id(db, site_id)
 
@@ -150,6 +152,10 @@ def update_site_profile(
         profile.driver_verified_hose_distance_m = driver_verified_hose_distance_m
     if driver_verified_road_difficulty is not None:
         profile.driver_verified_road_difficulty = driver_verified_road_difficulty
+    if latitude is not None:
+        profile.latitude = latitude
+    if longitude is not None:
+        profile.longitude = longitude
 
     db.add(profile)
     db.commit()

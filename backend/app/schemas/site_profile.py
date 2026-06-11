@@ -24,6 +24,8 @@ class SiteProfileCreate(BaseModel):
 class SiteProfileUpdate(BaseModel):
     label: Optional[str] = None
     address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     landmark_notes: Optional[str] = None
     tank_capacity_liters: Optional[int] = None
     tank_height_m: Optional[float] = None

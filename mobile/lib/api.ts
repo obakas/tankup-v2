@@ -339,6 +339,8 @@ export interface SiteProfileUpdatePayload {
   tank_floor_level?: TankFloorLevel | null;
   has_gate?: boolean;
   gate_notes?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface SiteProfileResponse {

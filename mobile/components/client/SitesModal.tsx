@@ -87,6 +87,10 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [locationCoords, setLocationCoords] = useState({ latitude: DEFAULT_LAT, longitude: DEFAULT_LNG });
+  const [locationCaptured, setLocationCaptured] = useState(false);
+  const [capturingLocation, setCapturingLocation] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
   const loadSites = useCallback(async () => {
     setLoadingSites(true);
@@ -113,6 +117,9 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     setForm(EMPTY_FORM);
     setPendingPhoto(null);
     setError(null);
+    setLocationCoords({ latitude: DEFAULT_LAT, longitude: DEFAULT_LNG });
+    setLocationCaptured(false);
+    setLocationPermissionDenied(false);
     setView("form");
   };
 
@@ -154,7 +161,29 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     });
     setPendingPhoto(null);
     setError(null);
+    setLocationCoords({ latitude: site.latitude, longitude: site.longitude });
+    setLocationCaptured(false);
+    setLocationPermissionDenied(false);
     setView("form");
+  };
+
+  const captureLocation = async () => {
+    setCapturingLocation(true);
+    setLocationPermissionDenied(false);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setLocationPermissionDenied(true);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLocationCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      setLocationCaptured(true);
+    } catch {
+      setError("Could not get your location. Please try again.");
+    } finally {
+      setCapturingLocation(false);
+    }
   };
 
   const pickPhoto = async (source: "camera" | "gallery") => {
@@ -216,21 +245,6 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
 
     const gateNotes = form.has_gate && form.gate_notes.trim() ? form.gate_notes.trim() : undefined;
 
-    let lat = DEFAULT_LAT;
-    let lng = DEFAULT_LNG;
-    if (!editingSite) {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-        }
-      } catch {
-        // silently fall back to Abuja defaults
-      }
-    }
-
     setSaving(true);
     setError(null);
     try {
@@ -244,13 +258,17 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
           tank_floor_level: form.tank_floor_level ?? undefined,
           has_gate: form.has_gate,
           gate_notes: gateNotes,
+          ...(locationCaptured && {
+            latitude: locationCoords.latitude,
+            longitude: locationCoords.longitude,
+          }),
         });
         setSites((prev) => prev.map((s) => (s.id === saved.id ? saved : s)));
       } else {
         saved = await createSite({
           user_id: user.id,
-          latitude: lat,
-          longitude: lng,
+          latitude: locationCoords.latitude,
+          longitude: locationCoords.longitude,
           label: form.label.trim(),
           address: form.address.trim(),
           landmark_notes: form.landmark_notes.trim() || undefined,
@@ -493,6 +511,55 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                     multiline
                     numberOfLines={2}
                   />
+                </View>
+
+                {/* Capture location */}
+                <View style={{ gap: 8 }}>
+                  <Text style={{ color: theme.mutedForeground, fontSize: 12, fontWeight: "600" }}>Delivery Location</Text>
+                  <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
+                    Go to your delivery site and tap the button below so drivers can find you.
+                  </Text>
+                  <Pressable
+                    onPress={captureLocation}
+                    disabled={capturingLocation}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                      paddingVertical: 14,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: locationCaptured ? theme.success : theme.border,
+                      backgroundColor: locationCaptured ? theme.successSoft : theme.input,
+                    }}
+                  >
+                    {capturingLocation ? (
+                      <ActivityIndicator color={theme.primary} size={16} />
+                    ) : (
+                      <>
+                        <MapPin color={locationCaptured ? theme.success : theme.primary} size={16} />
+                        <Text
+                          style={{
+                            color: locationCaptured ? theme.success : theme.foreground,
+                            fontSize: 14,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {locationCaptured
+                            ? "Location captured ✓"
+                            : editingSite
+                            ? "I'm here now — update my location"
+                            : "I'm at this site — use my current location"}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                  {locationPermissionDenied && (
+                    <Text style={{ color: theme.destructive, fontSize: 12 }}>
+                      Location permission denied. Please enable it in Settings.
+                    </Text>
+                  )}
                 </View>
 
                 <View style={{ gap: 6 }}>
