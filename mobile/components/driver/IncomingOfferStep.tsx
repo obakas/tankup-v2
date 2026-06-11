@@ -11,6 +11,60 @@ type Props = {
   loading: boolean;
 };
 
+const HIGH_ELEVATION = ["second_floor", "third_floor", "rooftop"];
+const FLOOR_NAME: Record<string, string> = {
+  second_floor: "2nd floor",
+  third_floor: "3rd floor",
+  rooftop: "rooftop",
+};
+
+function getSiteRisk(site: any): { level: "danger" | "warning"; lines: string[] } | null {
+  if (!site) return null;
+  const lines: string[] = [];
+  let level: "danger" | "warning" = "warning";
+
+  if (site.tank_floor_level && HIGH_ELEVATION.includes(site.tank_floor_level)) {
+    level = "danger";
+    lines.push(
+      `Tank on ${FLOOR_NAME[site.tank_floor_level] ?? site.tank_floor_level} — pump strain expected`
+    );
+  }
+  if (site.hose_distance_m != null && site.hose_distance_m > 35) {
+    lines.push(`Long hose run: ${site.hose_distance_m}m`);
+  }
+  if (site.road_difficulty != null && site.road_difficulty >= 4) {
+    lines.push("Very rough road access");
+  }
+
+  return lines.length > 0 ? { level, lines } : null;
+}
+
+function SiteRiskBanner({ site }: { site: any }) {
+  const { theme } = useAppTheme();
+  const risk = getSiteRisk(site);
+  if (!risk) return null;
+
+  const color = risk.level === "danger" ? theme.destructive : theme.warning;
+  const bg = risk.level === "danger" ? theme.destructive + "15" : theme.warningSoft;
+  const border = color + "55";
+
+  return (
+    <View
+      className="flex-row items-start gap-2 rounded-xl px-3 py-2 mt-1"
+      style={{ backgroundColor: bg, borderWidth: 1, borderColor: border }}
+    >
+      <AlertTriangle color={color} size={14} style={{ marginTop: 1 }} />
+      <View className="flex-1 gap-0.5">
+        {risk.lines.map((line, i) => (
+          <Text key={i} className="text-xs font-medium" style={{ color }}>
+            {line}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props) {
   const { theme } = useAppTheme();
   const [secondsLeft, setSecondsLeft] = useState<number>(
@@ -76,6 +130,16 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
             </Text>
           )}
         </View>
+
+        {/* Pre-paid badge */}
+        {offer.payment_confirmed && (
+          <View className="flex-row items-center gap-1.5 mt-2">
+            <CheckCircle2 color={theme.success} size={14} />
+            <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+              Customer pre-paid — no payment collection needed
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Priority — single customer + site */}
@@ -99,6 +163,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
             )}
           </View>
           <SiteCard site={offer.site} volume={offer.volume_liters} />
+          <SiteRiskBanner site={offer.site} />
           {!offer.site && (
             <View className="flex-row items-center gap-2 mt-2">
               <AlertTriangle color={theme.mutedForeground} size={13} />
@@ -153,6 +218,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
             }}
             volume={stop.volume_liters}
           />
+          <SiteRiskBanner site={stop} />
         </View>
       ))}
 

@@ -291,3 +291,54 @@ Both patterns pass theme values as inline `style={{ color: theme.foreground }}` 
 **Fleet head auth for MVP:** Fleet heads authenticate via `POST /admin/login` and use the same admin endpoints. When fleet-head-specific backend endpoints are built, `src/lib/fleetHeadApi.ts` and `mobile/app/fleet-head/index.tsx` are the files to update.
 
 **Docs are the source of truth for product decisions.** When in doubt about intended behavior (transition rules, pricing logic, dispatch scoring), check `docs/` before improvising.
+
+---
+
+## Field Research Context — Asokoro Tanker Hub (June 2026)
+
+Two site visits were made to the Asokoro tanker hub before the demo. The hub leader and deputy were interviewed. These findings are ground truth for product decisions. When building or evaluating any feature, check it against this context.
+
+### Operational realities confirmed in the field
+
+**"Customers pay for diesel, not water."** Water as a commodity is almost free. What customers are paying for is the fuel cost + service cost of getting it delivered. All customer-facing language should frame the transaction as a delivery service fee, not a water purchase. Avoid "price per litre of water" framing.
+
+**Tank elevation is the #1 driver pain.** Drivers often arrive at a site and discover the tank is very high or the hose run is extremely long. They don't know this ahead of time. Experienced drivers learn which customers to reject on repeat requests. Some drivers turn back after arriving, counting the trip as a loss, to protect their pump engine. **The site intelligence system directly solves this** — drivers capture actual tank height + hose difficulty post-delivery; it's remembered for every future dispatch. This is the strongest product-market fit story and should be the centrepiece of any demo.
+
+**Non-payment / coercion is a real operational risk.** Generals, military, and high-status customers sometimes bully drivers into delivering without payment, underpay, or set impossible conditions. **Pre-payment before dispatch completely solves this.** The fact that every customer has already paid before the driver is sent is a major driver benefit — make it visually prominent on the driver offer card, not buried.
+
+**They already have informal dispatch systems.** The hub uses informal coordination (Truecaller, WhatsApp). Formal clients (banks, presidential villa, barracks, hotels) use formal dispatch. TankUp should position as an upgrade to their existing system, not a replacement that disrupts it. Don't imply their current methods are wrong.
+
+**They lose customers by missing calls.** This is confirmed. The platform solves it by being always-on and digital — orders come in at any time and wait for the driver, rather than being lost when a call is missed.
+
+**10–11 jobs per tanker per day** at peak. Dispatch needs to be fast enough to keep drivers occupied. Idle time between offers is a driver retention risk.
+
+**Hard-to-serve areas: Lugbe, Airport Road, Orozo** — no water lifting point nearby. Tankers can only realistically serve areas within diesel-viable distance from their hub/lifting point. The system does not yet model lifting point locations, which affects dispatch radius and batch formation. Do not dispatch tankers to areas far from their loading source without accounting for this.
+
+**Remaining water is thrown away after delivery** to reduce vehicle weight and save diesel on the return trip. Partial delivery is normal operational behaviour, not a defect.
+
+**Maintenance is the biggest financial pain** — up to ₦200k per incident. The app does not address this yet (future fleet management scope).
+
+**Peak demand: dry season (January–March).** Current period (June) is low season. Hub leader is time-poor during visits — keep demos tight.
+
+### What the hub is skeptical about
+
+**Batch delivery** — the deputy was not sold on it. Do not lead with batch delivery in demos or sales conversations. Present it as an optional efficiency mechanism that emerges naturally. Let them adopt basic coordination first, then batch.
+
+**Flow meters / precise volume verification** — they are sceptical. Do not pitch hardware meter integration. The OTP + driver measurement approach is sufficient for trust.
+
+**Technology solving the tank elevation problem** — the deputy explicitly doubted whether technology could identify high-tank customers. The answer is: the app doesn't magically know — the driver tells it after the first delivery and it's remembered forever. This must be demonstrated concretely, not just claimed.
+
+### Demo narrative order (tested against field feedback)
+
+1. Site intelligence — "you told me drivers turn back because of high tanks. Here's exactly how we fix that."
+2. Offer screen with site risk badge + pre-paid badge — driver sees the difficulty and the payment guarantee before accepting.
+3. Fleet head dashboard — hub leader sees all tankers in one screen, no WhatsApp coordination.
+4. Never-miss-an-order — 24/7 digital requests, no lost calls.
+5. (Brief mention only) Batch delivery — one tanker, three nearby customers, one trip.
+
+### Key feature gaps identified from field research
+
+- **Driver offer screen lacks site difficulty summary** — before a driver accepts, they should see the site risk score and last driver's note (tank height, hose difficulty). This is the single highest-impact UI gap relative to field feedback.
+- **Pre-paid status is not visually prominent** on the driver offer card — needs a clear badge.
+- **Post-delivery site intelligence prompt is the missing UX** — after OTP confirmation, a 2–3 question form (tank height enum, hose difficulty, accessibility notes) is what captures the data the site intelligence system depends on.
+- **Lifting point locations are unmodeled** in backend/dispatch — future work before scaling beyond Asokoro.

@@ -233,6 +233,7 @@ def build_priority_offer_payload(db: Session, request: LiquidRequest, seconds_le
             "is_driver_verified": site.verification_status in ("verified", "partially_verified"),
             "last_verified_at": site.last_verified_at.isoformat() if site.last_verified_at else None,
         } if site else None,
+        "payment_confirmed": True,
     }
 
 
@@ -282,6 +283,7 @@ def build_batch_offer_payload(db: Session, batch: Batch, seconds_left: int) -> d
         "latitude": batch.latitude,
         "longitude": batch.longitude,
         "stops": stops,
+        "payment_confirmed": True,
     }
 
 
