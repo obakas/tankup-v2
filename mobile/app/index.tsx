@@ -72,7 +72,11 @@ export default function RoleSelect() {
           router.push("/client");
         }
       });
-      return () => sub.remove();
+      const sub2 = Notifications.addNotificationReceivedListener((_notification: any) => {
+        // Foreground arrival — banner/sound handled by setNotificationHandler in _layout.tsx.
+        // Hook is here for future in-app UI reactions (e.g., refresh active screen data).
+      });
+      return () => { sub.remove(); sub2.remove(); };
     } catch {
       // running in Expo Go — push notification tap routing unavailable
     }
