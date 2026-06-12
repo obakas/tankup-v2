@@ -4,7 +4,7 @@ import { updateTankerLocation } from "@/lib/driverApi";
 import { useAppStatePause } from "@/hooks/useAppStatePause";
 import { LOCATION_TASK_NAME } from "@/tasks/locationTask";
 
-const INTERVAL_MS = 4000;
+const INTERVAL_MS = 10_000;
 
 interface UseLocationHeartbeatOptions {
   tankerId: number | null;
@@ -84,6 +84,11 @@ export function useLocationHeartbeat({
           timeInterval: 15000,
           distanceInterval: 10,
           showsBackgroundLocationIndicator: true,
+          foregroundService: {
+            notificationTitle: "TankUp",
+            notificationBody: "Tracking your location for delivery",
+            notificationColor: "#0ea5e9",
+          },
         });
       }
     } catch {

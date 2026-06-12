@@ -83,6 +83,7 @@ from app.models import request  # noqa: F401
 from app.models import tanker  # noqa: F401
 from app.models import user  # noqa: F401
 from app.models import batch_notification_log  # noqa: F401
+from app.models import driver_earning  # noqa: F401
 
 target_metadata = Base.metadata
 

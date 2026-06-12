@@ -16,13 +16,13 @@ type Props = {
 export function DriverLoadingStep({ job, onStartLoading, onLoaded, loading, driverLat, driverLon }: Props) {
   const { theme } = useAppTheme();
   const totalVol =
-    job?.active_job?.total_volume_liters ??
+    job?.active_job?.total_volume ??
     job?.total_volume_liters ??
     job?.volume_liters ??
     "—";
 
-  const jobType = job?.active_job?.job_type ?? job?.job_type ?? "batch";
-  const jobId = job?.active_job?.id ?? job?.id ?? "—";
+  const jobType = job?.assignment_type ?? "batch";
+  const jobId = job?.active_job?.batch_id ?? job?.active_job?.request_id ?? job?.id ?? "—";
   const liquidName = job?.active_job?.liquid_name ?? job?.liquid_name ?? null;
   const tankerStatus = job?.tanker_status ?? "assigned";
   const isLoading = tankerStatus === "loading";

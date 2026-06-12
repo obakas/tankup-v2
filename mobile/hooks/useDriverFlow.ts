@@ -30,7 +30,12 @@ import {
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 
-const POLL_INTERVAL_MS = 4000;
+// Offer expiry window is 60s — 10s detection still leaves ~50s to respond.
+const POLL_AVAILABLE_MS = 10_000;
+// Loading takes up to 45 min — no reason to hammer the backend every 4s.
+const POLL_LOADING_MS = 15_000;
+// Active delivery needs responsive stop progression.
+const POLL_DELIVERING_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const ROLE_KEY = "tankup_active_role";
 
@@ -137,7 +142,7 @@ export function useDriverFlow() {
         setStep("available");
         setJob(null);
         stopPolling();
-        pollRef.current = setInterval(pollOffer, POLL_INTERVAL_MS);
+        pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
         if (wasDelivering) toast.success("Job complete — well done!");
       }
     } catch {
@@ -155,11 +160,15 @@ export function useDriverFlow() {
     if (!driver || !online) return;
 
     if (step === "available") {
-      pollRef.current = setInterval(pollOffer, POLL_INTERVAL_MS);
+      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
     }
 
-    if (["loading", "delivering"].includes(step)) {
-      pollRef.current = setInterval(pollJob, POLL_INTERVAL_MS);
+    if (step === "loading") {
+      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
+    }
+
+    if (step === "delivering") {
+      pollRef.current = setInterval(pollJob, POLL_DELIVERING_MS);
     }
 
     if (step === "delivering") {
@@ -178,10 +187,13 @@ export function useDriverFlow() {
     if (!driver || !online) return;
     if (step === "available") {
       pollOffer();
-      pollRef.current = setInterval(pollOffer, POLL_INTERVAL_MS);
-    } else if (["loading", "delivering"].includes(step)) {
+      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+    } else if (step === "loading") {
       pollJob();
-      pollRef.current = setInterval(pollJob, POLL_INTERVAL_MS);
+      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
+    } else if (step === "delivering") {
+      pollJob();
+      pollRef.current = setInterval(pollJob, POLL_DELIVERING_MS);
     }
     if (step === "delivering") startHeartbeat();
   }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
@@ -321,7 +333,7 @@ export function useDriverFlow() {
     setError(null);
 
     try {
-      if (job.job_type === "batch" || job.active_job?.batch_id) {
+      if (job.assignment_type === "batch" || job.active_job?.batch_id) {
         const batchId = job.active_job?.batch_id ?? job.batch_id;
         await markBatchStartLoading(driver.tankerId, batchId);
       } else {
