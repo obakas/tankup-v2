@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from fastapi_cloud_cli.logging import setup_logging
 
 from app.core.database import Base, engine
+from app.models import driver_earning  # noqa: F401
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.config import settings
 from app.api.routes import (

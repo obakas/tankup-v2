@@ -294,7 +294,7 @@ export default function DeliveryStep({
         </div>
       </div>
 
-      {(isPriority || !!liveBatch) && (
+      {(isPriority || !!liveBatch) && !effectiveState.arrived && (
         <>
           <LiveDeliveryMap
             title="Tanker location"

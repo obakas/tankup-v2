@@ -387,7 +387,7 @@ export default function TankerStep({
         </div>
       </div>
 
-      {state.tankerId && (() => {
+      {state.tankerId && !state.arrived && (() => {
         const etaMinutes = isPriority
           ? livePriorityRequest?.eta_minutes
           : liveBatch?.eta_minutes;

@@ -15,6 +15,7 @@ type Props = {
   onLogout: () => void;
   onOpenHelp: () => void;
   onOpenHistory: () => void;
+  onOpenEarnings: () => void;
   onOpenNotificationSettings: () => void;
   theme: ReturnType<typeof getTheme>;
   themeMode: AppTheme;
@@ -31,6 +32,7 @@ export function DriverHeader({
   onLogout,
   onOpenHelp,
   onOpenHistory,
+  onOpenEarnings,
   onOpenNotificationSettings,
   theme,
   themeMode,
@@ -132,6 +134,7 @@ export function DriverHeader({
           onOpenNotificationSettings={onOpenNotificationSettings}
           onOpenHelp={onOpenHelp}
           onOpenHistory={onOpenHistory}
+          onOpenEarnings={onOpenEarnings}
           onLogout={onLogout}
         />
       )}

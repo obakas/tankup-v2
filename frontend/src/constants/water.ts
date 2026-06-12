@@ -1,3 +1,5 @@
+export const DRIVER_SITE_BONUS_NAIRA = 1000;
+
 export const BATCH_PRICE_PER_LITER = 5;
 export const PRIORITY_PRICE_PER_LITER = 7;
 export const PRIORITY_FULL_TANKER_PRICE = 50000;

@@ -180,7 +180,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "earnings">("dashboard");
 
   const [otpInput, setOtpInput] = useState("");
   const [meterStartReading, setMeterStartReading] = useState("");

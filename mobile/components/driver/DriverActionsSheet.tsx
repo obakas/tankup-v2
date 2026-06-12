@@ -1,5 +1,5 @@
 import { Modal, Pressable, Text, View } from "react-native";
-import { Bell, ClipboardList, HelpCircle, LogOut, UserPen, X } from "lucide-react-native";
+import { Banknote, Bell, ClipboardList, HelpCircle, LogOut, UserPen, X } from "lucide-react-native";
 
 import { useAppTheme } from "@/hooks/useAppTheme";
 
@@ -10,6 +10,7 @@ type Props = {
   onOpenNotificationSettings: () => void;
   onOpenHelp: () => void;
   onOpenHistory: () => void;
+  onOpenEarnings: () => void;
   onLogout: () => void;
 };
 
@@ -59,6 +60,7 @@ export function DriverActionsSheet({
   onOpenNotificationSettings,
   onOpenHelp,
   onOpenHistory,
+  onOpenEarnings,
   onLogout,
 }: Props) {
   const { theme } = useAppTheme();
@@ -161,6 +163,16 @@ export function DriverActionsSheet({
             label="Delivery history"
             description="View your past and completed delivery jobs"
             onPress={() => handle(onOpenHistory)}
+          />
+
+          <View style={{ height: 1, backgroundColor: theme.border }} />
+
+          <ActionRow
+            icon={<Banknote color={theme.success} size={20} />}
+            iconBg={theme.successSoft}
+            label="Earnings"
+            description="View your earnings by job, stop, and bonus type"
+            onPress={() => handle(onOpenEarnings)}
           />
 
           <View style={{ height: 1, backgroundColor: theme.border }} />

@@ -859,3 +859,88 @@ export function updateDriverPushToken(tankerId: number, token: string) {
     body: JSON.stringify({ expo_push_token: token }),
   });
 }
+
+/* =========================
+   EARNINGS & SITE REPORT
+========================= */
+
+export interface SiteReportPayload {
+  tank_height_category?: "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop" | null;
+  hose_difficulty?: number | null;
+  road_difficulty?: number | null;
+  notes?: string | null;
+}
+
+export interface DriverEarningOut {
+  id: number;
+  delivery_record_id: number;
+  job_type: string;
+  job_id: number;
+  stop_order: number | null;
+  volume_earnings: number;
+  stop_bonus: number;
+  site_bonus: number | null;
+  total_earnings: number;
+  actual_liters_delivered: number | null;
+  rate_per_liter: number;
+  site_report_submitted: boolean;
+  site_report_submitted_at: string | null;
+  created_at: string;
+}
+
+export interface EarningsPeriodSummary {
+  total: number;
+  volume_earnings: number;
+  stop_bonuses: number;
+  site_bonuses: number;
+  job_count: number;
+  stop_count: number;
+}
+
+export interface DriverEarningJobGroup {
+  job_type: string;
+  job_id: number;
+  job_status: string | null;
+  completed_at: string | null;
+  stop_count: number;
+  total_volume_liters: number;
+  volume_earnings: number;
+  stop_bonuses: number;
+  site_bonuses: number;
+  total_earnings: number;
+  stops: DriverEarningOut[];
+}
+
+export interface DriverEarningsResponse {
+  tanker_id: number;
+  period: string;
+  summary: EarningsPeriodSummary;
+  jobs: DriverEarningJobGroup[];
+}
+
+export function submitSiteReport(
+  tankerId: number,
+  deliveryId: number,
+  payload: SiteReportPayload
+) {
+  return apiRequest<{ message: string; earning: DriverEarningOut }>(
+    `/deliveries/${deliveryId}/site-report?tanker_id=${tankerId}`,
+    { method: "POST", body: JSON.stringify(payload) }
+  );
+}
+
+export function skipSiteReport(tankerId: number, deliveryId: number) {
+  return apiRequest<{ message: string; earning: DriverEarningOut | null }>(
+    `/deliveries/${deliveryId}/skip-site-report?tanker_id=${tankerId}`,
+    { method: "POST" }
+  );
+}
+
+export function fetchDriverEarnings(
+  tankerId: number,
+  period: "today" | "week" | "month" | "all" = "today"
+) {
+  return apiRequest<DriverEarningsResponse>(
+    `/tankers/${tankerId}/earnings?period=${period}`
+  );
+}

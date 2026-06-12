@@ -139,11 +139,15 @@ export function useDriverFlow() {
       if (["available", "completed"].includes(tankerStatus)) {
         const wasDelivering = ["delivering", "arrived"].includes(prevTankerStatusRef.current);
         prevTankerStatusRef.current = "";
-        setStep("available");
-        setJob(null);
-        stopPolling();
-        pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
-        if (wasDelivering) toast.success("Job complete — well done!");
+        if (wasDelivering) {
+          setStep("completed");
+          stopPolling();
+        } else {
+          setStep("available");
+          setJob(null);
+          stopPolling();
+          pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+        }
       }
     } catch {
       // Keep screen stable while backend/network breathes.
@@ -401,7 +405,12 @@ export function useDriverFlow() {
   const markCompletedAsAvailable = useCallback(() => {
     setStep("available");
     setOffer(null);
-  }, []);
+    setJob(null);
+    stopPolling();
+    if (driverIdRef.current) {
+      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+    }
+  }, [stopPolling, pollOffer]);
 
   const titles: Record<FlowStep, string> = {
     auth: "Driver Sign In",

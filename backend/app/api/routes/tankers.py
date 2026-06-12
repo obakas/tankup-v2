@@ -44,9 +44,11 @@ ACTIVE_JOB_BATCH_STATUSES = {"assigned", "loading", "delivering", "arrived"}
 ACTIVE_JOB_REQUEST_STATUSES = {"assigned", "loading", "delivering", "arrived"}
 RESOLVED_DELIVERY_STATUSES = {"delivered", "failed", "skipped"}
 
-DRIVER_BATCH_RATE_PER_LITER = 4.0
-DRIVER_PRIORITY_RATE_PER_LITER = 6.30
-DRIVER_BATCH_STOP_BONUS_PER_STOP = 500
+from app.core.rate_constants import (
+    DRIVER_BATCH_RATE_PER_LITER,
+    DRIVER_PRIORITY_RATE_PER_LITER,
+    DRIVER_BATCH_STOP_BONUS as DRIVER_BATCH_STOP_BONUS_PER_STOP,
+)
 
 
 
@@ -1122,3 +1124,17 @@ def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depen
     db.commit()
     db.refresh(tanker)
     return {"tankerId": tanker.id, "is_online": tanker.is_online, "is_available": tanker.is_available}
+
+
+
+@router.get("/{tanker_id}/earnings")
+def get_driver_earnings(
+    tanker_id: int,
+    period: str = "today",
+    db: Session = Depends(get_db),
+):
+    if period not in ("today", "week", "month", "all"):
+        raise HTTPException(status_code=400, detail="period must be today | week | month | all")
+    get_tanker_or_404(db, tanker_id)
+    from app.services.driver_earning_service import get_earnings_for_tanker
+    return get_earnings_for_tanker(db, tanker_id=tanker_id, period=period)

@@ -16,6 +16,7 @@ import { DriverProfileModal } from "@/components/driver/ProfileModal";
 import { DriverHelpModal } from "@/components/driver/HelpModal";
 import { ReportIncidentModal } from "@/components/driver/ReportIncidentModal";
 import { DeliveryHistoryModal } from "@/components/driver/DeliveryHistoryModal";
+import { EarningsModal } from "@/components/driver/EarningsModal";
 
 const OFFLINE_REASONS = [
   { key: "breakdown", label: "Breakdown / Vehicle issue" },
@@ -31,6 +32,7 @@ export default function DriverFlow() {
   const [helpVisible, setHelpVisible] = useState(false);
   const [incidentVisible, setIncidentVisible] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
+  const [earningsVisible, setEarningsVisible] = useState(false);
   const [selectedOfflineReason, setSelectedOfflineReason] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -46,6 +48,7 @@ export default function DriverFlow() {
         onLogout={flow.goRoleHome}
         onOpenHelp={() => setHelpVisible(true)}
         onOpenHistory={() => setHistoryVisible(true)}
+        onOpenEarnings={() => setEarningsVisible(true)}
         onOpenNotificationSettings={() =>
           router.push(
             flow.driver
@@ -127,7 +130,10 @@ export default function DriverFlow() {
         )}
 
         {!flow.loading && flow.step === "completed" && (
-          <DriverCompletedStep onBackOnline={flow.markCompletedAsAvailable} />
+          <DriverCompletedStep
+            onBackOnline={flow.markCompletedAsAvailable}
+            tankerId={flow.driver?.tankerId ?? null}
+          />
         )}
       </ScrollView>
       </KeyboardAvoidingView>
@@ -152,6 +158,12 @@ export default function DriverFlow() {
       <DeliveryHistoryModal
         visible={historyVisible}
         onClose={() => setHistoryVisible(false)}
+        tankerId={flow.driver?.tankerId ?? null}
+      />
+
+      <EarningsModal
+        visible={earningsVisible}
+        onClose={() => setEarningsVisible(false)}
         tankerId={flow.driver?.tankerId ?? null}
       />
 

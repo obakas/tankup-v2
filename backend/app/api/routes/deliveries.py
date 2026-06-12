@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.customer_site_profile import CustomerSiteProfile
+from app.schemas.earning import SiteReportIn, DriverEarningOut
 from app.schemas.delivery import (
     ConfirmOtpIn,
     DeliveryOut,
@@ -502,4 +503,57 @@ def skip_stop(
         "message": result["message"],
         "delivery": DeliveryOut.model_validate(updated_delivery).model_dump(),
         "finalize_result": result.get("finalize_result"),
+    }
+
+
+@router.post("/{delivery_id}/site-report")
+def submit_site_report(
+    delivery_id: int,
+    tanker_id: int,
+    payload: SiteReportIn,
+    db: Session = Depends(get_db),
+):
+    from app.services.driver_earning_service import apply_site_report
+    delivery = _get_owned_delivery_or_403(db, tanker_id=tanker_id, delivery_id=delivery_id)
+
+    if delivery.delivery_status != "delivered":
+        raise HTTPException(
+            status_code=400,
+            detail="Site report can only be submitted after the delivery stop is complete",
+        )
+
+    earning = apply_site_report(
+        db,
+        delivery,
+        tank_height_category=payload.tank_height_category,
+        hose_difficulty=payload.hose_difficulty,
+        road_difficulty=payload.road_difficulty,
+        notes=payload.notes,
+    )
+
+    return {
+        "message": f"Site report submitted. ₦{int(earning.site_bonus):,} site bonus credited.",
+        "earning": DriverEarningOut.model_validate(earning).model_dump(),
+    }
+
+
+@router.post("/{delivery_id}/skip-site-report")
+def skip_site_report_endpoint(
+    delivery_id: int,
+    tanker_id: int,
+    db: Session = Depends(get_db),
+):
+    from app.services.driver_earning_service import skip_site_report
+    delivery = _get_owned_delivery_or_403(db, tanker_id=tanker_id, delivery_id=delivery_id)
+
+    if delivery.delivery_status != "delivered":
+        raise HTTPException(
+            status_code=400,
+            detail="Delivery stop must be complete before skipping site report",
+        )
+
+    earning = skip_site_report(db, delivery_id, tanker_id)
+    return {
+        "message": "Site report skipped.",
+        "earning": DriverEarningOut.model_validate(earning).model_dump() if earning else None,
     }

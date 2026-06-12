@@ -15,6 +15,7 @@ import { DriverProfileDialog } from "@/components/driver/DriverProfileDialog";
 import DriverHelpModal from "@/components/driver/DriverHelpModal";
 import DriverReportIncidentModal from "@/components/driver/ReportIncidentModal";
 import DeliveryHistoryTab from "@/components/driver/DeliveryHistoryTab";
+import EarningsTab from "@/components/driver/EarningsTab";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
 import { useDriverAuth } from "@/hooks/useDriverAuth";
 import { useDriverOfferAlarm } from "@/hooks/useDriverOfferAlarm";
@@ -468,6 +469,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
             job={activeJob}
             deliveries={deliveries}
             onBackToDashboard={resetToDashboard}
+            tankerId={driver?.tankerId ?? 0}
           />
         );
 
@@ -523,7 +525,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
       <div className="mx-auto max-w-md p-5 space-y-4">
         {renderJobAlertBanner()}
 
-        <div className="grid grid-cols-2 rounded-2xl border bg-card p-1">
+        <div className="grid grid-cols-3 rounded-2xl border bg-card p-1">
           <button
             onClick={() => setActiveTab("dashboard")}
             className={`rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === "dashboard"
@@ -541,11 +543,23 @@ const DriverView = ({ onBack }: DriverViewProps) => {
                 : "text-foreground"
               }`}
           >
-            Delivery History
+            History
+          </button>
+
+          <button
+            onClick={() => setActiveTab("earnings")}
+            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === "earnings"
+                ? "bg-success text-success-foreground"
+                : "text-foreground"
+              }`}
+          >
+            Earnings
           </button>
         </div>
 
-        {activeTab === "history" && driver?.tankerId ? (
+        {activeTab === "earnings" && driver?.tankerId ? (
+          <EarningsTab tankerId={driver.tankerId} />
+        ) : activeTab === "history" && driver?.tankerId ? (
           <DeliveryHistoryTab tankerId={driver.tankerId} />
         ) : (
           renderDashboard()
