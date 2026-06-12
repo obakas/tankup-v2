@@ -323,6 +323,13 @@ def process_priority_assignment_timeouts(db: Session) -> list[dict[str, Any]]:
 
         tried_ids = get_previously_tried_tanker_ids_for_priority_request(db, request.id)
         if has_assignable_tanker_for_request(db, request, excluded_tanker_ids=tried_ids):
+            retry_priority_assignment(db, request.id, excluded_tanker_ids=tried_ids)
+            db.refresh(request)
+            results.append({
+                "request_id": request.id,
+                "action": "retried_after_timeout",
+                "status": request.status,
+            })
             continue
 
         mark_priority_assignment_failed(
@@ -718,6 +725,44 @@ def expire_tanker_offer_and_recover(db: Session, tanker: Tanker) -> dict[str, An
         "blacklisted_until": tanker.paused_until.isoformat() if tanker.paused_until else None,
         "retry": retry_result,
     }
+
+def process_unmatched_searching_driver_requests(db: Session) -> list[dict[str, Any]]:
+    """
+    Retries assignment for priority requests stuck in searching_driver with no
+    active offer.  This covers the gap where the initial assignment attempt
+    found no eligible tanker — no offer was ever created, so offer-expiry
+    retry never fires.  Runs on a short scheduler interval alongside the
+    offer-expiry monitor.
+    """
+    requests = (
+        db.query(LiquidRequest)
+        .filter(LiquidRequest.delivery_type == "priority")
+        .filter(LiquidRequest.status == "searching_driver")
+        .all()
+    )
+
+    results: list[dict[str, Any]] = []
+    for request in requests:
+        if has_active_offer_for_priority_request(db, request.id):
+            continue
+        if is_priority_assignment_timeout_expired(request):
+            continue
+
+        tried_ids = get_previously_tried_tanker_ids_for_priority_request(db, request.id)
+        result = assign_best_tanker_for_priority(
+            db,
+            request=request,
+            excluded_tanker_ids=tried_ids,
+        )
+        if result:
+            results.append({
+                "request_id": request.id,
+                "tanker_id": result["tanker"].id,
+                "offer_id": result["offer_id"],
+            })
+
+    return results
+
 
 def process_expired_offers(db: Session) -> list[dict[str, Any]]:
     now = datetime.utcnow()

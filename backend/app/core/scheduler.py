@@ -5,7 +5,11 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import SessionLocal
-from app.services.assignment_service import process_expired_offers, process_priority_assignment_timeouts
+from app.services.assignment_service import (
+    process_expired_offers,
+    process_priority_assignment_timeouts,
+    process_unmatched_searching_driver_requests,
+)
 from app.services.batch_monitor_service import process_all_active_batches
 from app.services.delivery_timeout_service import expire_overdue_deliveries
 from app.services.loading_timeout_service import expire_overdue_loading_jobs
@@ -37,6 +41,18 @@ def run_batch_monitor():
             logger.info("batch_monitor", extra={"results": results})
     except Exception:
         logger.exception("batch_monitor failed")
+    finally:
+        db.close()
+
+
+def run_searching_driver_retry_monitor():
+    db = SessionLocal()
+    try:
+        results = process_unmatched_searching_driver_requests(db)
+        if results:
+            logger.info("searching_driver_retry_monitor", extra={"results": results})
+    except Exception:
+        logger.exception("searching_driver_retry_monitor failed")
     finally:
         db.close()
 
@@ -127,6 +143,13 @@ def start_scheduler():
             trigger="interval",
             seconds=15,
             id="offer_expiry_monitor_job",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            run_searching_driver_retry_monitor,
+            trigger="interval",
+            seconds=30,
+            id="searching_driver_retry_monitor_job",
             replace_existing=True,
         )
         scheduler.add_job(
