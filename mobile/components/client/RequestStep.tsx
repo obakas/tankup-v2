@@ -485,6 +485,22 @@ export function RequestStep({
 
           {mode === "batch" ? (
             <View className="flex-row justify-between">
+              <Text style={mutedText} className="text-sm">Platform Commission Rate</Text>
+              <Text style={text} className="text-sm font-medium">
+                {PLATFORM_BATCH_COMMISSION_RATE}%
+              </Text>
+            </View>
+          ) : (
+            <View className="flex-row justify-between">
+              <Text style={mutedText} className="text-sm">Platform Commission Rate</Text>
+              <Text style={text} className="text-sm font-medium">
+                {PLATFORM_PRIORITY_COMMISSION_RATE}%
+              </Text>
+            </View>
+          )}
+
+          {mode === "batch" ? (
+            <View className="flex-row justify-between">
               <Text style={mutedText} className="text-sm">Rate</Text>
               <Text style={text} className="text-sm font-medium">
                 ₦{BATCH_PRICE_PER_LITER}/liter

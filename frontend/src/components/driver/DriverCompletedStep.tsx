@@ -13,6 +13,14 @@ import {
 
 type TankHeight = "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop";
 
+const DIFF_COLORS: Record<number, string> = {
+  1: "#22c55e",
+  2: "#84cc16",
+  3: "#f59e0b",
+  4: "#f97316",
+  5: "#ef4444",
+};
+
 const TANK_HEIGHTS: { key: TankHeight; label: string }[] = [
   { key: "ground", label: "Ground" },
   { key: "first_floor", label: "1st Floor" },
@@ -33,20 +41,25 @@ function DifficultyPicker({
   return (
     <div>
       <p className="text-xs text-muted-foreground mb-1.5">{label}</p>
-      <div className="flex gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            onClick={() => onChange(n)}
-            className={`h-9 w-9 rounded-full text-sm font-semibold border transition ${
-              value === n
-                ? "bg-success text-success-foreground border-success"
-                : "border-border text-muted-foreground hover:border-success/50"
-            }`}
-          >
-            {n}
-          </button>
-        ))}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-muted-foreground">Easy</span>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const active = value === n;
+          const color = DIFF_COLORS[n];
+          return (
+            <button
+              key={n}
+              onClick={() => onChange(n)}
+              style={active ? { borderColor: color, backgroundColor: color + "28", color } : {}}
+              className={`h-9 w-9 rounded-full text-sm font-semibold border transition ${
+                active ? "" : "border-border text-muted-foreground hover:border-success/50"
+              }`}
+            >
+              {n}
+            </button>
+          );
+        })}
+        <span className="text-[11px] text-muted-foreground">Very bad</span>
       </div>
     </div>
   );
@@ -130,8 +143,8 @@ function SiteForm({
         </div>
       </div>
 
-      <DifficultyPicker label="Hose difficulty (1=easy, 5=very hard)" value={hoseDiff} onChange={setHoseDiff} />
-      <DifficultyPicker label="Road condition (1=easy, 5=very bad)" value={roadDiff} onChange={setRoadDiff} />
+      <DifficultyPicker label="Hose difficulty" value={hoseDiff} onChange={setHoseDiff} />
+      <DifficultyPicker label="Road condition" value={roadDiff} onChange={setRoadDiff} />
 
       <div className="flex gap-3 pt-1">
         <Button

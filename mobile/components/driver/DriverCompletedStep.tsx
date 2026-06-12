@@ -14,6 +14,14 @@ import {
 
 type TankHeight = "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop";
 
+const DIFF_COLORS: Record<number, string> = {
+  1: "#22c55e",
+  2: "#84cc16",
+  3: "#f59e0b",
+  4: "#f97316",
+  5: "#ef4444",
+};
+
 const TANK_HEIGHTS: { key: TankHeight; label: string }[] = [
   { key: "ground", label: "Ground" },
   { key: "first_floor", label: "1st Fl." },
@@ -38,33 +46,39 @@ function DifficultyRow({
       <Text style={{ color: theme.mutedForeground }} className="text-xs">
         {label}
       </Text>
-      <View className="flex-row gap-2">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable
-            key={n}
-            onPress={() => onChange(n)}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              borderWidth: 1.5,
-              borderColor: value === n ? theme.success : theme.border,
-              backgroundColor: value === n ? theme.successSoft : "transparent",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Text
+      <View className="flex-row items-center gap-2">
+        <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>Easy</Text>
+        {[1, 2, 3, 4, 5].map((n) => {
+          const active = value === n;
+          const color = DIFF_COLORS[n];
+          return (
+            <Pressable
+              key={n}
+              onPress={() => onChange(n)}
               style={{
-                color: value === n ? theme.success : theme.mutedForeground,
-                fontWeight: value === n ? "700" : "400",
-                fontSize: 13,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                borderWidth: 1.5,
+                borderColor: active ? color : theme.border,
+                backgroundColor: active ? color + "28" : "transparent",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              {n}
-            </Text>
-          </Pressable>
-        ))}
+              <Text
+                style={{
+                  color: active ? color : theme.mutedForeground,
+                  fontWeight: active ? "700" : "400",
+                  fontSize: 13,
+                }}
+              >
+                {n}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>Very bad</Text>
       </View>
     </View>
   );
@@ -170,14 +184,14 @@ function SiteForm({
       </View>
 
       <DifficultyRow
-        label="Hose difficulty (1=easy, 5=very hard)"
+        label="Hose difficulty"
         value={hoseDiff}
         onChange={setHoseDiff}
         theme={theme}
       />
 
       <DifficultyRow
-        label="Road condition (1=easy, 5=very bad)"
+        label="Road condition"
         value={roadDiff}
         onChange={setRoadDiff}
         theme={theme}
