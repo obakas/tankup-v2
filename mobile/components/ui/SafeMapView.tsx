@@ -93,7 +93,7 @@ body{background:#e5e3df}
 <div id="map"></div>
 <script>
 const map=L.map('map',{zoomControl:false,attributionControl:false});
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(map);
 const data=${safeMarkers};
 const pts=[];
 data.forEach(function(m){

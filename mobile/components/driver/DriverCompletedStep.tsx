@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { CheckCircle2 } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useToast } from "@/hooks/useToast";

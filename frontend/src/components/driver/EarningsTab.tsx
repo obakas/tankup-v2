@@ -64,25 +64,55 @@ function JobCard({ group }: { group: DriverEarningJobGroup }) {
       )}
 
       {(expanded || group.stop_count === 1) && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-3 pt-1">
           {group.stops.map((stop, i) => (
-            <div
-              key={stop.id}
-              className="flex items-center justify-between text-sm border-t pt-2"
-            >
-              <div className="text-muted-foreground">
-                Stop {stop.stop_order ?? i + 1} •{" "}
-                {stop.actual_liters_delivered ?? 0}L
+            <div key={stop.id} className="border-t pt-3 space-y-1.5 text-sm">
+              <p className="font-medium text-foreground">
+                Stop {stop.stop_order ?? i + 1}
+                {stop.actual_liters_delivered ? ` — ${stop.actual_liters_delivered}L` : ""}
+              </p>
+
+              <div className="flex justify-between text-muted-foreground">
+                <span>
+                  Delivery pay
+                  {stop.actual_liters_delivered
+                    ? ` (${stop.actual_liters_delivered}L × ₦${stop.rate_per_liter}/L)`
+                    : ""}
+                </span>
+                <span className="font-medium text-foreground">{naira(stop.volume_earnings)}</span>
               </div>
-              <div className="text-right space-y-0.5">
-                <p>{naira(stop.volume_earnings + stop.stop_bonus)}</p>
-                {stop.site_bonus !== null ? (
-                  <p className="text-xs text-success">
-                    +{naira(stop.site_bonus)} site bonus
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">site bonus pending</p>
-                )}
+
+              {stop.stop_bonus > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Stop completion bonus</span>
+                  <span className="font-medium text-foreground">+{naira(stop.stop_bonus)}</span>
+                </div>
+              )}
+
+              {stop.site_bonus !== null && stop.site_bonus > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-success">Site verification bonus</span>
+                  <span className="font-semibold text-success">+{naira(stop.site_bonus)}</span>
+                </div>
+              )}
+
+              {stop.site_bonus === null && (
+                <div className="flex justify-between text-muted-foreground/60 text-xs">
+                  <span>Site bonus</span>
+                  <span>pending</span>
+                </div>
+              )}
+
+              {stop.site_bonus === 0 && (
+                <div className="flex justify-between text-muted-foreground/60 text-xs">
+                  <span>Site bonus</span>
+                  <span>skipped</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-semibold border-t border-dashed border-border/60 pt-1.5 mt-0.5">
+                <span className="text-foreground">Stop total</span>
+                <span className="text-success">{naira(stop.total_earnings)}</span>
               </div>
             </div>
           ))}
