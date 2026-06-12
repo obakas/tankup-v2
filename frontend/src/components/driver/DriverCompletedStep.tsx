@@ -166,6 +166,7 @@ export const DriverCompletedStep = ({
   onBackToDashboard,
   tankerId,
 }: DriverCompletedStepProps) => {
+  const [allEarnings, setAllEarnings] = useState<DriverEarningOut[]>([]);
   const [pendingEarnings, setPendingEarnings] = useState<DriverEarningOut[]>([]);
   const [formIndex, setFormIndex] = useState(0);
   const [loadingEarnings, setLoadingEarnings] = useState(true);
@@ -177,9 +178,9 @@ export const DriverCompletedStep = ({
       try {
         const data = await fetchDriverEarnings(tankerId, "today");
         if (!mounted) return;
-        const pending = data.jobs
-          .flatMap((g) => g.stops)
-          .filter((s) => s.site_bonus === null);
+        const all = data.jobs.flatMap((g) => g.stops);
+        const pending = all.filter((s) => s.site_bonus === null);
+        setAllEarnings(all);
         setPendingEarnings(pending);
       } catch {
         // if fetch fails, just show no forms — don't block completion
@@ -272,10 +273,11 @@ export const DriverCompletedStep = ({
       )}
 
       {/* Earnings summary — shown after all forms resolved */}
-      {allFormsDone && pendingEarnings.length > 0 && (() => {
-        const totalVolume = pendingEarnings.reduce((s, e) => s + e.volume_earnings, 0);
-        const totalStop = pendingEarnings.reduce((s, e) => s + e.stop_bonus, 0);
-        const grandTotal = totalVolume + totalStop + bonusCredited;
+      {allFormsDone && allEarnings.length > 0 && (() => {
+        const alreadyCredited = allEarnings.filter((s) => s.site_bonus === 1000).length * 1000;
+        const totalVolume = allEarnings.reduce((s, e) => s + e.volume_earnings, 0);
+        const totalStop = allEarnings.reduce((s, e) => s + e.stop_bonus, 0);
+        const grandTotal = totalVolume + totalStop + alreadyCredited + bonusCredited;
         const fmt = (n: number) => `₦${Math.round(n).toLocaleString("en-NG")}`;
         return (
           <div className="rounded-xl border border-success/30 bg-success/5 p-5 text-left">
@@ -288,15 +290,15 @@ export const DriverCompletedStep = ({
               {totalStop > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
-                    Stop bonuses ({pendingEarnings.length} stop{pendingEarnings.length !== 1 ? "s" : ""})
+                    Stop bonuses ({allEarnings.length} stop{allEarnings.length !== 1 ? "s" : ""})
                   </span>
                   <span className="font-medium">+{fmt(totalStop)}</span>
                 </div>
               )}
-              {bonusCredited > 0 && (
+              {(alreadyCredited + bonusCredited) > 0 && (
                 <div className="flex justify-between">
                   <span className="text-success">Site verification bonuses</span>
-                  <span className="font-semibold text-success">+{fmt(bonusCredited)}</span>
+                  <span className="font-semibold text-success">+{fmt(alreadyCredited + bonusCredited)}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-border/60 pt-2 mt-1 font-bold text-base">

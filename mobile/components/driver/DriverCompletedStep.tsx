@@ -217,13 +217,16 @@ function SiteForm({
 export function DriverCompletedStep({
   onBackOnline,
   tankerId,
+  deliveryType,
 }: {
   onBackOnline: () => void;
   tankerId: number | null;
+  deliveryType?: string;
 }) {
   const { theme } = useAppTheme();
   const { toast, showToast } = useToast();
 
+  const [allEarnings, setAllEarnings] = useState<DriverEarningOut[]>([]);
   const [pendingEarnings, setPendingEarnings] = useState<DriverEarningOut[]>([]);
   const [formIndex, setFormIndex] = useState(0);
   const [loadingEarnings, setLoadingEarnings] = useState(true);
@@ -239,9 +242,9 @@ export function DriverCompletedStep({
       try {
         const data = await fetchDriverEarnings(tankerId!, "today");
         if (!mounted) return;
-        const pending = data.jobs
-          .flatMap((g) => g.stops)
-          .filter((s) => s.site_bonus === null);
+        const all = data.jobs.flatMap((g) => g.stops);
+        const pending = all.filter((s) => s.site_bonus === null);
+        setAllEarnings(all);
         setPendingEarnings(pending);
       } catch {
         // don't block completion on fetch failure
@@ -293,6 +296,32 @@ export function DriverCompletedStep({
         )}
       </View>
 
+      {/* Trip Summary */}
+      {!loadingEarnings && (
+        <View
+          className="w-full rounded-2xl p-4 gap-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+        >
+          <Text style={{ color: theme.foreground }} className="font-bold text-sm">
+            Trip Summary
+          </Text>
+          <View style={{ gap: 8 }}>
+            <View className="flex-row justify-between">
+              <Text style={{ color: theme.mutedForeground }} className="text-sm">Delivery type</Text>
+              <Text style={{ color: theme.foreground }} className="text-sm font-semibold capitalize">
+                {deliveryType ?? "—"}
+              </Text>
+            </View>
+            <View className="flex-row justify-between">
+              <Text style={{ color: theme.mutedForeground }} className="text-sm">Stops completed</Text>
+              <Text style={{ color: theme.foreground }} className="text-sm font-semibold">
+                {allEarnings.length} {allEarnings.length === 1 ? "stop" : "stops"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Site forms */}
       {!loadingEarnings && pendingEarnings.length > 0 && formIndex < pendingEarnings.length && tankerId && (
         <View className="w-full">
@@ -308,10 +337,11 @@ export function DriverCompletedStep({
       )}
 
       {/* Earnings summary — shown after all forms resolved */}
-      {allFormsDone && pendingEarnings.length > 0 && (() => {
-        const totalVolume = pendingEarnings.reduce((s, e) => s + e.volume_earnings, 0);
-        const totalStop = pendingEarnings.reduce((s, e) => s + e.stop_bonus, 0);
-        const grandTotal = totalVolume + totalStop + bonusCredited;
+      {allFormsDone && allEarnings.length > 0 && (() => {
+        const alreadyCredited = allEarnings.filter((s) => s.site_bonus === 1000).length * 1000;
+        const totalVolume = allEarnings.reduce((s, e) => s + e.volume_earnings, 0);
+        const totalStop = allEarnings.reduce((s, e) => s + e.stop_bonus, 0);
+        const grandTotal = totalVolume + totalStop + alreadyCredited + bonusCredited;
         const fmt = (n: number) => `₦${Math.round(n).toLocaleString("en-NG")}`;
         return (
           <View
@@ -331,16 +361,16 @@ export function DriverCompletedStep({
               {totalStop > 0 && (
                 <View className="flex-row justify-between">
                   <Text style={{ color: theme.mutedForeground }} className="text-sm">
-                    Stop bonuses ({pendingEarnings.length} stop{pendingEarnings.length !== 1 ? "s" : ""})
+                    Stop bonuses ({allEarnings.length} stop{allEarnings.length !== 1 ? "s" : ""})
                   </Text>
                   <Text style={{ color: theme.foreground }} className="text-sm font-semibold">+{fmt(totalStop)}</Text>
                 </View>
               )}
 
-              {bonusCredited > 0 && (
+              {(alreadyCredited + bonusCredited) > 0 && (
                 <View className="flex-row justify-between">
                   <Text style={{ color: theme.success }} className="text-sm">Site verification bonuses</Text>
-                  <Text style={{ color: theme.success }} className="text-sm font-semibold">+{fmt(bonusCredited)}</Text>
+                  <Text style={{ color: theme.success }} className="text-sm font-semibold">+{fmt(alreadyCredited + bonusCredited)}</Text>
                 </View>
               )}
 
