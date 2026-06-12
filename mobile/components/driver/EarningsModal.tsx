@@ -113,25 +113,86 @@ function JobCard({
         group.stops.map((stop, i) => (
           <View
             key={stop.id}
-            style={{ borderTopColor: theme.border }}
-            className="flex-row justify-between pt-2 border-t"
+            style={{ borderTopColor: theme.border, gap: 6 }}
+            className="pt-3 border-t"
           >
-            <Text style={{ color: theme.mutedForeground }} className="text-xs">
-              Stop {stop.stop_order ?? i + 1} • {stop.actual_liters_delivered ?? 0}L
+            <Text style={{ color: theme.foreground }} className="text-xs font-semibold">
+              Stop {stop.stop_order ?? i + 1}
+              {stop.actual_liters_delivered ? ` — ${stop.actual_liters_delivered}L` : ""}
             </Text>
-            <View className="items-end">
-              <Text style={{ color: theme.foreground }} className="text-xs font-semibold">
-                {naira(stop.volume_earnings + stop.stop_bonus)}
+
+            {/* Delivery pay */}
+            <View className="flex-row justify-between">
+              <Text style={{ color: theme.mutedForeground }} className="text-xs">
+                Delivery pay
+                {stop.actual_liters_delivered
+                  ? ` (${stop.actual_liters_delivered}L × ₦${stop.rate_per_liter}/L)`
+                  : ""}
               </Text>
-              {stop.site_bonus !== null ? (
-                <Text style={{ color: theme.success }} className="text-xs">
-                  +{naira(stop.site_bonus)} site
-                </Text>
-              ) : (
+              <Text style={{ color: theme.foreground }} className="text-xs font-semibold">
+                {naira(stop.volume_earnings)}
+              </Text>
+            </View>
+
+            {/* Stop completion bonus */}
+            {stop.stop_bonus > 0 && (
+              <View className="flex-row justify-between">
                 <Text style={{ color: theme.mutedForeground }} className="text-xs">
-                  site pending
+                  Stop completion bonus
                 </Text>
-              )}
+                <Text style={{ color: theme.foreground }} className="text-xs font-semibold">
+                  +{naira(stop.stop_bonus)}
+                </Text>
+              </View>
+            )}
+
+            {/* Site verification bonus — submitted */}
+            {stop.site_bonus !== null && stop.site_bonus > 0 && (
+              <View className="flex-row justify-between">
+                <Text style={{ color: theme.success }} className="text-xs">
+                  Site verification bonus
+                </Text>
+                <Text style={{ color: theme.success }} className="text-xs font-semibold">
+                  +{naira(stop.site_bonus)}
+                </Text>
+              </View>
+            )}
+
+            {/* Site bonus — pending */}
+            {stop.site_bonus === null && (
+              <View className="flex-row justify-between">
+                <Text style={{ color: theme.mutedForeground, opacity: 0.6 }} className="text-xs">
+                  Site bonus
+                </Text>
+                <Text style={{ color: theme.mutedForeground, opacity: 0.6 }} className="text-xs">
+                  pending
+                </Text>
+              </View>
+            )}
+
+            {/* Site bonus — skipped */}
+            {stop.site_bonus === 0 && (
+              <View className="flex-row justify-between">
+                <Text style={{ color: theme.mutedForeground, opacity: 0.6 }} className="text-xs">
+                  Site bonus
+                </Text>
+                <Text style={{ color: theme.mutedForeground, opacity: 0.6 }} className="text-xs">
+                  skipped
+                </Text>
+              </View>
+            )}
+
+            {/* Stop total */}
+            <View
+              style={{ borderTopColor: theme.border, borderTopWidth: 1, borderStyle: "dashed", paddingTop: 6, marginTop: 2 }}
+              className="flex-row justify-between"
+            >
+              <Text style={{ color: theme.foreground }} className="text-xs font-bold">
+                Stop total
+              </Text>
+              <Text style={{ color: theme.success }} className="text-xs font-bold">
+                {naira(stop.total_earnings)}
+              </Text>
             </View>
           </View>
         ))}

@@ -307,20 +307,56 @@ export function DriverCompletedStep({
         </View>
       )}
 
-      {allFormsDone && (
-        <Pressable
-          onPress={onBackOnline}
-          className="w-full rounded-xl py-4 items-center"
-          style={{ backgroundColor: theme.success }}
-        >
-          <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
-            Back Online
-          </Text>
-        </Pressable>
-      )}
+      {/* Earnings summary — shown after all forms resolved */}
+      {allFormsDone && pendingEarnings.length > 0 && (() => {
+        const totalVolume = pendingEarnings.reduce((s, e) => s + e.volume_earnings, 0);
+        const totalStop = pendingEarnings.reduce((s, e) => s + e.stop_bonus, 0);
+        const grandTotal = totalVolume + totalStop + bonusCredited;
+        const fmt = (n: number) => `₦${Math.round(n).toLocaleString("en-NG")}`;
+        return (
+          <View
+            className="w-full rounded-2xl p-4 gap-3"
+            style={{ backgroundColor: theme.successSoft, borderWidth: 1, borderColor: theme.success + "30" }}
+          >
+            <Text style={{ color: theme.foreground }} className="font-bold text-sm">
+              Job Earnings
+            </Text>
 
-      {/* Show button immediately if no pending forms and not loading */}
-      {!loadingEarnings && pendingEarnings.length === 0 && (
+            <View style={{ gap: 8 }}>
+              <View className="flex-row justify-between">
+                <Text style={{ color: theme.mutedForeground }} className="text-sm">Delivery pay</Text>
+                <Text style={{ color: theme.foreground }} className="text-sm font-semibold">{fmt(totalVolume)}</Text>
+              </View>
+
+              {totalStop > 0 && (
+                <View className="flex-row justify-between">
+                  <Text style={{ color: theme.mutedForeground }} className="text-sm">
+                    Stop bonuses ({pendingEarnings.length} stop{pendingEarnings.length !== 1 ? "s" : ""})
+                  </Text>
+                  <Text style={{ color: theme.foreground }} className="text-sm font-semibold">+{fmt(totalStop)}</Text>
+                </View>
+              )}
+
+              {bonusCredited > 0 && (
+                <View className="flex-row justify-between">
+                  <Text style={{ color: theme.success }} className="text-sm">Site verification bonuses</Text>
+                  <Text style={{ color: theme.success }} className="text-sm font-semibold">+{fmt(bonusCredited)}</Text>
+                </View>
+              )}
+
+              <View
+                style={{ borderTopWidth: 1, borderTopColor: theme.success + "40", paddingTop: 8, marginTop: 2 }}
+                className="flex-row justify-between"
+              >
+                <Text style={{ color: theme.foreground }} className="font-bold">Total earnings</Text>
+                <Text style={{ color: theme.success }} className="font-bold text-base">{fmt(grandTotal)}</Text>
+              </View>
+            </View>
+          </View>
+        );
+      })()}
+
+      {(allFormsDone || (!loadingEarnings && pendingEarnings.length === 0)) && (
         <Pressable
           onPress={onBackOnline}
           className="w-full rounded-xl py-4 items-center"

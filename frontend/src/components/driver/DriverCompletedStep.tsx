@@ -271,17 +271,44 @@ export const DriverCompletedStep = ({
         />
       )}
 
-      {allFormsDone && (
-        <Button
-          variant="default"
-          className="h-14 w-full rounded-xl text-base"
-          onClick={onBackToDashboard}
-        >
-          Back to Dashboard
-        </Button>
-      )}
+      {/* Earnings summary — shown after all forms resolved */}
+      {allFormsDone && pendingEarnings.length > 0 && (() => {
+        const totalVolume = pendingEarnings.reduce((s, e) => s + e.volume_earnings, 0);
+        const totalStop = pendingEarnings.reduce((s, e) => s + e.stop_bonus, 0);
+        const grandTotal = totalVolume + totalStop + bonusCredited;
+        const fmt = (n: number) => `₦${Math.round(n).toLocaleString("en-NG")}`;
+        return (
+          <div className="rounded-xl border border-success/30 bg-success/5 p-5 text-left">
+            <h3 className="mb-3 font-semibold text-foreground">Job Earnings</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Delivery pay</span>
+                <span className="font-medium">{fmt(totalVolume)}</span>
+              </div>
+              {totalStop > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Stop bonuses ({pendingEarnings.length} stop{pendingEarnings.length !== 1 ? "s" : ""})
+                  </span>
+                  <span className="font-medium">+{fmt(totalStop)}</span>
+                </div>
+              )}
+              {bonusCredited > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-success">Site verification bonuses</span>
+                  <span className="font-semibold text-success">+{fmt(bonusCredited)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t border-border/60 pt-2 mt-1 font-bold text-base">
+                <span>Total earnings</span>
+                <span className="text-success">{fmt(grandTotal)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
-      {!formsShown && (
+      {(allFormsDone || !formsShown) && (
         <Button
           variant="default"
           className="h-14 w-full rounded-xl text-base"
