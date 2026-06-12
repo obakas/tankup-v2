@@ -378,7 +378,7 @@ export function useDriverFlow() {
     setError(null);
 
     try {
-      if (job.job_type === "batch" || job.active_job?.batch_id) {
+      if (job.assignment_type === "batch" || job.active_job?.batch_id) {
         const batchId = job.active_job?.batch_id ?? job.batch_id;
         await markBatchLoaded(driver.tankerId, batchId);
       } else {

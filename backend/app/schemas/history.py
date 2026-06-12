@@ -66,6 +66,11 @@ class DriverHistoryItem(BaseModel):
     customer_name: Optional[str] = None
     customer_phone: Optional[str] = None
 
+    earnings_total: Optional[float] = None
+    volume_earnings: Optional[float] = None
+    stop_bonuses: Optional[float] = None
+    site_bonuses: Optional[float] = None
+
     class Config:
         from_attributes = True
 

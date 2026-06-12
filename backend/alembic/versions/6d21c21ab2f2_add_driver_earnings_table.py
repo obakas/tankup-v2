@@ -37,7 +37,6 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
     )
-    op.create_index('ix_driver_earnings_id', 'driver_earnings', ['id'], unique=False)
     op.create_index('ix_driver_earnings_tanker_id', 'driver_earnings', ['tanker_id'], unique=False)
     op.create_unique_constraint('uq_driver_earnings_delivery_record_id', 'driver_earnings', ['delivery_record_id'])
 
@@ -45,5 +44,4 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_constraint('uq_driver_earnings_delivery_record_id', 'driver_earnings', type_='unique')
     op.drop_index('ix_driver_earnings_tanker_id', table_name='driver_earnings')
-    op.drop_index('ix_driver_earnings_id', table_name='driver_earnings')
     op.drop_table('driver_earnings')
