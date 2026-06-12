@@ -74,7 +74,7 @@ function formatUpdatedAt(value?: string | null) {
 
 // ── Leaflet HTML builder ──────────────────────────────────────────────────────
 
-type LeafletMarker = { lat: number; lon: number; color: string; popup?: string };
+type LeafletMarker = { lat: number; lon: number; color: string; popup?: string; type?: "driver" | "customer" };
 
 function buildLeafletHtml(markers: LeafletMarker[], fitAll: boolean, centerLat?: number, centerLon?: number): string {
   const safeMarkers = JSON.stringify(markers);
@@ -96,11 +96,23 @@ const map=L.map('map',{zoomControl:false,attributionControl:false});
 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(map);
 const data=${safeMarkers};
 const pts=[];
+function mkHtml(m){
+  if(m.type==='driver'){
+    return '<div style="background:'+m.color+';border-radius:50%;width:32px;height:32px;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="white" width="17" height="17"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg></div>';
+  }
+  if(m.type==='customer'){
+    return '<div style="background:'+m.color+';border-radius:50%;width:28px;height:28px;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg></div>';
+  }
+  return '<div style="background:'+m.color+';width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>';
+}
+function mkSize(m){
+  if(m.type==='driver')return[32,32];
+  if(m.type==='customer')return[28,28];
+  return[14,14];
+}
 data.forEach(function(m){
-  const icon=L.divIcon({
-    html:'<div style="background:'+m.color+';width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)"></div>',
-    className:'',iconSize:[14,14],iconAnchor:[7,7]
-  });
+  const sz=mkSize(m);
+  const icon=L.divIcon({html:mkHtml(m),className:'',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]/2]});
   const mk=L.marker([m.lat,m.lon],{icon}).addTo(map);
   if(m.popup)mk.bindPopup(m.popup);
   pts.push([m.lat,m.lon]);
@@ -267,8 +279,8 @@ function LeafletMapView({ driver, customer, height, navigateTo, title, theme }: 
   const navTarget = navigateTo ?? (customer ?? driver);
 
   const leafletMarkers: LeafletMarker[] = [
-    { lat: driver.lat, lon: driver.lon, color: "#2563eb", popup: driver.label ?? "Tanker" },
-    ...(customer ? [{ lat: customer.lat, lon: customer.lon, color: "#16a34a", popup: customer.label ?? "Customer" }] : []),
+    { lat: driver.lat, lon: driver.lon, color: "#2563eb", popup: driver.label ?? "Tanker", type: "driver" },
+    ...(customer ? [{ lat: customer.lat, lon: customer.lon, color: "#16a34a", popup: customer.label ?? "Customer", type: "customer" as const }] : []),
   ];
   const html = buildLeafletHtml(leafletMarkers, true);
 
@@ -329,6 +341,7 @@ function LeafletMultiMapView({ markers, initialLat, initialLon, height, theme }:
     lon: m.lon,
     color: m.pinColor ?? "#2563eb",
     popup: m.title + (m.description ? ` — ${m.description}` : ""),
+    type: "driver" as const,
   }));
   const html = buildLeafletHtml(leafletMarkers, true, centerLat, centerLon);
 

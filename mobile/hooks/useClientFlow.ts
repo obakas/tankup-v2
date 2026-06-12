@@ -35,6 +35,7 @@ import {
   type SiteProfileResponse,
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
+import { fireLocalNotification, addNotificationArrivedListener } from "@/lib/localNotifications";
 
 
 import {
@@ -231,11 +232,15 @@ export function useClientFlow() {
 
         if (effectiveStatus && effectiveStatus !== prevStatusRef.current) {
           const msg = CLIENT_STATUS_MESSAGES[effectiveStatus];
-          if (msg && prevStatusRef.current !== "") toast.info(msg);
+          if (msg && prevStatusRef.current !== "") {
+            toast.info(msg);
+            void fireLocalNotification("Delivery Update", msg, { type: "delivery_status" });
+          }
           prevStatusRef.current = effectiveStatus;
         }
 
-        if (["completed", "partially_completed"].includes(batchStatus)) setStep("completed");
+        if (data?.member_delivery_status === "delivered") setStep("completed");
+        else if (["completed", "partially_completed"].includes(batchStatus)) setStep("completed");
         else if (["delivering", "arrived"].includes(batchStatus)) setStep("delivery");
         else if (["assigned", "loading"].includes(batchStatus)) setStep("tanker");
         else if (["failed", "expired", "assignment_failed"].includes(batchStatus)) setStep("failed");
@@ -253,7 +258,10 @@ export function useClientFlow() {
 
         if (reqStatus && reqStatus !== prevStatusRef.current) {
           const msg = CLIENT_STATUS_MESSAGES[reqStatus];
-          if (msg && prevStatusRef.current !== "") toast.info(msg);
+          if (msg && prevStatusRef.current !== "") {
+            toast.info(msg);
+            void fireLocalNotification("Delivery Update", msg, { type: "delivery_status" });
+          }
           prevStatusRef.current = reqStatus;
         }
 
@@ -295,6 +303,19 @@ export function useClientFlow() {
   }, [step, requestResp, fetchLive, stopPolling]);
 
   useAppStatePause(stopPolling, restartPolling);
+
+  // Immediately re-poll when a push notification arrives in foreground.
+  const fetchLiveRef = useRef(fetchLive);
+  fetchLiveRef.current = fetchLive;
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  useEffect(() => {
+    const POLLING_STEPS_SET: Array<ClientStep | "auth"> = ["batch", "searching", "tanker", "delivery"];
+    return addNotificationArrivedListener(() => {
+      if (POLLING_STEPS_SET.includes(stepRef.current)) void fetchLiveRef.current();
+    });
+  }, []);
 
   const loadSites = useCallback(async (userId: number) => {
     setLoadingSites(true);

@@ -29,6 +29,7 @@ import {
   updateDriverPushToken,
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
+import { fireLocalNotification, addNotificationArrivedListener } from "@/lib/localNotifications";
 
 // Offer expiry window is 60s — 10s detection still leaves ~50s to respond.
 const POLL_AVAILABLE_MS = 10_000;
@@ -115,6 +116,13 @@ export function useDriverFlow() {
         setStep("incoming");
         stopPolling();
         void triggerAlarm(res.offer?.offer_type ?? "batch");
+        void fireLocalNotification(
+          "New Job Offer",
+          res.offer?.offer_type === "priority"
+            ? "A priority delivery offer is waiting — tap to review."
+            : "A batch delivery offer is waiting — tap to review.",
+          { type: "job_offer" }
+        );
       }
     } catch {
       // Polling should be quiet. One bad request must not break the driver screen.
@@ -157,6 +165,22 @@ export function useDriverFlow() {
   useEffect(() => {
     if (driver) driverIdRef.current = driver.tankerId;
   }, [driver]);
+
+  // Immediately re-poll when a push notification arrives in foreground so the
+  // driver doesn't have to wait for the next interval tick.
+  const pollOfferRef = useRef(pollOffer);
+  pollOfferRef.current = pollOffer;
+  const pollJobRef = useRef(pollJob);
+  pollJobRef.current = pollJob;
+  const stepRef = useRef(step);
+  stepRef.current = step;
+
+  useEffect(() => {
+    return addNotificationArrivedListener(() => {
+      if (stepRef.current === "available") void pollOfferRef.current();
+      else if (stepRef.current === "loading" || stepRef.current === "delivering") void pollJobRef.current();
+    });
+  }, []);
 
   useEffect(() => {
     stopPolling();
