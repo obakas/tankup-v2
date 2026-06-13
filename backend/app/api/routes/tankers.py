@@ -65,6 +65,7 @@ def update_tanker_location(
     tanker.longitude = payload.longitude
     tanker.last_location_update_at = now
     tanker.last_heartbeat_at = now  # location ping doubles as a heartbeat for offline detection
+    tanker.is_online = True  # driver is clearly active if they're sending location
     if tanker.offline_grace_started_at:
         tanker.offline_grace_started_at = None
         tanker.offline_notified_at = None
@@ -1117,9 +1118,44 @@ def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depen
 
     tanker.is_online = payload.online
 
-    if payload.online and not tanker.current_request_id and tanker.status in {"available", "completed"}:
-        tanker.status = "available"
-        tanker.is_available = True
+    if payload.online:
+        # Always reset to available if the tanker isn't genuinely mid-job.
+        # "Mid-job" means the linked request/batch is still active.
+        # If a previous test/session left the tanker stuck in a non-available
+        # status with a stale current_request_id, the toggle would silently
+        # leave is_available=False and the tanker invisible to assignment.
+        _TERMINAL_REQUEST_STATUSES = {"completed", "partially_completed", "failed", "expired", "assignment_failed", "cancelled"}
+        _ACTIVE_TANKER_STATUSES = {"assigned", "loading", "delivering", "arrived"}
+
+        linked_request_is_terminal = False
+        if tanker.current_request_id:
+            linked_req = db.query(LiquidRequest).filter(LiquidRequest.id == tanker.current_request_id).first()
+            if not linked_req or linked_req.status in _TERMINAL_REQUEST_STATUSES:
+                linked_request_is_terminal = True
+
+        linked_batch_is_terminal = False
+        if tanker.status in _ACTIVE_TANKER_STATUSES and not tanker.current_request_id:
+            linked_batch = db.query(Batch).filter(
+                Batch.tanker_id == tanker.id,
+                Batch.status.notin_({"completed", "partially_completed", "failed", "expired", "assignment_failed", "cancelled"}),
+            ).first()
+            linked_batch_is_terminal = linked_batch is None
+
+        is_stale = (
+            tanker.current_request_id and linked_request_is_terminal
+        ) or (
+            tanker.status in _ACTIVE_TANKER_STATUSES and not tanker.current_request_id and linked_batch_is_terminal
+        ) or (
+            not tanker.current_request_id and tanker.status in {"available", "completed"}
+        )
+
+        if is_stale:
+            tanker.current_request_id = None
+            tanker.pending_offer_type = None
+            tanker.pending_offer_id = None
+            tanker.offer_expires_at = None
+            tanker.status = "available"
+            tanker.is_available = True
 
     db.commit()
     db.refresh(tanker)

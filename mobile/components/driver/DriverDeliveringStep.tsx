@@ -16,6 +16,14 @@ import {
   verifySite,
 } from "@/lib/api";
 
+const DIFF_COLORS: Record<number, string> = {
+  1: "#22c55e",
+  2: "#84cc16",
+  3: "#f59e0b",
+  4: "#f97316",
+  5: "#ef4444",
+};
+
 type Props = {
   driver: DriverResponse;
   currentStop: any;
@@ -502,26 +510,32 @@ export function DriverDeliveringStep({
 
               <View className="gap-1">
                 <Text className="text-xs" style={{ color: theme.mutedForeground }}>Road difficulty</Text>
-                <View className="flex-row gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Pressable
-                      key={n}
-                      onPress={() => setSiteRoadDifficulty(n)}
-                      className="flex-1 py-2 rounded-lg items-center"
-                      style={{
-                        backgroundColor: siteRoadDifficulty === n ? theme.success : theme.background,
-                        borderWidth: 1,
-                        borderColor: siteRoadDifficulty === n ? theme.success : theme.border,
-                      }}
-                    >
-                      <Text
-                        className="text-xs font-semibold"
-                        style={{ color: siteRoadDifficulty === n ? theme.primaryForeground : theme.mutedForeground }}
+                <View className="flex-row items-center gap-2">
+                  <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>Easy</Text>
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    const active = siteRoadDifficulty === n;
+                    const color = DIFF_COLORS[n];
+                    return (
+                      <Pressable
+                        key={n}
+                        onPress={() => setSiteRoadDifficulty(n)}
+                        className="flex-1 py-2 rounded-lg items-center"
+                        style={{
+                          backgroundColor: active ? color + "28" : theme.background,
+                          borderWidth: 1,
+                          borderColor: active ? color : theme.border,
+                        }}
                       >
-                        {n}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <Text
+                          className="text-xs font-semibold"
+                          style={{ color: active ? color : theme.mutedForeground }}
+                        >
+                          {n}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                  <Text style={{ color: theme.mutedForeground, fontSize: 11 }}>Very bad</Text>
                 </View>
               </View>
 

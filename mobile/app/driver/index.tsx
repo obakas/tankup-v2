@@ -133,7 +133,7 @@ export default function DriverFlow() {
           <DriverCompletedStep
             onBackOnline={flow.markCompletedAsAvailable}
             tankerId={flow.driver?.tankerId ?? null}
-            deliveryType={flow.job?.jobType}
+            deliveryType={flow.job?.assignment_type}
           />
         )}
       </ScrollView>
