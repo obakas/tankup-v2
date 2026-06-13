@@ -237,9 +237,10 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
     if (!form.address.trim()) { setError("Address is required"); return; }
 
     const rawCapacity = form.tank_capacity_liters.trim();
-    const tank_capacity = rawCapacity ? parseInt(rawCapacity, 10) : undefined;
-    if (tank_capacity !== undefined && isNaN(tank_capacity)) {
-      setError("Tank capacity must be a number");
+    if (!rawCapacity) { setError("Tank capacity is required"); return; }
+    const tank_capacity = parseInt(rawCapacity, 10);
+    if (isNaN(tank_capacity) || tank_capacity <= 0) {
+      setError("Tank capacity must be a valid number");
       return;
     }
 
@@ -578,8 +579,7 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
 
                 <View style={{ gap: 6 }}>
                   <Text style={{ color: theme.mutedForeground, fontSize: 12, fontWeight: "600" }}>
-                    Tank Capacity (liters){" "}
-                    <Text style={{ fontWeight: "400" }}>(optional)</Text>
+                    Tank Capacity (liters)
                   </Text>
                   <TextInput
                     value={form.tank_capacity_liters}

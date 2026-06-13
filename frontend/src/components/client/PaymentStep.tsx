@@ -42,7 +42,7 @@ const PaymentStep = ({
                     <div className="flex justify-between">
                         <span className="text-muted-foreground">Delivery type</span>
                         <span className="font-medium text-foreground">
-                            {requestMode === "batch" ? "Batch Saver" : "Priority Delivery"}
+                            {requestMode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
                         </span>
                     </div>
 

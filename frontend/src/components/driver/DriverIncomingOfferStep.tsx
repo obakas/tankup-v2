@@ -61,7 +61,7 @@ export const DriverIncomingOfferStep = ({
                 : "bg-success/10 text-success"
             }`}
           >
-            {isPriority ? "Priority Delivery" : "Batch Delivery"}
+            {isPriority ? "Exclusive Delivery" : "Standard Delivery"}
           </span>
 
           <span className="text-xs text-muted-foreground">

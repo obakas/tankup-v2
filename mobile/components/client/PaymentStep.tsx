@@ -56,7 +56,7 @@ export function PaymentStep({
               Delivery type
             </Text>
             <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
-              {mode === "batch" ? "Batch Saver" : "Priority Delivery"}
+              {mode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
             </Text>
           </View>
 

@@ -71,7 +71,7 @@ export const DriverAvailableStep = ({
                 : "bg-destructive/10 text-destructive"
             }`}
           >
-            {job.jobType === "batch" ? "Batch Delivery" : "Priority Delivery"}
+            {job.jobType === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
           </span>
 
           <span className="text-xs text-muted-foreground">

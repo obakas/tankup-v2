@@ -498,7 +498,7 @@ export function useClientFlow() {
     }
 
     Alert.alert(
-      "Cancel Priority Delivery?",
+      "Cancel Exclusive Delivery?",
       `${stageLabel}\n\n${refundLine}`,
       [
         { text: "Keep Delivery", style: "cancel" },

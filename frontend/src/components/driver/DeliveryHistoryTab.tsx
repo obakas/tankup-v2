@@ -73,7 +73,7 @@ export default function DeliveryHistoryTab({ tankerId }: Props) {
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <h3 className="text-base font-bold">
-                                {item.job_type === "batch" ? "Batch Delivery" : "Priority Delivery"} #{item.job_id}
+                                {item.job_type === "batch" ? "Standard Delivery" : "Exclusive Delivery"} #{item.job_id}
                             </h3>
                             <p className="text-sm text-muted-foreground">
                                 {item.total_planned_liters}L planned • {item.total_actual_liters_delivered}L delivered

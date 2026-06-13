@@ -289,7 +289,7 @@ export default function TankerStep({
               Delivery Type
             </p>
             <p className="mt-1 font-semibold text-foreground">
-              {requestMode === "priority" ? "Priority Delivery" : "Batch Saver"}
+              {requestMode === "priority" ? "Exclusive Delivery" : "Standard Delivery"}
             </p>
           </div>
 

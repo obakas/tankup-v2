@@ -42,7 +42,7 @@ const CompletedStep = ({
           <div className="flex justify-between">
             <span className="text-muted-foreground">Delivery type</span>
             <span className="text-foreground font-medium">
-              {requestMode === "batch" ? "Batch Saver" : "Priority Delivery"}
+              {requestMode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
             </span>
           </div>
 

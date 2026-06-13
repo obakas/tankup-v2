@@ -133,9 +133,10 @@ export function SitesDialog({ open, user, onClose }: SitesDialogProps) {
     if (!form.address.trim()) { toast.error("Address is required"); return; }
 
     const rawCapacity = form.tank_capacity_liters.trim();
-    const tank_capacity = rawCapacity ? parseInt(rawCapacity, 10) : undefined;
-    if (tank_capacity !== undefined && isNaN(tank_capacity)) {
-      toast.error("Tank capacity must be a number");
+    if (!rawCapacity) { toast.error("Tank capacity is required"); return; }
+    const tank_capacity = parseInt(rawCapacity, 10);
+    if (isNaN(tank_capacity) || tank_capacity <= 0) {
+      toast.error("Tank capacity must be a valid number");
       return;
     }
 
@@ -334,10 +335,7 @@ export function SitesDialog({ open, user, onClose }: SitesDialogProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="site-tank">
-                Tank Capacity (liters){" "}
-                <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-              </Label>
+              <Label htmlFor="site-tank">Tank Capacity (liters)</Label>
               <Input
                 id="site-tank"
                 type="number"

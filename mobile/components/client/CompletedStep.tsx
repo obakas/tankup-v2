@@ -41,7 +41,7 @@ export function CompletedStep({ size, requestMode, priorityMode, scheduledFor, p
 
         <Row
           label="Delivery type"
-          value={requestMode === "batch" ? "Batch Saver" : "Priority Delivery"}
+          value={requestMode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
         />
 
         {requestMode === "priority" && (

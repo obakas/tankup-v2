@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,17 +51,30 @@ const RequestStep = ({
   onSelectSite,
   onAddSite,
 }: RequestStepProps) => {
+  const selectedSite = userSites.find(s => s.id === selectedSiteId);
+
+  const effectiveSize =
+    requestMode === "priority" && selectedSite?.tank_capacity_liters
+      ? selectedSite.tank_capacity_liters
+      : selectedSize;
+
+  useEffect(() => {
+    if (requestMode === "priority" && selectedSite?.tank_capacity_liters) {
+      onSelectSize(selectedSite.tank_capacity_liters);
+    }
+  }, [requestMode, selectedSite?.tank_capacity_liters]);
+
   const price =
     requestMode === "priority"
       ? PRIORITY_FULL_TANKER_PRICE * PLATFORM_PRIORITY_COMMISSION_RATE +
       PRIORITY_FULL_TANKER_PRICE
-      : selectedSize
-        ? selectedSize * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE +
-        selectedSize * BATCH_PRICE_PER_LITER
+      : effectiveSize
+        ? effectiveSize * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE +
+        effectiveSize * BATCH_PRICE_PER_LITER
         : 0;
 
-  const selectedSite = userSites.find(s => s.id === selectedSiteId);
   const isOverCapacity =
+    requestMode === "batch" &&
     selectedSize !== null &&
     (selectedSite?.tank_capacity_liters ?? 0) > 0 &&
     selectedSize > selectedSite!.tank_capacity_liters!;
@@ -93,14 +107,14 @@ const RequestStep = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-foreground">Batch Saver</h3>
+                <h3 className="font-semibold text-foreground">Standard Delivery</h3>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                   Lower Cost
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Join nearby customers in your area and pay less. Delivery starts
-                when the batch is filled.
+                Share a tanker with nearby customers and pay less. Delivery
+                starts once the route is filled.
               </p>
             </div>
           </div>
@@ -120,15 +134,15 @@ const RequestStep = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">
-                  Priority Delivery
+                  Exclusive Delivery
                 </h3>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-warning/10 text-warning font-medium">
                   Premium
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Get faster delivery with ASAP dispatch or choose an exact delivery
-                time. Full tanker payment required.
+                A tanker is reserved exclusively for you. Full delivery to your
+                registered site capacity.
               </p>
             </div>
           </div>
@@ -213,39 +227,53 @@ const RequestStep = ({
         </div>
       )}
 
-      <div>
-        <div className="mb-3">
-          <h3 className="font-semibold text-foreground">
-            How much water do you need?
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Select your tank size
-          </p>
-        </div>
+      {requestMode === "batch" && (
+        <div>
+          <div className="mb-3">
+            <h3 className="font-semibold text-foreground">
+              How much water do you need?
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Select your tank size
+            </p>
+          </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {TANK_SIZES.map((size) => (
-            <button
-              key={size}
-              onClick={() => onSelectSize(size)}
-              className={`rounded-xl border-2 p-4 text-center transition-all duration-200 active:scale-95 ${selectedSize === size
-                ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-                : "border-border bg-card hover:border-primary/30"
-                }`}
-            >
-              <span className="text-2xl font-bold text-foreground">
-                {Number(size / 1000).toLocaleString(undefined, {
-                  maximumFractionDigits: 1,
-                })}
-                k
-              </span>
-              <p className="text-xs text-muted-foreground mt-1">
-                {size.toLocaleString()} Liters
-              </p>
-            </button>
-          ))}
+          <div className="grid grid-cols-2 gap-3">
+            {TANK_SIZES.map((size) => (
+              <button
+                key={size}
+                onClick={() => onSelectSize(size)}
+                className={`rounded-xl border-2 p-4 text-center transition-all duration-200 active:scale-95 ${selectedSize === size
+                  ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
+                  : "border-border bg-card hover:border-primary/30"
+                  }`}
+              >
+                <span className="text-2xl font-bold text-foreground">
+                  {Number(size / 1000).toLocaleString(undefined, {
+                    maximumFractionDigits: 1,
+                  })}
+                  k
+                </span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {size.toLocaleString()} Liters
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {requestMode === "priority" && selectedSite?.tank_capacity_liters && (
+        <div className="rounded-xl border border-border bg-card p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">Full tank capacity</p>
+            <p className="text-xs text-muted-foreground mt-0.5">From your registered site</p>
+          </div>
+          <span className="text-xl font-bold text-foreground">
+            {selectedSite.tank_capacity_liters.toLocaleString()}L
+          </span>
+        </div>
+      )}
 
       <div>
         <div className="mb-3 flex items-center justify-between">
@@ -317,12 +345,12 @@ const RequestStep = ({
         )}
       </div>
 
-      {selectedSize && (
+      {effectiveSize && (
         <div className="bg-card rounded-xl border border-border p-5 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Delivery type</span>
             <span className="font-medium text-foreground">
-              {requestMode === "batch" ? "Batch Saver" : "Priority Delivery"}
+              {requestMode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
             </span>
           </div>
 
@@ -351,7 +379,7 @@ const RequestStep = ({
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Water quantity</span>
             <span className="font-medium text-foreground">
-              {selectedSize.toLocaleString()}L
+              {effectiveSize.toLocaleString()}L
             </span>
           </div>
 
@@ -397,10 +425,10 @@ const RequestStep = ({
           ) : (
             <div className="rounded-lg bg-warning/5 border border-warning/20 p-3">
               <p className="text-sm font-medium text-foreground">
-                Priority reserves the whole tanker
+                Exclusive delivery — full tanker reserved for you
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                You pay the full tanker fee even if your tank size is smaller.
+                The tanker delivers to your site only. You pay the full tanker fee.
               </p>
             </div>
           )}

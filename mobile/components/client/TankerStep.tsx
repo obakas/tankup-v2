@@ -291,7 +291,7 @@ export function TankerStep({
               Delivery Type
             </Text>
             <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>
-              {isPriority ? "Priority Delivery" : "Batch Saver"}
+              {isPriority ? "Exclusive Delivery" : "Standard Delivery"}
             </Text>
           </View>
 

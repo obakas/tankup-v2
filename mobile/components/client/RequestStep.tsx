@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -117,19 +117,32 @@ export function RequestStep({
     return date;
   }, []);
 
+  const selectedSite = userSites.find(s => s.id === selectedSiteId);
+
+  const effectiveSize =
+    mode === "priority" && selectedSite?.tank_capacity_liters
+      ? selectedSite.tank_capacity_liters
+      : size;
+
+  useEffect(() => {
+    if (mode === "priority" && selectedSite?.tank_capacity_liters) {
+      setSize(selectedSite.tank_capacity_liters);
+    }
+  }, [mode, selectedSite?.tank_capacity_liters]);
+
   const price =
     mode === "priority"
       ? PRIORITY_FULL_TANKER_PRICE + PRIORITY_FULL_TANKER_PRICE * PLATFORM_PRIORITY_COMMISSION_RATE
-      : (size ?? 0) * BATCH_PRICE_PER_LITER + (size ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
+      : (effectiveSize ?? 0) * BATCH_PRICE_PER_LITER + (effectiveSize ?? 0) * BATCH_PRICE_PER_LITER * PLATFORM_BATCH_COMMISSION_RATE;
 
-  const selectedSite = userSites.find(s => s.id === selectedSiteId);
   const isOverCapacity =
+    mode === "batch" &&
     size !== null &&
     (selectedSite?.tank_capacity_liters ?? 0) > 0 &&
     size > selectedSite!.tank_capacity_liters!;
 
   const canContinue =
-    !!size &&
+    !!effectiveSize &&
     !!selectedSiteId &&
     !loading &&
     (mode === "batch" || priorityMode === "asap" || !!scheduledFor);
@@ -190,7 +203,7 @@ export function RequestStep({
             <View className="flex-1">
               <View className="flex-row items-center gap-2">
                 <Text style={text} className="font-semibold">
-                  Batch Saver
+                  Standard Delivery
                 </Text>
 
                 <View style={{ backgroundColor: theme.primarySoft }} className="px-2 py-1 rounded-full">
@@ -201,8 +214,8 @@ export function RequestStep({
               </View>
 
               <Text style={mutedText} className="text-sm mt-1">
-                Join nearby customers and pay less. Delivery starts when the
-                batch is filled.
+                Share a tanker with nearby customers and pay less. Delivery
+                starts once the route is filled.
               </Text>
             </View>
           </View>
@@ -221,7 +234,7 @@ export function RequestStep({
             <View className="flex-1">
               <View className="flex-row items-center gap-2">
                 <Text style={text} className="font-semibold">
-                  Priority Delivery
+                  Exclusive Delivery
                 </Text>
 
                 <View style={{ backgroundColor: theme.warningSoft }} className="px-2 py-1 rounded-full">
@@ -325,36 +338,53 @@ export function RequestStep({
         </View>
       )}
 
-      <View>
-        <Text style={text} className="font-semibold">
-          How much water do you need?
-        </Text>
-        <Text style={mutedText} className="text-sm mt-1 mb-3">
-          Select your tank size
-        </Text>
+      {mode === "batch" && (
+        <View>
+          <Text style={text} className="font-semibold">
+            How much water do you need?
+          </Text>
+          <Text style={mutedText} className="text-sm mt-1 mb-3">
+            Select your tank size
+          </Text>
 
-        <View className="flex-row flex-wrap gap-3">
-          {TANK_SIZES.map((s) => (
-            <Pressable
-              key={s}
-              onPress={() => setSize(s)}
-              style={{ backgroundColor: size === s ? theme.primarySoft : theme.card, borderColor: size === s ? theme.primary : theme.border }}
-              className="w-[47%] rounded-xl border-2 p-4 items-center"
-            >
-              <Text style={text} className="text-2xl font-bold">
-                {Number(s / 1000).toLocaleString(undefined, {
-                  maximumFractionDigits: 1,
-                })}
-                k
-              </Text>
+          <View className="flex-row flex-wrap gap-3">
+            {TANK_SIZES.map((s) => (
+              <Pressable
+                key={s}
+                onPress={() => setSize(s)}
+                style={{ backgroundColor: size === s ? theme.primarySoft : theme.card, borderColor: size === s ? theme.primary : theme.border }}
+                className="w-[47%] rounded-xl border-2 p-4 items-center"
+              >
+                <Text style={text} className="text-2xl font-bold">
+                  {Number(s / 1000).toLocaleString(undefined, {
+                    maximumFractionDigits: 1,
+                  })}
+                  k
+                </Text>
 
-              <Text style={mutedText} className="text-xs mt-1">
-                {s.toLocaleString()} Liters
-              </Text>
-            </Pressable>
-          ))}
+                <Text style={mutedText} className="text-xs mt-1">
+                  {s.toLocaleString()} Liters
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
-      </View>
+      )}
+
+      {mode === "priority" && selectedSite?.tank_capacity_liters != null && (
+        <View
+          style={{ backgroundColor: theme.card, borderColor: theme.border }}
+          className="rounded-xl border p-4 flex-row items-center justify-between"
+        >
+          <View>
+            <Text style={text} className="text-sm font-medium">Full tank capacity</Text>
+            <Text style={mutedText} className="text-xs mt-0.5">From your registered site</Text>
+          </View>
+          <Text style={text} className="text-xl font-bold">
+            {selectedSite.tank_capacity_liters.toLocaleString()}L
+          </Text>
+        </View>
+      )}
 
       <View>
         <View className="flex-row items-center justify-between mb-3">
@@ -430,12 +460,12 @@ export function RequestStep({
         )}
       </View>
 
-      {size && (
+      {effectiveSize && (
         <View style={cardStyle} className="rounded-xl border p-5 gap-3">
           <View className="flex-row justify-between">
             <Text style={mutedText} className="text-sm">Delivery type</Text>
             <Text style={text} className="text-sm font-medium">
-              {mode === "batch" ? "Batch Saver" : "Priority Delivery"}
+              {mode === "batch" ? "Standard Delivery" : "Exclusive Delivery"}
             </Text>
           </View>
 
@@ -464,7 +494,7 @@ export function RequestStep({
           <View className="flex-row justify-between">
             <Text style={mutedText} className="text-sm">Water quantity</Text>
             <Text style={text} className="text-sm font-medium">
-              {size.toLocaleString()}L
+              {effectiveSize.toLocaleString()}L
             </Text>
           </View>
 
@@ -508,9 +538,9 @@ export function RequestStep({
             </View>
           ) : (
             <View style={{ backgroundColor: theme.warningSoft, borderColor: theme.warning }} className="rounded-lg border p-3">
-              <Text style={text} className="text-sm font-medium">Priority reserves the whole tanker</Text>
+              <Text style={text} className="text-sm font-medium">Exclusive delivery — full tanker reserved for you</Text>
               <Text style={mutedText} className="text-xs mt-1">
-                You pay the full tanker fee regardless of tank size.
+                The tanker delivers to your site only. You pay the full tanker fee.
               </Text>
             </View>
           )}
@@ -535,10 +565,10 @@ export function RequestStep({
             <ActivityIndicator color="#fff" />
           ) : (
             <Text className="font-semibold text-base" style={{ color: theme.primaryForeground }}>
-              {!size
-                ? "Select a tank size"
-                : !selectedSiteId
-                  ? "Select a delivery site"
+              {!selectedSiteId
+                ? "Select a delivery site"
+                : !effectiveSize
+                  ? "Select a tank size"
                   : "Continue to Payment"}
             </Text>
           )}
@@ -560,7 +590,7 @@ export function RequestStep({
   );
 }
 
-// import { useMemo, useState } from "react";
+// import { useEffect, useMemo, useState } from "react";
 // import {
 //   View,
 //   Text,

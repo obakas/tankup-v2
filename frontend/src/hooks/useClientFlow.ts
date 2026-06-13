@@ -782,7 +782,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
           ? "Your Batch"
           : resolvedStep === "tanker"
             ? requestMode === "priority"
-              ? "Priority Delivery"
+              ? "Exclusive Delivery"
               : "Tanker Assigned"
             : resolvedStep === "delivery"
               ? "Delivery"
