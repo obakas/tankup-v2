@@ -11,8 +11,10 @@ import {
   confirmOtp,
   failStop,
   finishMeasurement,
+  skipSiteReport,
   skipStop,
   startMeasurement,
+  submitSiteReport,
   verifySite,
 } from "@/lib/api";
 
@@ -71,6 +73,7 @@ export function DriverDeliveringStep({
   const [siteHoseDistance, setSiteHoseDistance] = useState("");
   const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
   const [siteSubmitLoading, setSiteSubmitLoading] = useState(false);
+  const [siteFormWasSubmitted, setSiteFormWasSubmitted] = useState(false);
 
   const siteIsVerified = !!stop?.customer?.site?.is_driver_verified;
   const lastVerifiedAt = stop?.customer?.site?.last_verified_at;
@@ -560,6 +563,7 @@ export function DriverDeliveringStep({
                     try {
                       if (Object.keys(payload).length > 0) {
                         await verifySite(stop.delivery_id, driver.tankerId, payload);
+                        setSiteFormWasSubmitted(true);
                       }
                       setSiteVerificationDone(true);
                     } catch (e: any) {
@@ -586,7 +590,23 @@ export function DriverDeliveringStep({
           {stopStatus === "awaiting_otp" && stop.otp_verified && siteVerificationDone && (
             <Pressable
               disabled={stopLoading}
-              onPress={() => doAction(() => completeStop(stop.delivery_id, driver.tankerId))}
+              onPress={() =>
+                doAction(async () => {
+                  await completeStop(stop.delivery_id, driver.tankerId);
+                  try {
+                    if (siteFormWasSubmitted) {
+                      await submitSiteReport(driver.tankerId, stop.delivery_id, {
+                        tank_height_category: (siteFloorLevel as any) ?? undefined,
+                        road_difficulty: siteRoadDifficulty ?? undefined,
+                      });
+                    } else {
+                      await skipSiteReport(driver.tankerId, stop.delivery_id);
+                    }
+                  } catch {
+                    // bonus/skip call is best-effort; delivery is already complete
+                  }
+                })
+              }
               className="rounded-xl py-3 items-center"
               style={{ backgroundColor: theme.success }}
             >
