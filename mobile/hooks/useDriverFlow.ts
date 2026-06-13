@@ -137,15 +137,16 @@ export function useDriverFlow() {
       setCurrentStop(res);
 
       const tankerStatus = res?.tanker?.status ?? res?.tanker_status ?? "";
+      const prevStatus = prevTankerStatusRef.current;
 
-      if (tankerStatus && tankerStatus !== prevTankerStatusRef.current) {
+      if (tankerStatus && tankerStatus !== prevStatus) {
         const msg = DRIVER_STATUS_MESSAGES[tankerStatus];
-        if (msg && prevTankerStatusRef.current !== "") toast.info(msg);
+        if (msg && prevStatus !== "") toast.info(msg);
         prevTankerStatusRef.current = tankerStatus;
       }
 
       if (["available", "completed"].includes(tankerStatus)) {
-        const wasDelivering = ["delivering", "arrived"].includes(prevTankerStatusRef.current);
+        const wasDelivering = ["delivering", "arrived"].includes(prevStatus);
         prevTankerStatusRef.current = "";
         if (wasDelivering) {
           setStep("completed");

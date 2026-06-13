@@ -1157,6 +1157,12 @@ def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depen
             tanker.status = "available"
             tanker.is_available = True
 
+        # Driver is actively signalling readiness — clear any stale blacklist.
+        # paused_until is set either by a 5-min offer-timeout blacklist or by
+        # the abandonment penalty. An explicit Go-Online press overrides both:
+        # the driver is present and ready, so a past pause shouldn't block them.
+        tanker.paused_until = None
+
     db.commit()
     db.refresh(tanker)
     return {"tankerId": tanker.id, "is_online": tanker.is_online, "is_available": tanker.is_available}
