@@ -16,6 +16,14 @@ from app.services.loading_timeout_service import expire_overdue_loading_jobs
 from app.services.late_arrival_service import flag_late_arrivals
 from app.services.driver_offline_service import process_offline_drivers
 from app.services.nearby_notification_service import process_nearby_batch_notifications
+from app.services.priority_service import (
+    get_pending_scheduled_priority_requests,
+    activate_scheduled_priority_request,
+)
+from app.services.scheduled_batch_service import (
+    get_pending_scheduled_batch_requests,
+    activate_scheduled_batch_request,
+)
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
@@ -117,6 +125,19 @@ def run_nearby_notification_monitor():
         db.close()
 
 
+def run_scheduled_request_monitor():
+    db = SessionLocal()
+    try:
+        for r in get_pending_scheduled_priority_requests(db):
+            activate_scheduled_priority_request(db, r.id)
+        for r in get_pending_scheduled_batch_requests(db):
+            activate_scheduled_batch_request(db, r)
+    except Exception:
+        logger.exception("scheduled_request_monitor failed")
+    finally:
+        db.close()
+
+
 def run_driver_offline_monitor():
     db = SessionLocal()
     try:
@@ -193,6 +214,13 @@ def start_scheduler():
             trigger="interval",
             seconds=30,
             id="driver_offline_monitor_job",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            run_scheduled_request_monitor,
+            trigger="interval",
+            seconds=60,
+            id="scheduled_request_monitor_job",
             replace_existing=True,
         )
         scheduler.start()

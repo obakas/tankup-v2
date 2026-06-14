@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -97,6 +97,31 @@ export function RequestStep({
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
 
+  const [batchTimingMode, setBatchTimingMode] = useState<"now" | "schedule">("now");
+  const [selectedDay, setSelectedDay] = useState<0 | 1 | 2>(1);
+  const [selectedBlock, setSelectedBlock] = useState<"morning" | "afternoon">("morning");
+  const prevMode = useRef(mode);
+
+  useEffect(() => {
+    if (prevMode.current !== mode) {
+      prevMode.current = mode;
+      setBatchTimingMode("now");
+      setScheduledFor("");
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "batch") return;
+    if (batchTimingMode === "now") {
+      setScheduledFor("");
+      return;
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + selectedDay);
+    d.setHours(selectedBlock === "morning" ? 7 : 12, 0, 0, 0);
+    setScheduledFor(toLocalInputValue(d));
+  }, [mode, batchTimingMode, selectedDay, selectedBlock]);
+
   const selectedDate = useMemo(() => {
     if (!scheduledFor) {
       const fallback = new Date();
@@ -145,7 +170,8 @@ export function RequestStep({
     !!effectiveSize &&
     !!selectedSiteId &&
     !loading &&
-    (mode === "batch" || priorityMode === "asap" || !!scheduledFor);
+    (mode === "batch" || priorityMode === "asap" || !!scheduledFor) &&
+    (mode !== "batch" || batchTimingMode === "now" || !!scheduledFor);
 
   const openPicker = (type: "date" | "time") => {
     setPickerMode(type);
@@ -368,6 +394,81 @@ export function RequestStep({
               </Pressable>
             ))}
           </View>
+        </View>
+      )}
+
+      {mode === "batch" && (
+        <View style={cardStyle} className="rounded-xl border p-5 gap-4">
+          <Text style={text} className="font-semibold">When do you want delivery?</Text>
+          <View className="flex-row gap-3">
+            <Pressable
+              onPress={() => setBatchTimingMode("now")}
+              style={{ backgroundColor: batchTimingMode === "now" ? theme.primarySoft : theme.background, borderColor: batchTimingMode === "now" ? theme.primary : theme.border }}
+              className="flex-1 rounded-lg border p-3"
+            >
+              <Text style={text} className="font-medium">Order now</Text>
+              <Text style={mutedText} className="text-xs mt-1">Join the next available batch.</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setBatchTimingMode("schedule")}
+              style={{ backgroundColor: batchTimingMode === "schedule" ? theme.primarySoft : theme.background, borderColor: batchTimingMode === "schedule" ? theme.primary : theme.border }}
+              className="flex-1 rounded-lg border p-3"
+            >
+              <Text style={text} className="font-medium">Schedule</Text>
+              <Text style={mutedText} className="text-xs mt-1">Pick a future delivery window.</Text>
+            </Pressable>
+          </View>
+
+          {batchTimingMode === "schedule" && (
+            <View style={{ backgroundColor: theme.background, borderColor: theme.border }} className="rounded-xl border p-4 gap-4">
+              <View>
+                <Text style={mutedText} className="text-xs font-medium mb-2">Day</Text>
+                <View className="flex-row gap-2">
+                  {([0, 1, 2] as const).map((offset) => {
+                    const label = offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : "Day after";
+                    return (
+                      <Pressable
+                        key={offset}
+                        onPress={() => setSelectedDay(offset)}
+                        style={{ backgroundColor: selectedDay === offset ? theme.primarySoft : theme.card, borderColor: selectedDay === offset ? theme.primary : theme.border }}
+                        className="flex-1 rounded-lg border py-2 items-center"
+                      >
+                        <Text style={{ color: selectedDay === offset ? theme.primary : theme.foreground }} className="text-sm font-medium">{label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={mutedText} className="text-xs font-medium mb-2">Block</Text>
+                <View className="flex-row gap-2">
+                  {(["morning", "afternoon"] as const).map((block) => (
+                    <Pressable
+                      key={block}
+                      onPress={() => setSelectedBlock(block)}
+                      style={{ backgroundColor: selectedBlock === block ? theme.primarySoft : theme.card, borderColor: selectedBlock === block ? theme.primary : theme.border }}
+                      className="flex-1 rounded-lg border py-2 items-center"
+                    >
+                      <Text style={{ color: selectedBlock === block ? theme.primary : theme.foreground }} className="text-sm font-medium">
+                        {block === "morning" ? "Morning" : "Afternoon"}
+                      </Text>
+                      <Text style={mutedText} className="text-xs mt-0.5">
+                        {block === "morning" ? "7am – 12pm" : "12pm – 5pm"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View className="flex-row items-center gap-2">
+                <CalendarClock size={16} color={theme.primary} />
+                <Text style={{ color: theme.primary }} className="text-sm font-medium">
+                  {scheduledFor ? formatPrettyDateTime(scheduledFor) : "Select a window"}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       )}
 

@@ -18,9 +18,8 @@ class RequestCreate(BaseModel):
     @model_validator(mode="after")
     def validate_request(self):
         if self.delivery_type == "batch":
-            # batch requests should not require priority scheduling fields
             self.is_asap = False
-            self.scheduled_for = None
+            # scheduled_for is allowed for batch (future delivery block)
             return self
 
         if self.delivery_type == "priority":

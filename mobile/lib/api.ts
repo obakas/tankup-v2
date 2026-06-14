@@ -723,6 +723,19 @@ export interface PriorityLiveResponse {
 export const getPriorityRequestLive = (requestId: number) =>
   apiRequest<PriorityLiveResponse>(`/requests/${requestId}/live`);
 
+export interface ScheduledRequestLiveResponse {
+  request_id: number;
+  delivery_type: "batch" | "priority";
+  request_status: string;
+  scheduled_for: string | null;
+  batch_id?: number | null;
+  member_id?: number | null;
+  delivery_code?: string | null;
+}
+
+export const getRequestLive = (requestId: number) =>
+  apiRequest<ScheduledRequestLiveResponse>(`/requests/${requestId}/live`);
+
 export interface CancelPriorityResponse {
   message: string;
   request_id: number;

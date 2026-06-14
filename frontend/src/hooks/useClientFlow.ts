@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { ClientStep, RequestMode } from "@/types/client";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { leaveBatchMember, initiateBatchBoost, confirmBoostPayment } from "@/lib/batches";
 import { useLivePriorityRequest } from "@/hooks/useLivePriorityRequest";
+import { fetchScheduledRequestLive } from "@/lib/requests";
 import { fetchActivePriorityRequest, cancelPriorityRequest, type CancelPriorityResponse } from "@/lib/requests";
 
 interface UseClientFlowParams {
@@ -111,6 +112,33 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     error: livePriorityError,
     refresh: refreshLivePriorityRequest,
   } = useLivePriorityRequest(requestMode === "priority" ? requestId : null, 8000);
+
+  // Poll scheduled request until it activates
+  const scheduledPollRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (step !== "scheduled" || !requestId) {
+      if (scheduledPollRef.current) window.clearInterval(scheduledPollRef.current);
+      return;
+    }
+
+    const poll = async () => {
+      const data = await fetchScheduledRequestLive(requestId).catch(() => null);
+      if (!data || data.request_status === "scheduled") return;
+
+      if (scheduledPollRef.current) window.clearInterval(scheduledPollRef.current);
+      if (data.batch_id && data.member_id) {
+        setBatchId(data.batch_id);
+        setMemberId(data.member_id);
+        setStep("batch");
+      } else {
+        setStep("tanker");
+      }
+    };
+
+    void poll();
+    scheduledPollRef.current = window.setInterval(poll, 30000);
+    return () => { if (scheduledPollRef.current) window.clearInterval(scheduledPollRef.current); };
+  }, [step, requestId]);
 
   function resolvePriorityClientStep(
     priorityRequest: ReturnType<typeof useLivePriorityRequest>["request"],
@@ -567,6 +595,8 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
           ? priorityMode === "asap"
             ? { is_asap: true }
             : { is_asap: false, scheduled_for: scheduledFor }
+          : requestMode === "batch" && scheduledFor
+          ? { scheduled_for: scheduledFor }
           : {}),
       };
 
@@ -581,6 +611,27 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       const nextOtp = response.delivery_code ?? "";
 
       if (requestMode === "batch") {
+        // Scheduled batch — no member yet; batch formation is deferred
+        if ((response as any).request_status === "scheduled") {
+          setRequestId(nextRequestId);
+          const clientSession: ClientSession = {
+            requestId: nextRequestId,
+            batchId: null,
+            memberId: null,
+            paymentDeadline: null,
+            requestMode,
+            selectedSize,
+            selectedSiteId,
+            priorityMode,
+            scheduledFor,
+            otp: "",
+          };
+          localStorage.setItem(CLIENT_SESSION_KEY, JSON.stringify(clientSession));
+          toast.success("Scheduled! We'll start searching when your window opens.");
+          setStep("scheduled");
+          return;
+        }
+
         if (!nextMemberId) {
           throw new Error("Batch member ID missing from create request response");
         }

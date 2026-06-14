@@ -156,7 +156,7 @@ def create_scheduled_priority_request(db: Session, data) -> dict[str, Any]:
     Create a scheduled priority request without immediate tanker assignment.
     """
     request = create_priority_request_record(db, data)
-    request.status = "pending"
+    request.status = "scheduled"
     db.commit()
     db.refresh(request)
 
@@ -180,7 +180,7 @@ def activate_scheduled_priority_request(db: Session, request_id: int) -> dict[st
     if request.delivery_type != "priority":
         raise HTTPException(status_code=400, detail="Request is not priority")
 
-    if request.status not in {"pending"}:
+    if request.status not in {"scheduled"}:
         raise HTTPException(
             status_code=400,
             detail=f"Priority request cannot be activated from status '{request.status}'",
@@ -229,8 +229,7 @@ def activate_scheduled_priority_request(db: Session, request_id: int) -> dict[st
 def get_pending_scheduled_priority_requests(db: Session) -> list[LiquidRequest]:
     return db.query(LiquidRequest).filter(
         LiquidRequest.delivery_type == "priority",
-        LiquidRequest.is_asap == False,
-        LiquidRequest.status == "pending",
+        LiquidRequest.status == "scheduled",
         LiquidRequest.scheduled_for <= datetime.utcnow(),
     ).all()
 

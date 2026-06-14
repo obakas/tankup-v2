@@ -25,6 +25,7 @@ BATCH_STATUS_TRANSITIONS = {
 }
 
 REQUEST_STATUS_TRANSITIONS = {
+    "scheduled": {"pending", "cancelled"},
     "pending": {"searching_driver", "cancelled"},
     "searching_driver": {"assigned", "assignment_failed", "cancelled"},
     "assignment_pending": {"assigned", "assignment_failed", "cancelled"},

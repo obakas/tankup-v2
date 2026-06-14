@@ -141,6 +141,30 @@ export async function fetchLivePriorityRequest(
   return data as PriorityLiveResponse;
 }
 
+export interface ScheduledRequestLiveResponse {
+  request_id: number;
+  delivery_type: "batch" | "priority";
+  request_status: string;
+  scheduled_for: string | null;
+  batch_id?: number | null;
+  member_id?: number | null;
+  delivery_code?: string | null;
+}
+
+export async function fetchScheduledRequestLive(
+  requestId: number
+): Promise<ScheduledRequestLiveResponse | null> {
+  const url = `${API_BASE_URL}/requests/${requestId}/live`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (response.status === 404) return null;
+  const data = await response.json();
+  if (!response.ok) throw new Error(`Failed to fetch scheduled request: ${response.status}`);
+  return data as ScheduledRequestLiveResponse;
+}
+
 export async function fetchActivePriorityRequest(
   userId: number
 ): Promise<ActivePriorityResponse> {

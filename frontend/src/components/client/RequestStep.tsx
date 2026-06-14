@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarClock, Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   TANK_SIZES,
@@ -52,6 +52,29 @@ const RequestStep = ({
   onAddSite,
 }: RequestStepProps) => {
   const selectedSite = userSites.find(s => s.id === selectedSiteId);
+
+  const [batchTimingMode, setBatchTimingMode] = useState<"now" | "schedule">("now");
+  const [selectedDay, setSelectedDay] = useState<0 | 1 | 2>(1);
+  const [selectedBlock, setSelectedBlock] = useState<"morning" | "afternoon">("morning");
+
+  useEffect(() => {
+    if (requestMode !== "batch" || batchTimingMode === "now") {
+      if (requestMode === "batch") onSetScheduledFor("");
+      return;
+    }
+    const d = new Date();
+    d.setDate(d.getDate() + selectedDay);
+    d.setHours(selectedBlock === "morning" ? 7 : 12, 0, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    onSetScheduledFor(
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00`
+    );
+  }, [requestMode, batchTimingMode, selectedDay, selectedBlock]);
+
+  useEffect(() => {
+    setBatchTimingMode("now");
+    onSetScheduledFor("");
+  }, [requestMode]);
 
   const effectiveSize =
     requestMode === "priority" && selectedSite?.tank_capacity_liters
@@ -222,6 +245,83 @@ const RequestStep = ({
                 Choose a realistic time that gives enough room for loading and
                 movement.
               </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {requestMode === "batch" && (
+        <div className="bg-card rounded-xl border border-border p-5 space-y-4">
+          <h3 className="font-semibold text-foreground">When do you want delivery?</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            {(["now", "schedule"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setBatchTimingMode(t)}
+                className={`rounded-lg border p-3 text-left text-sm transition-all ${batchTimingMode === t
+                  ? "border-primary bg-primary/5 text-foreground"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                  }`}
+              >
+                <div className="font-medium">{t === "now" ? "Order now" : "Schedule"}</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t === "now" ? "Join the next available batch." : "Pick a future delivery window."}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {batchTimingMode === "schedule" && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Day</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([0, 1, 2] as const).map((offset) => (
+                    <button
+                      key={offset}
+                      type="button"
+                      onClick={() => setSelectedDay(offset)}
+                      className={`rounded-lg border py-2 text-sm font-medium transition-all ${selectedDay === offset
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-background text-foreground hover:border-primary/30"
+                        }`}
+                    >
+                      {offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : "Day after"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Block</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["morning", "afternoon"] as const).map((block) => (
+                    <button
+                      key={block}
+                      type="button"
+                      onClick={() => setSelectedBlock(block)}
+                      className={`rounded-lg border py-3 text-sm font-medium transition-all ${selectedBlock === block
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border bg-background text-foreground hover:border-primary/30"
+                        }`}
+                    >
+                      <div>{block === "morning" ? "Morning" : "Afternoon"}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {block === "morning" ? "7am – 12pm" : "12pm – 5pm"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {scheduledFor && (
+                <div className="flex items-center gap-2 text-primary text-sm">
+                  <CalendarClock className="w-4 h-4" />
+                  <span className="font-medium">{formatScheduledDateTime(scheduledFor)}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

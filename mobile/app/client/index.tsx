@@ -16,6 +16,7 @@ import { TankerStep } from "@/components/client/TankerStep";
 import { DeliveryStep } from "@/components/client/DeliveryStep";
 import { CompletedStep } from "@/components/client/CompletedStep";
 import { FailedStep } from "@/components/client/FailedStep";
+import { ScheduledStep } from "@/components/client/ScheduledStep";
 import { HelpModal } from "@/components/client/HelpModal";
 import { ReportIncidentModal } from "@/components/client/ReportIncidentModal";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -125,6 +126,14 @@ export default function ClientFlow() {
             onPay={flow.handleConfirmPayment}
             onCancel={flow.handleCancelBeforePayment}
             loading={flow.loading}
+          />
+        )}
+
+        {flow.step === "scheduled" && (
+          <ScheduledStep
+            scheduledFor={flow.scheduledFor}
+            liveLoading={flow.liveLoading}
+            onCancel={flow.handleStartNewRequest}
           />
         )}
 

@@ -23,6 +23,7 @@ from app.services.operation_alert_service import create_operation_alert
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.tanker import Tanker
 from app.models.request import LiquidRequest
+from app.models.batch_member import BatchMember
 from app.utils.status_rules import ensure_valid_transition, REQUEST_STATUS_TRANSITIONS
 
 
@@ -112,6 +113,7 @@ def get_active_priority_request_for_user_flow(
     user_id: int,
 ) -> dict[str, Any] | None:
     active_statuses = {
+        "scheduled",
         "pending",
         "paid",
         "searching_driver",
@@ -200,6 +202,19 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
 
     No unpaid member reservation here.
     """
+    if data.scheduled_for:
+        request = create_batch_request_record(db, data)
+        request.status = "scheduled"
+        db.commit()
+        db.refresh(request)
+        return {
+            "message": "Scheduled batch request created successfully.",
+            "request_id": request.id,
+            "delivery_type": request.delivery_type,
+            "request_status": request.status,
+            "scheduled_for": request.scheduled_for.isoformat(),
+        }
+
     request = create_batch_request_record(db, data)
     batch_result = find_or_create_batch(db, request)
 
@@ -294,6 +309,34 @@ def get_client_request_status_flow(db: Session, request_id: int) -> dict[str, An
         "assignment_started_at": request.assignment_started_at.isoformat() if getattr(request, "assignment_started_at", None) else None,
         "assignment_failed_at": request.assignment_failed_at.isoformat() if getattr(request, "assignment_failed_at", None) else None,
         "refund_eligible": getattr(request, "refund_eligible", False),
+    }
+
+
+def get_scheduled_request_live_flow(db: Session, request_id: int) -> dict[str, Any]:
+    request = get_request_by_id(db, request_id)
+
+    base = {
+        "request_id": request.id,
+        "delivery_type": request.delivery_type,
+        "request_status": request.status,
+        "scheduled_for": request.scheduled_for.isoformat() if request.scheduled_for else None,
+    }
+
+    if request.status == "scheduled":
+        return base
+
+    member = (
+        db.query(BatchMember)
+        .filter(BatchMember.request_id == request_id)
+        .order_by(BatchMember.id.desc())
+        .first()
+    )
+
+    return {
+        **base,
+        "batch_id": member.batch_id if member else None,
+        "member_id": member.id if member else None,
+        "delivery_code": member.delivery_code if member else None,
     }
 
 

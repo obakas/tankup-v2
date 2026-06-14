@@ -25,6 +25,7 @@ import {
   createWaterRequest,
   getBatchLive,
   getPriorityRequestLive,
+  getRequestLive,
   leaveBatchMember,
   cancelPriorityRequest,
   listUserSites,
@@ -129,12 +130,12 @@ export function useClientFlow() {
 
         // Only restore a mid-flow step so we don't re-enter a terminal state
         const restorable: Array<ClientStep | "auth"> = [
-          "request", "payment", "batch", "searching", "tanker", "delivery",
+          "request", "payment", "scheduled", "batch", "searching", "tanker", "delivery",
         ];
         if (session.step && restorable.includes(session.step)) {
           // Require a user to be present before restoring past "request"
           const needsUser: Array<ClientStep | "auth"> = [
-            "payment", "batch", "searching", "tanker", "delivery",
+            "payment", "scheduled", "batch", "searching", "tanker", "delivery",
           ];
           if (needsUser.includes(session.step) && !session.user) {
             setStep("request");
@@ -210,11 +211,35 @@ export function useClientFlow() {
     prevStatusRef.current = "";
   }, [requestResp]);
 
+  const stepForFetchRef = useRef(step);
+  stepForFetchRef.current = step;
+
   const fetchLive = useCallback(async () => {
     if (!requestResp) return;
 
     try {
       setLiveLoading(true);
+
+      // Poll by request_id while waiting for a scheduled delivery to activate.
+      if (stepForFetchRef.current === "scheduled" && requestResp.request_id) {
+        const data = await getRequestLive(requestResp.request_id);
+        setLiveData(data);
+        setLiveError(null);
+
+        if (data.request_status !== "scheduled") {
+          if (data.batch_id && data.member_id) {
+            setRequestResp((prev) => ({
+              ...prev!,
+              batch_id: data.batch_id!,
+              member_id: data.member_id!,
+            }));
+            setStep("batch");
+          } else {
+            setStep("searching");
+          }
+        }
+        return;
+      }
 
       // requestResp.delivery_type is not included in the backend create response,
       // so we use the mode state (set before payment and stable thereafter).
@@ -281,7 +306,7 @@ export function useClientFlow() {
     }
   }, [requestResp, mode]);
 
-  const POLLING_STEPS: Array<ClientStep | "auth"> = ["batch", "searching", "tanker", "delivery"];
+  const POLLING_STEPS: Array<ClientStep | "auth"> = ["scheduled", "batch", "searching", "tanker", "delivery"];
 
   useEffect(() => {
     if (POLLING_STEPS.includes(step) && requestResp) {
@@ -311,7 +336,7 @@ export function useClientFlow() {
   stepRef.current = step;
 
   useEffect(() => {
-    const POLLING_STEPS_SET: Array<ClientStep | "auth"> = ["batch", "searching", "tanker", "delivery"];
+    const POLLING_STEPS_SET: Array<ClientStep | "auth"> = ["scheduled", "batch", "searching", "tanker", "delivery"];
     return addNotificationArrivedListener(() => {
       if (POLLING_STEPS_SET.includes(stepRef.current)) void fetchLiveRef.current();
     });
@@ -363,16 +388,24 @@ export function useClientFlow() {
         site_profile_id: selectedSiteId,
         is_asap: mode === "priority" ? priorityMode === "asap" : undefined,
         scheduled_for:
-          mode === "priority" && priorityMode === "scheduled" ? scheduledFor : undefined,
+          (mode === "priority" && priorityMode === "scheduled") ||
+          (mode === "batch" && !!scheduledFor)
+            ? scheduledFor
+            : undefined,
       });
 
       setRequestResp(resp);
+
+      const isScheduled = resp.request_status === "scheduled";
       toast.success(
-        mode === "batch"
+        isScheduled
+          ? "Scheduled! We'll start searching when your window opens."
+          : mode === "batch"
           ? "Payment confirmed — batch request created!"
           : "Priority request confirmed!"
       );
-      setStep(mode === "batch" ? "batch" : "searching");
+      if (isScheduled) setStep("scheduled");
+      else setStep(mode === "batch" ? "batch" : "searching");
     } catch (e: any) {
       setError(e.message);
       toast.error(e.message);
@@ -526,6 +559,7 @@ export function useClientFlow() {
     if (step === "auth") return goRoleHome();
     if (step === "request") return goRoleHome();
     if (step === "payment") return setStep("request");
+    if (step === "scheduled") return handleStartNewRequest();
     if (step === "completed" || step === "failed") return handleStartNewRequest();
 
     goRoleHome();
@@ -535,6 +569,7 @@ export function useClientFlow() {
     auth: "Sign In",
     request: "Request Water",
     payment: "Payment",
+    scheduled: "Delivery Scheduled",
     batch: "Batch Joined",
     searching: "Finding Tanker",
     tanker: "Tanker En Route",

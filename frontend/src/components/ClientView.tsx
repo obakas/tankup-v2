@@ -9,6 +9,7 @@ import DeliveryStep from "@/components/client/DeliveryStep";
 import CompletedStep from "@/components/client/CompletedStep";
 import ExpiredBatchStep from "@/components/client/ExpiredBatchStep";
 import DeliveryOutcomeStep from "@/components/client/DeliveryOutcomeStep";
+import ScheduledStep from "@/components/client/ScheduledStep";
 import HelpModal from "@/components/client/HelpModal";
 import ReportIncidentModal from "@/components/client/ReportIncidentModal";
 import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
@@ -177,6 +178,14 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             onPay={handlePayment}
             onCancel={handleCancelBeforePayment}
             isLoading={isSubmittingRequest}
+          />
+        );
+
+      case "scheduled":
+        return (
+          <ScheduledStep
+            scheduledFor={scheduledFor}
+            onCancel={handleStartNewRequest}
           />
         );
 
