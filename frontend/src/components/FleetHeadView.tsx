@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import {
   clearFleetHeadToken,
+  fleetForgiveDriver,
+  fleetPunishDriver,
   getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
@@ -342,6 +344,39 @@ function TankersTab({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState(false);
+  const [forgiveLoadingId, setForgiveLoadingId] = useState<number | null>(null);
+  const [punishLoadingId, setPunishLoadingId] = useState<number | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ id: number; ok: boolean; msg: string } | null>(null);
+  const [punishHours, setPunishHours] = useState<Record<number, 2 | 24 | 48>>({});
+
+  const handleForgive = async (tankerId: number) => {
+    setForgiveLoadingId(tankerId);
+    setActionFeedback(null);
+    try {
+      await fleetForgiveDriver(tankerId);
+      setActionFeedback({ id: tankerId, ok: true, msg: "Punishment cleared." });
+      onTankerAdded();
+    } catch {
+      setActionFeedback({ id: tankerId, ok: false, msg: "Failed — try again." });
+    } finally {
+      setForgiveLoadingId(null);
+    }
+  };
+
+  const handlePunish = async (tankerId: number) => {
+    const hours = punishHours[tankerId] ?? 2;
+    setPunishLoadingId(tankerId);
+    setActionFeedback(null);
+    try {
+      await fleetPunishDriver(tankerId, hours);
+      setActionFeedback({ id: tankerId, ok: true, msg: `Punished for ${hours}h.` });
+      onTankerAdded();
+    } catch {
+      setActionFeedback({ id: tankerId, ok: false, msg: "Failed — try again." });
+    } finally {
+      setPunishLoadingId(null);
+    }
+  };
 
   const statusOptions = ["all", "available", "assigned", "loading", "delivering", "arrived", "offline", "inactive"];
 
@@ -464,38 +499,80 @@ function TankersTab({
         <EmptyCard message={filter === "all" ? "No tankers registered yet." : `No tankers with status "${filter}".`} />
       ) : (
         <div className="space-y-3">
-          {filtered.map((t) => (
-            <div key={t.id} className="bg-card rounded-2xl border border-border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground">{t.driver_name}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">{t.phone}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Plate: {t.tank_plate_number}</p>
-                  {(t.active_batch_id || t.current_request_id) && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t.active_batch_id
-                        ? `Active batch: #${t.active_batch_id}`
-                        : `Active request: #${t.current_request_id}`}
-                    </p>
-                  )}
-                  {t.pending_offer_type && (
-                    <p className="text-xs text-warning mt-1">
-                      Pending {t.pending_offer_type} offer
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <StatusBadge status={t.status} />
-                  <span className={`text-xs font-medium ${t.is_online ? "text-success" : "text-muted-foreground"}`}>
-                    {t.is_online ? "● Online" : "○ Offline"}
-                  </span>
-                  <span className={`text-xs ${t.is_available ? "text-primary" : "text-muted-foreground"}`}>
-                    {t.is_available ? "Available" : "Busy"}
-                  </span>
+          {filtered.map((t) => {
+            const isPunished = !!t.paused_until && new Date(t.paused_until) > new Date();
+            const isForgiving = forgiveLoadingId === t.id;
+            const isPunishing = punishLoadingId === t.id;
+            const feedback = actionFeedback?.id === t.id ? actionFeedback : null;
+            return (
+              <div key={t.id} className="bg-card rounded-2xl border border-border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">{t.driver_name}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{t.phone}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Plate: {t.tank_plate_number}</p>
+                    {(t.active_batch_id || t.current_request_id) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t.active_batch_id
+                          ? `Active batch: #${t.active_batch_id}`
+                          : `Active request: #${t.current_request_id}`}
+                      </p>
+                    )}
+                    {t.pending_offer_type && (
+                      <p className="text-xs text-warning mt-1">
+                        Pending {t.pending_offer_type} offer
+                      </p>
+                    )}
+                    {isPunished && (
+                      <p className="text-xs text-destructive mt-1 font-medium">⚠ Penalised — blocked from new offers</p>
+                    )}
+                    {feedback && (
+                      <p className={`text-xs mt-1 font-medium ${feedback.ok ? "text-success" : "text-destructive"}`}>
+                        {feedback.msg}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <StatusBadge status={t.status} />
+                    <span className={`text-xs font-medium ${t.is_online ? "text-success" : "text-muted-foreground"}`}>
+                      {t.is_online ? "● Online" : "○ Offline"}
+                    </span>
+                    <span className={`text-xs ${t.is_available ? "text-primary" : "text-muted-foreground"}`}>
+                      {t.is_available ? "Available" : "Busy"}
+                    </span>
+                    {isPunished ? (
+                      <button
+                        disabled={isForgiving}
+                        onClick={() => handleForgive(t.id)}
+                        className="mt-1 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition disabled:opacity-50"
+                      >
+                        {isForgiving ? "Forgiving…" : "Forgive"}
+                      </button>
+                    ) : (
+                      <div className="mt-1 flex items-center gap-1">
+                        <select
+                          value={punishHours[t.id] ?? 2}
+                          onChange={(e) => setPunishHours((p) => ({ ...p, [t.id]: Number(e.target.value) as 2 | 24 | 48 }))}
+                          className="rounded-lg border border-border bg-card px-1.5 py-1 text-xs text-muted-foreground focus:outline-none"
+                        >
+                          <option value={2}>2h</option>
+                          <option value={24}>24h</option>
+                          <option value={48}>48h</option>
+                        </select>
+                        <button
+                          disabled={isPunishing}
+                          onClick={() => handlePunish(t.id)}
+                          className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive hover:bg-destructive/20 transition disabled:opacity-50"
+                        >
+                          {isPunishing ? "…" : "Punish"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

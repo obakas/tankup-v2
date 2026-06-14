@@ -40,6 +40,8 @@ import { parseApiDate } from "@/lib/utils";
 import {
   clearFleetHeadToken,
   dismissFleetHeadAlert,
+  forgiveDriver,
+  punishDriver,
   getFleetHeadAlerts,
   getFleetHeadFinancials,
   getFleetHeadLive,
@@ -366,10 +368,12 @@ function LiveTab({ live, theme }: { live: LiveData | null; theme: TankupTheme })
 function TankersTab({
   tankers,
   theme,
+  token,
   onTankerAdded,
 }: {
   tankers: TankerCard[];
   theme: TankupTheme;
+  token: string;
   onTankerAdded: () => void;
 }) {
   const [filter, setFilter] = useState("all");
@@ -377,9 +381,39 @@ function TankersTab({
   const [formData, setFormData] = useState({ driver_name: "", phone: "", tank_plate_number: "" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [forgiveLoadingId, setForgiveLoadingId] = useState<number | null>(null);
+  const [punishLoadingId, setPunishLoadingId] = useState<number | null>(null);
+  const [punishHours, setPunishHours] = useState<Record<number, 2 | 24 | 48>>({});
 
   const statusOptions = ["all", "available", "assigned", "loading", "delivering", "arrived", "offline", "inactive"];
   const filtered = filter === "all" ? tankers : tankers.filter((t) => t.status === filter);
+
+  const handleForgive = async (tankerId: number) => {
+    setForgiveLoadingId(tankerId);
+    try {
+      await forgiveDriver(token, tankerId);
+      toast.success("Punishment cleared");
+      onTankerAdded();
+    } catch {
+      toast.error("Failed to forgive driver");
+    } finally {
+      setForgiveLoadingId(null);
+    }
+  };
+
+  const handlePunish = async (tankerId: number) => {
+    const hours = punishHours[tankerId] ?? 2;
+    setPunishLoadingId(tankerId);
+    try {
+      await punishDriver(token, tankerId, hours);
+      toast.success(`Driver punished for ${hours}h`);
+      onTankerAdded();
+    } catch {
+      toast.error("Failed to punish driver");
+    } finally {
+      setPunishLoadingId(null);
+    }
+  };
 
   const handleRegister = async () => {
     if (!formData.driver_name || !formData.phone || !formData.tank_plate_number) {
@@ -509,36 +543,114 @@ function TankersTab({
         />
       ) : (
         <View style={{ gap: 10 }}>
-          {filtered.map((t) => (
-            <View key={t.id} style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 15 }}>{t.driver_name}</Text>
-                  <Text style={{ color: theme.mutedForeground, fontSize: 13, marginTop: 2 }}>{t.phone}</Text>
-                  <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 2 }}>Plate: {t.tank_plate_number}</Text>
-                  {(t.active_batch_id || t.current_request_id) && (
-                    <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 4 }}>
-                      {t.active_batch_id ? `Active batch: #${t.active_batch_id}` : `Active request: #${t.current_request_id}`}
+          {filtered.map((t) => {
+            const isPunished = !!t.paused_until && new Date(t.paused_until) > new Date();
+            const isForgiving = forgiveLoadingId === t.id;
+            const isPunishing = punishLoadingId === t.id;
+            const selectedHours = punishHours[t.id] ?? 2;
+            const PUNISH_OPTIONS: Array<2 | 24 | 48> = [2, 24, 48];
+            return (
+              <View key={t.id} style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 15 }}>{t.driver_name}</Text>
+                    <Text style={{ color: theme.mutedForeground, fontSize: 13, marginTop: 2 }}>{t.phone}</Text>
+                    <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 2 }}>Plate: {t.tank_plate_number}</Text>
+                    {(t.active_batch_id || t.current_request_id) && (
+                      <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 4 }}>
+                        {t.active_batch_id ? `Active batch: #${t.active_batch_id}` : `Active request: #${t.current_request_id}`}
+                      </Text>
+                    )}
+                    {t.pending_offer_type && (
+                      <Text style={{ color: theme.warning, fontSize: 12, marginTop: 4 }}>
+                        Pending {t.pending_offer_type} offer
+                      </Text>
+                    )}
+                    {isPunished && (
+                      <Text style={{ color: theme.destructive, fontSize: 12, fontWeight: "600", marginTop: 4 }}>
+                        ⚠ Penalised — blocked from new offers
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                    <StatusBadge status={t.status} />
+                    <Text style={{ color: t.is_online ? theme.success : theme.mutedForeground, fontSize: 11, fontWeight: "500" }}>
+                      {t.is_online ? "● Online" : "○ Offline"}
                     </Text>
-                  )}
-                  {t.pending_offer_type && (
-                    <Text style={{ color: theme.warning, fontSize: 12, marginTop: 4 }}>
-                      Pending {t.pending_offer_type} offer
+                    <Text style={{ color: t.is_available ? theme.primary : theme.mutedForeground, fontSize: 11 }}>
+                      {t.is_available ? "Available" : "Busy"}
                     </Text>
-                  )}
-                </View>
-                <View style={{ alignItems: "flex-end", gap: 6 }}>
-                  <StatusBadge status={t.status} />
-                  <Text style={{ color: t.is_online ? theme.success : theme.mutedForeground, fontSize: 11, fontWeight: "500" }}>
-                    {t.is_online ? "● Online" : "○ Offline"}
-                  </Text>
-                  <Text style={{ color: t.is_available ? theme.primary : theme.mutedForeground, fontSize: 11 }}>
-                    {t.is_available ? "Available" : "Busy"}
-                  </Text>
+                    {isPunished ? (
+                      <Pressable
+                        onPress={() => handleForgive(t.id)}
+                        disabled={isForgiving}
+                        style={{
+                          marginTop: 4,
+                          borderWidth: 1,
+                          borderColor: VIOLET,
+                          borderRadius: 10,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          backgroundColor: VIOLET_SOFT,
+                          opacity: isForgiving ? 0.5 : 1,
+                        }}
+                      >
+                        {isForgiving ? (
+                          <ActivityIndicator size="small" color={VIOLET} />
+                        ) : (
+                          <Text style={{ color: VIOLET, fontSize: 12, fontWeight: "700" }}>Forgive</Text>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={{ marginTop: 4, gap: 4 }}>
+                        {/* Duration pill selector */}
+                        <View style={{ flexDirection: "row", gap: 4 }}>
+                          {PUNISH_OPTIONS.map((h) => (
+                            <Pressable
+                              key={h}
+                              onPress={() => setPunishHours((p) => ({ ...p, [t.id]: h }))}
+                              style={{
+                                borderWidth: 1,
+                                borderColor: selectedHours === h ? theme.destructive : theme.border,
+                                borderRadius: 8,
+                                paddingHorizontal: 6,
+                                paddingVertical: 3,
+                                backgroundColor: selectedHours === h ? theme.destructiveSoft : theme.card,
+                              }}
+                            >
+                              <Text style={{ color: selectedHours === h ? theme.destructive : theme.mutedForeground, fontSize: 11, fontWeight: "600" }}>
+                                {h}h
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                        <Pressable
+                          onPress={() => handlePunish(t.id)}
+                          disabled={isPunishing}
+                          style={{
+                            borderWidth: 1,
+                            borderColor: theme.destructive,
+                            borderRadius: 10,
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            backgroundColor: theme.destructiveSoft,
+                            alignItems: "center",
+                            opacity: isPunishing ? 0.5 : 1,
+                          }}
+                        >
+                          {isPunishing ? (
+                            <ActivityIndicator size="small" color={theme.destructive} />
+                          ) : (
+                            <Text style={{ color: theme.destructive, fontSize: 12, fontWeight: "700" }}>Punish</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </View>
@@ -1323,11 +1435,12 @@ export default function FleetHeadScreen() {
         >
           {tab === "live" && <LiveTab live={live} theme={theme} />}
           {tab === "financials" && <FinancialsTab data={financials} theme={theme} />}
-          {tab === "tankers" && (
+          {tab === "tankers" && token && (
             <TankersTab
               tankers={tankers}
               theme={theme}
-              onTankerAdded={() => token && fetchAll(token, true)}
+              token={token}
+              onTankerAdded={() => fetchAll(token, true)}
             />
           )}
           {tab === "overview" && (

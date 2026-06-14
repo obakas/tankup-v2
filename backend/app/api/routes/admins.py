@@ -1217,6 +1217,62 @@ def admin_reassign_from_operation_alert(
     }
 
 
+class PunishDriverPayload(BaseModel):
+    hours: int = Field(..., description="Punishment duration in hours — must be 2, 24, or 48")
+
+
+@router.post("/tankers/{tanker_id}/punish")
+def punish_driver(tanker_id: int, payload: PunishDriverPayload, db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
+    if payload.hours not in (2, 24, 48):
+        raise HTTPException(status_code=400, detail="hours must be 2, 24, or 48")
+
+    tanker = db.query(Tanker).filter(Tanker.id == tanker_id).first()
+    if not tanker:
+        raise HTTPException(status_code=404, detail="Tanker not found")
+
+    tanker.paused_until = datetime.utcnow() + timedelta(hours=payload.hours)
+    db.add(tanker)
+    db.commit()
+    db.refresh(tanker)
+
+    return {
+        "message": f"Driver punished for {payload.hours}h",
+        "tanker_id": tanker.id,
+        "paused_until": _iso(tanker.paused_until),
+    }
+
+
+@router.post("/tankers/{tanker_id}/forgive")
+def forgive_driver(tanker_id: int, db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
+    tanker = db.query(Tanker).filter(Tanker.id == tanker_id).first()
+    if not tanker:
+        raise HTTPException(status_code=404, detail="Tanker not found")
+
+    was_paused = bool(tanker.paused_until and tanker.paused_until > datetime.utcnow())
+
+    tanker.paused_until = None
+    tanker.offline_grace_started_at = None
+    tanker.offline_notified_at = None
+    tanker.offline_escalated_at = None
+    tanker.offline_followup_sent_at = None
+
+    # Restore availability flag if status is available but punishment was blocking new offers
+    if tanker.status == "available":
+        tanker.is_available = True
+
+    db.add(tanker)
+    db.commit()
+    db.refresh(tanker)
+
+    return {
+        "message": "Driver punishment cleared",
+        "tanker_id": tanker.id,
+        "was_paused": was_paused,
+        "status": tanker.status,
+        "is_available": tanker.is_available,
+    }
+
+
 @router.post("/operation-alerts/{alert_id}/dismiss", dependencies=[Depends(require_admin)])
 def admin_dismiss_operation_alert(alert_id: int, db: Session = Depends(get_db)):
     alert = db.query(OperationAlert).filter(OperationAlert.id == alert_id).first()

@@ -43,6 +43,7 @@ export interface TankerCard {
   latitude: number | null;
   longitude: number | null;
   last_location_update_at: string | null;
+  paused_until?: string | null;
 }
 
 export interface BatchCard {
@@ -121,3 +122,15 @@ export interface CreateTankerPayload {
 
 export const registerTanker = (payload: CreateTankerPayload) =>
   apiRequest<TankerCard>("/tankers/", { method: "POST", body: payload });
+
+export const fleetForgiveDriver = (tankerId: number) =>
+  fleetRequest<{ message: string; tanker_id: number; was_paused: boolean; status: string; is_available: boolean }>(
+    `/admin/tankers/${tankerId}/forgive`,
+    { method: "POST" },
+  );
+
+export const fleetPunishDriver = (tankerId: number, hours: 2 | 24 | 48) =>
+  fleetRequest<{ message: string; tanker_id: number; paused_until: string }>(
+    `/admin/tankers/${tankerId}/punish`,
+    { method: "POST", body: { hours } },
+  );

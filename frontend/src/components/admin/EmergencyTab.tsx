@@ -8,6 +8,8 @@ import {
   adminForceExpireBatch,
   adminForceOfferBatch,
   adminForceOfferPriority,
+  adminForgiveDriver,
+  adminPunishDriver,
   adminResetTanker,
 } from "@/lib/admin";
 
@@ -26,6 +28,9 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
   const [offerTankerId, setOfferTankerId] = useState("");
   const [expireBatchId, setExpireBatchId] = useState("");
   const [resetTankerId, setResetTankerId] = useState("");
+  const [forgiveTankerId, setForgiveTankerId] = useState("");
+  const [punishTankerId, setPunishTankerId] = useState("");
+  const [punishHours, setPunishHours] = useState<2 | 24 | 48>(2);
 
   return (
     <div className="space-y-4">
@@ -146,6 +151,65 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
             }
           >
             Expire batch + refund
+          </Button>
+        </ControlCard>
+
+        {/* Forgive driver */}
+        <ControlCard title="Forgive driver (clear punishment)">
+          <p className="text-sm text-muted-foreground">
+            Clears the driver's <code>paused_until</code> penalty and offline grace state without touching their
+            current delivery or batch. Use when a driver went offline briefly mid-job and came back.
+          </p>
+          <Input
+            value={forgiveTankerId}
+            onChange={(e) => setForgiveTankerId(e.target.value)}
+            placeholder="Tanker ID"
+          />
+          <Button
+            variant="outline"
+            disabled={isActionLoading || !forgiveTankerId}
+            onClick={() =>
+              askConfirm(
+                "Forgive driver",
+                `Clear punishment for tanker #${forgiveTankerId}? This lets them take new jobs immediately without resetting their active delivery or batch.`,
+                () => adminForgiveDriver(Number(forgiveTankerId)),
+              )
+            }
+          >
+            Forgive driver
+          </Button>
+        </ControlCard>
+
+        {/* Punish driver */}
+        <ControlCard title="Punish driver (set penalty)">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              value={punishTankerId}
+              onChange={(e) => setPunishTankerId(e.target.value)}
+              placeholder="Tanker ID"
+            />
+            <select
+              value={punishHours}
+              onChange={(e) => setPunishHours(Number(e.target.value) as 2 | 24 | 48)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <option value={2}>2 hours (mild)</option>
+              <option value={24}>24 hours (moderate)</option>
+              <option value={48}>48 hours (severe)</option>
+            </select>
+          </div>
+          <Button
+            variant="destructive"
+            disabled={isActionLoading || !punishTankerId}
+            onClick={() =>
+              askConfirm(
+                "Punish driver",
+                `Block tanker #${punishTankerId} from receiving new offers for ${punishHours}h. Their active delivery or batch is unaffected.`,
+                () => adminPunishDriver(Number(punishTankerId), punishHours),
+              )
+            }
+          >
+            Punish driver
           </Button>
         </ControlCard>
 

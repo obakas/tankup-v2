@@ -253,6 +253,12 @@ export const adminRefundMember = (memberId: number) =>
 export const adminResetTanker = (tankerId: number) =>
   adminRequest(`/admin/tankers/${tankerId}/reset`, { method: "POST" });
 
+export const adminForgiveDriver = (tankerId: number) =>
+  adminRequest(`/admin/tankers/${tankerId}/forgive`, { method: "POST" });
+
+export const adminPunishDriver = (tankerId: number, hours: 2 | 24 | 48) =>
+  adminRequest(`/admin/tankers/${tankerId}/punish`, { method: "POST", body: { hours } });
+
 export const adminCleanupExpired = () =>
   adminRequest(`/admin/maintenance/cleanup-expired`, { method: "POST" });
 
