@@ -101,12 +101,8 @@ function SiteForm({
     }
   };
 
-  const handleSkip = async () => {
-    try {
-      await skipSiteReport(tankerId, earning.delivery_record_id);
-    } catch {
-      // silently ignore skip errors
-    }
+  const handleSkip = () => {
+    void skipSiteReport(tankerId, earning.delivery_record_id).catch(() => {});
     onDone(false);
   };
 
@@ -119,6 +115,9 @@ function SiteForm({
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Submit to earn <span className="font-bold text-success">+₦1,000 bonus</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Your notes help future drivers prepare for this site.
           </p>
         </div>
         <Leaf className="h-5 w-5 text-success" />

@@ -121,12 +121,8 @@ function SiteForm({
     }
   }, [tankerId, earning.delivery_record_id, tankHeight, hoseDiff, roadDiff, onDone]);
 
-  const handleSkip = useCallback(async () => {
-    try {
-      await skipSiteReport(tankerId, earning.delivery_record_id);
-    } catch {
-      // silent
-    }
+  const handleSkip = useCallback(() => {
+    void skipSiteReport(tankerId, earning.delivery_record_id).catch(() => {});
     onDone(false);
   }, [tankerId, earning.delivery_record_id, onDone]);
 
@@ -146,6 +142,9 @@ function SiteForm({
           </Text>
           <Text style={{ color: theme.success }} className="text-xs font-semibold">
             Submit to earn +₦1,000 bonus
+          </Text>
+          <Text style={{ color: theme.mutedForeground }} className="text-xs mt-1">
+            Your notes help future drivers prepare for this site.
           </Text>
         </View>
       </View>
