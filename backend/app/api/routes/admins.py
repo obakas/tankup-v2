@@ -734,6 +734,29 @@ def force_expire_batch(batch_id: int, refund_paid_members: bool = True, db: Sess
 
 
 
+@router.post("/requests/cancel-all-pending")
+def admin_cancel_all_pending_requests(
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    pending = db.query(LiquidRequest).filter(LiquidRequest.status == "pending").all()
+    cancelled_ids: list[int] = []
+    for req in pending:
+        try:
+            ensure_valid_transition(req, "cancelled")
+        except Exception:
+            continue
+        req.status = "cancelled"
+        req.assignment_failed_reason = "admin_bulk_cancel"
+        req.assignment_failed_at = _utcnow()
+        req.refund_eligible = True
+        db.add(req)
+        cancelled_ids.append(req.id)
+
+    db.commit()
+    return {"cancelled_count": len(cancelled_ids), "request_ids": cancelled_ids}
+
+
 @router.post("/requests/{request_id}/cancel")
 def admin_cancel_priority_request(
     request_id: int,

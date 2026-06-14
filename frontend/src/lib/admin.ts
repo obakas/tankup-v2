@@ -315,6 +315,11 @@ export const adminForceOfferPriority = (requestId: number, tankerId: number) =>
     method: "POST",
   });
 
+export const adminCancelAllPending = () =>
+  adminRequest<{ cancelled_count: number; request_ids: number[] }>(`/admin/requests/cancel-all-pending`, {
+    method: "POST",
+  });
+
 export interface FinancialSummary {
   total_revenue: number;
   total_refunded: number;

@@ -3,6 +3,7 @@ import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  adminCancelAllPending,
   adminCancelPriorityRequest,
   adminCleanupExpired,
   adminForceExpireBatch,
@@ -78,7 +79,7 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
           </Button>
         </ControlCard>
 
-        {/* Cancel priority */}
+        {/* Cancel priority request */}
         <ControlCard title="Cancel priority request">
           <Input
             value={cancelPriorityRequestId}
@@ -232,6 +233,27 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
             }
           >
             Reset tanker
+          </Button>
+        </ControlCard>
+
+        {/* Cancel all pending */}
+        <ControlCard title="Cancel all pending requests">
+          <p className="text-sm text-muted-foreground">
+            Cancels every request currently in <code>pending</code> status. Use when the queue is
+            stuck or for testing cleanup — not reversible.
+          </p>
+          <Button
+            variant="destructive"
+            disabled={isActionLoading}
+            onClick={() =>
+              askConfirm(
+                "Cancel all pending requests",
+                "This will cancel every request in 'pending' status and mark paid ones as refund-eligible. This cannot be undone.",
+                () => adminCancelAllPending(),
+              )
+            }
+          >
+            Cancel all pending
           </Button>
         </ControlCard>
 
