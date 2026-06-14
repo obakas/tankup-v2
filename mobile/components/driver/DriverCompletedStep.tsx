@@ -322,8 +322,8 @@ export function DriverCompletedStep({
           <View style={{ gap: 8 }}>
             <View className="flex-row justify-between">
               <Text style={{ color: theme.mutedForeground }} className="text-sm">Delivery type</Text>
-              <Text style={{ color: theme.foreground }} className="text-sm font-semibold capitalize">
-                {deliveryType ?? "—"}
+              <Text style={{ color: theme.foreground }} className="text-sm font-semibold">
+                {deliveryType === "priority" ? "Exclusive Delivery" : deliveryType === "batch" ? "Batch" : (deliveryType ?? "—")}
               </Text>
             </View>
             <View className="flex-row justify-between">

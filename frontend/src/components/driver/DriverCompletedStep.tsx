@@ -250,7 +250,9 @@ export const DriverCompletedStep = ({
 
           <div className="flex justify-between">
             <span className="text-muted-foreground">Type</span>
-            <span className="font-medium capitalize text-foreground">{job.jobType}</span>
+            <span className="font-medium text-foreground">
+              {job.jobType === "priority" ? "Exclusive Delivery" : job.jobType === "batch" ? "Batch" : job.jobType}
+            </span>
           </div>
 
           {job.liquidName && (

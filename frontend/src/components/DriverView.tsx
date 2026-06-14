@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -217,6 +217,13 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     nextInstruction,
     driverLocation,
   } = useDriverFlow(driver);
+
+  // Capture last non-null job+deliveries so DriverCompletedStep can still render
+  // after the backend closes the job (active_job becomes null on completion).
+  const lastJobRef = useRef<typeof activeJob>(null);
+  const lastDeliveriesRef = useRef<typeof deliveries>([]);
+  if (activeJob) lastJobRef.current = activeJob;
+  if (deliveries.length > 0) lastDeliveriesRef.current = deliveries;
 
   const { alertsEnabled, notificationPermission, enableAlerts, disableAlerts } =
     useDriverOfferAlarm(incomingOffer);
@@ -452,8 +459,9 @@ const DriverView = ({ onBack }: DriverViewProps) => {
           </div>
         );
 
-      case "completed":
-        if (!activeJob) {
+      case "completed": {
+        const jobForReceipt = activeJob ?? lastJobRef.current;
+        if (!jobForReceipt) {
           return (
             <StateBridgeCard
               title="Job Completed"
@@ -463,15 +471,17 @@ const DriverView = ({ onBack }: DriverViewProps) => {
             />
           );
         }
-
+        const deliveriesForReceipt =
+          deliveries.length > 0 ? deliveries : lastDeliveriesRef.current;
         return (
           <DriverCompletedStep
-            job={activeJob}
-            deliveries={deliveries}
+            job={jobForReceipt}
+            deliveries={deliveriesForReceipt}
             onBackToDashboard={resetToDashboard}
             tankerId={driver?.tankerId ?? 0}
           />
         );
+      }
 
       default:
         return (
