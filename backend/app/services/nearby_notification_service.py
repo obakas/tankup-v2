@@ -87,16 +87,35 @@ def _find_eligible_users(db: Session, batch: Batch) -> list[User]:
     return list(eligible.values())
 
 
+_BATCH_NOTIFY_MESSAGES: dict[str, tuple[str, str]] = {
+    "forming": (
+        "Water delivery forming near you",
+        "A shared batch is forming near your site. Join now to lock in the lower rate.",
+    ),
+    "near_ready": (
+        "Batch forming near your site!",
+        "A delivery batch nearby is almost full — join before it closes.",
+    ),
+}
+
+
 def process_nearby_batch_notifications(db: Session) -> list[str]:
-    near_ready_batches = (
-        db.query(Batch).filter(Batch.status == "near_ready").all()
+    batches = (
+        db.query(Batch)
+        .filter(Batch.status.in_(["forming", "near_ready"]))
+        .all()
     )
 
     log: list[str] = []
-    for batch in near_ready_batches:
+    for batch in batches:
         eligible_users = _find_eligible_users(db, batch)
         if not eligible_users:
             continue
+
+        title, body = _BATCH_NOTIFY_MESSAGES.get(
+            batch.status,
+            _BATCH_NOTIFY_MESSAGES["near_ready"],
+        )
 
         sent: list[int] = []
         for user in eligible_users:
@@ -104,8 +123,8 @@ def process_nearby_batch_notifications(db: Session) -> list[str]:
                 continue
             ok = _send_expo_push(
                 token=user.expo_push_token,
-                title="Batch forming near your site!",
-                body="A delivery batch nearby is almost full — join before it closes.",
+                title=title,
+                body=body,
                 data={"type": "batch_invite", "batch_id": batch.id},
             )
             if ok:
@@ -119,7 +138,7 @@ def process_nearby_batch_notifications(db: Session) -> list[str]:
         if sent:
             db.commit()
             log.append(
-                f"Batch {batch.id}: notified {len(sent)} nearby user(s) {sent}"
+                f"Batch {batch.id} ({batch.status}): notified {len(sent)} nearby user(s) {sent}"
             )
 
     return log
