@@ -204,13 +204,16 @@ export const getAdminMe = () => adminRequest<AdminMeResponse>("/admin/me");
 export const getAdminOverview = () => adminRequest<AdminOverviewResponse>("/admin/overview");
 export const getAdminLive = (limit = 20) => adminRequest<AdminLiveResponse>(`/admin/live?limit=${limit}`);
 
-export const getAdminRequests = (params?: { limit?: number; deliveryType?: string; status?: string; search?: string }) => {
+export const getAdminRequests = (params?: { limit?: number; offset?: number; deliveryType?: string; status?: string; search?: string; fromDate?: string; toDate?: string }) => {
   const q = new URLSearchParams();
   if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
   if (params?.deliveryType) q.set("delivery_type", params.deliveryType);
   if (params?.status) q.set("status", params.status);
   if (params?.search) q.set("search", params.search);
-  return adminRequest<{ items: AdminRequestItem[] }>(`/admin/requests?${q.toString()}`);
+  if (params?.fromDate) q.set("from_date", params.fromDate);
+  if (params?.toDate) q.set("to_date", params.toDate);
+  return adminRequest<{ items: AdminRequestItem[]; total: number }>(`/admin/requests?${q.toString()}`);
 };
 
 export const getAdminRequestDetail = (requestId: number) =>
@@ -232,13 +235,16 @@ export const getAdminTankers = (params?: { limit?: number; status?: string; sear
   return adminRequest<{ items: AdminTankerCard[] }>(`/admin/tankers?${q.toString()}`);
 };
 
-export const getAdminDeliveries = (params?: { limit?: number; status?: string; jobType?: string; search?: string }) => {
+export const getAdminDeliveries = (params?: { limit?: number; offset?: number; status?: string; jobType?: string; search?: string; fromDate?: string; toDate?: string }) => {
   const q = new URLSearchParams();
   if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.offset) q.set("offset", String(params.offset));
   if (params?.status) q.set("status", params.status);
   if (params?.jobType) q.set("job_type", params.jobType);
   if (params?.search) q.set("search", params.search);
-  return adminRequest<{ items: AdminDeliveryCard[] }>(`/admin/deliveries?${q.toString()}`);
+  if (params?.fromDate) q.set("from_date", params.fromDate);
+  if (params?.toDate) q.set("to_date", params.toDate);
+  return adminRequest<{ items: AdminDeliveryCard[]; total: number }>(`/admin/deliveries?${q.toString()}`);
 };
 
 export const adminForceExpireBatch = (batchId: number, refundPaidMembers = true) =>

@@ -526,9 +526,12 @@ def admin_live(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_d
 @router.get("/requests")
 def admin_requests(
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     delivery_type: str | None = Query(None),
     status: str | None = Query(None),
     search: str | None = Query(None),
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
     db: Session = Depends(get_db),
     current_admin: dict = Depends(require_admin)
 ):
@@ -547,9 +550,13 @@ def admin_requests(
                 LiquidRequest.delivery_type.ilike(term),
             )
         )
-    requests = query.order_by(LiquidRequest.created_at.desc(), LiquidRequest.id.desc()).limit(limit).all()
-    # return {"items": [_build_request_item(item) for item in requests]}
-    return {"items": [_build_request_item(db, item) for item in requests]}
+    if from_date:
+        query = query.filter(LiquidRequest.created_at >= datetime.fromisoformat(from_date))
+    if to_date:
+        query = query.filter(LiquidRequest.created_at < datetime.fromisoformat(to_date) + timedelta(days=1))
+    total = query.count()
+    requests = query.order_by(LiquidRequest.created_at.desc(), LiquidRequest.id.desc()).offset(offset).limit(limit).all()
+    return {"items": [_build_request_item(db, item) for item in requests], "total": total}
 
 
 @router.get("/requests/{request_id}")
@@ -652,9 +659,12 @@ def admin_tankers(limit: int = Query(50, ge=1, le=200), status: str | None = Que
 @router.get("/deliveries")
 def admin_deliveries(
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
     status: str | None = Query(None),
     job_type: str | None = Query(None),
     search: str | None = Query(None),
+    from_date: str | None = Query(None),
+    to_date: str | None = Query(None),
     db: Session = Depends(get_db),
     current_admin: dict = Depends(require_admin)
 ):
@@ -677,8 +687,13 @@ def admin_deliveries(
                 DeliveryRecord.user_id.like(term),
             )
         )
-    deliveries = query.order_by(DeliveryRecord.updated_at.desc(), DeliveryRecord.id.desc()).limit(limit).all()
-    return {"items": [_build_delivery_card(db, item) for item in deliveries]}
+    if from_date:
+        query = query.filter(DeliveryRecord.created_at >= datetime.fromisoformat(from_date))
+    if to_date:
+        query = query.filter(DeliveryRecord.created_at < datetime.fromisoformat(to_date) + timedelta(days=1))
+    total = query.count()
+    deliveries = query.order_by(DeliveryRecord.updated_at.desc(), DeliveryRecord.id.desc()).offset(offset).limit(limit).all()
+    return {"items": [_build_delivery_card(db, item) for item in deliveries], "total": total}
 
 
 # ---------- write endpoints ----------
