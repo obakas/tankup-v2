@@ -53,6 +53,10 @@ const RequestStep = ({
 }: RequestStepProps) => {
   const selectedSite = userSites.find(s => s.id === selectedSiteId);
 
+  const ac = requestMode === "priority"
+    ? { text: "text-warning", selectedCard: "border-warning bg-warning/5 shadow-md shadow-warning/10", unselectedCard: "border-border bg-card hover:border-warning/30", iconBg: "bg-warning/10", iconText: "text-warning" }
+    : { text: "text-primary", selectedCard: "border-primary bg-primary/5 shadow-md shadow-primary/10", unselectedCard: "border-border bg-card hover:border-primary/30", iconBg: "bg-primary/10", iconText: "text-primary" };
+
   const [batchTimingMode, setBatchTimingMode] = useState<"now" | "schedule">("now");
   const [selectedDay, setSelectedDay] = useState<0 | 1 | 2>(1);
   const [selectedBlock, setSelectedBlock] = useState<"morning" | "afternoon">("morning");
@@ -385,7 +389,7 @@ const RequestStep = ({
           </div>
           <button
             onClick={onAddSite}
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
+            className={`flex items-center gap-1 text-sm ${ac.text} hover:underline`}
           >
             <Plus className="h-3.5 w-3.5" />
             Add site
@@ -402,7 +406,7 @@ const RequestStep = ({
             <p className="text-sm text-muted-foreground">No sites saved yet.</p>
             <button
               onClick={onAddSite}
-              className="mt-2 text-sm text-primary hover:underline"
+              className={`mt-2 text-sm ${ac.text} hover:underline`}
             >
               Add your first delivery site
             </button>
@@ -414,14 +418,12 @@ const RequestStep = ({
                 key={site.id}
                 onClick={() => onSelectSite(site.id)}
                 className={`w-full rounded-xl border-2 p-3 text-left transition-all duration-200 ${
-                  selectedSiteId === site.id
-                    ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-                    : "border-border bg-card hover:border-primary/30"
+                  selectedSiteId === site.id ? ac.selectedCard : ac.unselectedCard
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <MapPin className="h-4 w-4 text-primary" />
+                  <div className={`w-8 h-8 rounded-lg ${ac.iconBg} flex items-center justify-center shrink-0 mt-0.5`}>
+                    <MapPin className={`h-4 w-4 ${ac.iconText}`} />
                   </div>
                   <div className="min-w-0">
                     <p className="font-medium text-foreground text-sm">
