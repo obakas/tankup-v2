@@ -93,6 +93,8 @@ export function RequestStep({
   const mutedText = { color: theme.mutedForeground };
   const cardStyle = { backgroundColor: theme.card, borderColor: theme.border };
   const surfaceStyle = { backgroundColor: theme.cardSoft, borderColor: theme.border };
+  const accentColor = mode === "priority" ? theme.warning : theme.primary;
+  const accentSoft  = mode === "priority" ? theme.warningSoft : theme.primarySoft;
 
   const [showPicker, setShowPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
@@ -499,8 +501,8 @@ export function RequestStep({
             onPress={onAddSite}
             className="flex-row items-center gap-1"
           >
-            <Plus size={14} color={theme.primary} />
-            <Text style={{ color: theme.primary }} className="text-sm">
+            <Plus size={14} color={accentColor} />
+            <Text style={{ color: accentColor }} className="text-sm">
               Add site
             </Text>
           </Pressable>
@@ -508,7 +510,7 @@ export function RequestStep({
 
         {loadingSites ? (
           <View className="items-center py-6">
-            <ActivityIndicator color={theme.primary} />
+            <ActivityIndicator color={accentColor} />
           </View>
         ) : userSites.length === 0 ? (
           <Pressable
@@ -518,7 +520,7 @@ export function RequestStep({
           >
             <MapPin size={24} color={theme.mutedForeground} />
             <Text style={mutedText} className="text-sm">No sites saved yet.</Text>
-            <Text style={{ color: theme.primary }} className="text-sm">
+            <Text style={{ color: accentColor }} className="text-sm">
               Add your first delivery site
             </Text>
           </Pressable>
@@ -529,16 +531,16 @@ export function RequestStep({
                 key={site.id}
                 onPress={() => onSelectSite(site.id)}
                 style={{
-                  backgroundColor: selectedSiteId === site.id ? theme.primarySoft : theme.card,
-                  borderColor: selectedSiteId === site.id ? theme.primary : theme.border,
+                  backgroundColor: selectedSiteId === site.id ? accentSoft : theme.card,
+                  borderColor: selectedSiteId === site.id ? accentColor : theme.border,
                 }}
                 className="rounded-xl border-2 p-3 flex-row gap-3 items-start"
               >
                 <View
-                  style={{ backgroundColor: theme.primarySoft }}
+                  style={{ backgroundColor: accentSoft }}
                   className="w-8 h-8 rounded-lg items-center justify-center mt-0.5"
                 >
-                  <MapPin size={16} color={theme.primary} />
+                  <MapPin size={16} color={accentColor} />
                 </View>
                 <View className="flex-1">
                   <Text style={text} className="text-sm font-medium" numberOfLines={1}>
