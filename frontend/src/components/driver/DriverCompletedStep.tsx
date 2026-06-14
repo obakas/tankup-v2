@@ -191,7 +191,10 @@ export const DriverCompletedStep = ({
       try {
         const data = await fetchDriverEarnings(tankerId, "today");
         if (!mounted) return;
-        const all = data.jobs.flatMap((g) => g.stops);
+        const group = data.jobs.find(
+          (g) => g.job_type === job.jobType && g.job_id === job.jobId
+        );
+        const all = group ? group.stops : data.jobs.flatMap((g) => g.stops);
         const pending = all.filter((s) => s.site_bonus === null);
         setAllEarnings(all);
         setPendingEarnings(pending);

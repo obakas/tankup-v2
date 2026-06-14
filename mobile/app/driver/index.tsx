@@ -134,6 +134,11 @@ export default function DriverFlow() {
             onBackOnline={flow.markCompletedAsAvailable}
             tankerId={flow.driver?.tankerId ?? null}
             deliveryType={flow.job?.assignment_type}
+            jobId={
+              flow.job?.assignment_type === "batch"
+                ? (flow.job?.active_job?.batch_id ?? flow.job?.batch_id ?? null)
+                : (flow.job?.active_job?.request_id ?? flow.job?.request_id ?? null)
+            }
           />
         )}
       </ScrollView>

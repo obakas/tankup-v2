@@ -232,10 +232,12 @@ export function DriverCompletedStep({
   onBackOnline,
   tankerId,
   deliveryType,
+  jobId,
 }: {
   onBackOnline: () => void;
   tankerId: number | null;
   deliveryType?: string;
+  jobId?: number | null;
 }) {
   const { theme } = useAppTheme();
   const { toast, showToast } = useToast();
@@ -256,7 +258,11 @@ export function DriverCompletedStep({
       try {
         const data = await fetchDriverEarnings(tankerId!, "today");
         if (!mounted) return;
-        const all = data.jobs.flatMap((g) => g.stops);
+        const jobType = deliveryType === "batch" ? "batch" : "priority";
+        const group = jobId != null
+          ? data.jobs.find((g) => g.job_type === jobType && g.job_id === jobId)
+          : null;
+        const all = group ? group.stops : data.jobs.flatMap((g) => g.stops);
         const pending = all.filter((s) => s.site_bonus === null);
         setAllEarnings(all);
         setPendingEarnings(pending);
