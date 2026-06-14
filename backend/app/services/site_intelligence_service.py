@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from math import log1p
 from typing import Optional
 
+import requests as http_requests
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -11,9 +13,27 @@ from app.models.customer_site_profile import CustomerSiteProfile
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.request import LiquidRequest
 
+logger = logging.getLogger(__name__)
 
 # Haversine-based threshold for "same site" deduplication (~50 metres)
 _SAME_SITE_THRESHOLD_KM = 0.05
+
+
+def _fetch_elevation_m(latitude: float, longitude: float) -> Optional[float]:
+    """Best-effort elevation lookup via Open-Elevation API. Returns None on any failure."""
+    try:
+        resp = http_requests.get(
+            "https://api.open-elevation.com/api/v1/lookup",
+            params={"locations": f"{latitude},{longitude}"},
+            timeout=5,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+        if results:
+            return float(results[0]["elevation"])
+    except Exception as exc:
+        logger.warning("Elevation fetch failed for (%.4f, %.4f): %s", latitude, longitude, exc)
+    return None
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -89,6 +109,7 @@ def get_or_create_site_profile(
         parking_difficulty=parking_difficulty,
         has_gate=has_gate,
         gate_notes=gate_notes,
+        terrain_elevation_m=_fetch_elevation_m(latitude, longitude),
     )
     db.add(profile)
     db.flush()

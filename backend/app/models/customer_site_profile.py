@@ -46,6 +46,9 @@ class CustomerSiteProfile(Base):
     truthfulness_score = Column(Float, default=1.0, nullable=False)
     cooperation_score = Column(Float, default=1.0, nullable=False)
 
+    # Terrain — fetched from Open-Elevation API at site creation time
+    terrain_elevation_m = Column(Float, nullable=True)
+
     # Verification lifecycle
     # values: unverified | partially_verified | verified | high_risk | restricted
     verification_status = Column(String, default="unverified", nullable=False)

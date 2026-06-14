@@ -169,6 +169,30 @@ def create_delivery_records_for_batch(
     if not members:
         raise HTTPException(status_code=400, detail="Batch members required")
 
+    # Sort stops low-elevation first so the tanker delivers to flat areas while
+    # heavy, then climbs to hills lighter — reduces engine stress and fuel burn.
+    request_ids = [m.request_id for m in members if m.request_id]
+    if request_ids:
+        reqs = (
+            db.query(LiquidRequest)
+            .filter(LiquidRequest.id.in_(request_ids))
+            .all()
+        )
+        req_to_site: dict[int, int] = {r.id: r.site_profile_id for r in reqs if r.site_profile_id}
+        site_ids = list(set(req_to_site.values()))
+        site_elevations: dict[int, float | None] = {}
+        if site_ids:
+            profiles = (
+                db.query(CustomerSiteProfile)
+                .filter(CustomerSiteProfile.id.in_(site_ids))
+                .all()
+            )
+            site_elevations = {p.id: p.terrain_elevation_m for p in profiles}
+        members = sorted(
+            members,
+            key=lambda m: site_elevations.get(req_to_site.get(m.request_id or -1, -1), None) or float("inf"),
+        )
+
     deliveries: list[DeliveryRecord] = []
     for index, member in enumerate(members, start=1):
         req = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first() if member.request_id else None
