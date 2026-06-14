@@ -24,7 +24,13 @@ from app.models.DeliveryRecord import DeliveryRecord
 from app.models.tanker import Tanker
 from app.models.request import LiquidRequest
 from app.models.batch_member import BatchMember
+from app.models.batch import Batch
 from app.utils.status_rules import ensure_valid_transition, REQUEST_STATUS_TRANSITIONS
+
+_BATCH_TERMINAL_STATUSES = {
+    "completed", "partially_completed", "failed", "expired",
+    "assignment_failed", "cancelled",
+}
 
 
 def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, Any]:
@@ -202,6 +208,57 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
 
     No unpaid member reservation here.
     """
+    # Idempotency: return existing active batch request so a network retry
+    # (where the backend succeeded but the response never reached the client)
+    # doesn't create a duplicate.
+    existing = (
+        db.query(LiquidRequest)
+        .filter(
+            LiquidRequest.user_id == data.user_id,
+            LiquidRequest.delivery_type == "batch",
+            LiquidRequest.status.notin_(_BATCH_TERMINAL_STATUSES),
+        )
+        .order_by(LiquidRequest.id.desc())
+        .first()
+    )
+    if existing:
+        if existing.status == "scheduled":
+            return {
+                "message": "Active scheduled batch request already exists.",
+                "request_id": existing.id,
+                "delivery_type": existing.delivery_type,
+                "request_status": existing.status,
+                "scheduled_for": existing.scheduled_for.isoformat() if existing.scheduled_for else None,
+            }
+
+        member = (
+            db.query(BatchMember)
+            .filter(BatchMember.request_id == existing.id)
+            .first()
+        )
+        if member:
+            batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
+            return {
+                "message": "Active batch request already exists.",
+                "request_id": existing.id,
+                "delivery_type": existing.delivery_type,
+                "batch_id": member.batch_id,
+                "member_id": member.id,
+                "request_status": existing.status,
+                "batch_status": getattr(batch, "status", None),
+                "payment_status": member.payment_status,
+                "member_status": member.status,
+                "delivery_code": getattr(member, "delivery_code", None),
+                "payment_confirmed": True,
+                "batch_snapshot": {
+                    "id": member.batch_id,
+                    "status": getattr(batch, "status", None),
+                    "current_volume": float(getattr(batch, "current_volume", 0) or 0),
+                    "target_volume": float(getattr(batch, "target_volume", 0) or 0),
+                },
+                "orchestration": None,
+            }
+
     if data.scheduled_for:
         request = create_batch_request_record(db, data)
         request.status = "scheduled"

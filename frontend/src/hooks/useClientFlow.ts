@@ -90,6 +90,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [otp, setOtp] = useState<string>("");
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [isLeavingBatch, setIsLeavingBatch] = useState(false);
   const [isBoostLoading, setIsBoostLoading] = useState(false);
   const [requestId, setRequestId] = useState<number | null>(null);
   const [batchId, setBatchId] = useState<number | null>(null);
@@ -558,6 +559,8 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
 
   const handlePayment = async () => {
+    if (isSubmittingRequest) return;
+
     if (!selectedSize) {
       toast.error("Please select a tank size");
       return;
@@ -738,12 +741,14 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   };
 
   const handleLeaveBatch = async () => {
+    if (isLeavingBatch) return;
     if (!memberId) {
       toast.error("No batch membership found");
       return;
     }
 
     try {
+      setIsLeavingBatch(true);
       await leaveBatchMember(memberId);
       localStorage.removeItem(CLIENT_SESSION_KEY);
       toast.success("You left the batch. Your payment was forfeited.");
@@ -752,6 +757,8 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       const message =
         error instanceof Error ? error.message : "Failed to leave batch";
       toast.error(message);
+    } finally {
+      setIsLeavingBatch(false);
     }
   };
 
@@ -929,6 +936,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     handleBackClick,
 
     isSubmittingRequest,
+    isLeavingBatch,
     isRecoveringPriorityRequest,
 
     requestId,

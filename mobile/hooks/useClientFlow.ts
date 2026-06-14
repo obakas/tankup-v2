@@ -371,6 +371,7 @@ export function useClientFlow() {
   };
 
   const handleConfirmPayment = async () => {
+    if (loading) return;
     if (!user || !size || !selectedSiteId) return;
 
     setLoading(true);
@@ -445,6 +446,7 @@ export function useClientFlow() {
   }, []);
 
   const handleBoost = useCallback((additionalVolume: number) => {
+    if (isBoostLoading) return;
     if (!requestResp?.member_id) return;
     const cost = (liveData?.boost_cost_per_liter ?? 0) * additionalVolume;
 
@@ -471,9 +473,10 @@ export function useClientFlow() {
         },
       ]
     );
-  }, [requestResp, liveData, fetchLive]);
+  }, [isBoostLoading, requestResp, liveData, fetchLive]);
 
   const handleLeave = async () => {
+    if (loading) return;
     if (!requestResp?.member_id) return;
 
     Alert.alert(
@@ -503,6 +506,7 @@ export function useClientFlow() {
   };
 
   const handleCancelPriority = useCallback(() => {
+    if (loading) return;
     if (!requestResp?.request_id) return;
 
     const drStatus = liveData?.delivery_status ?? null;
@@ -553,7 +557,7 @@ export function useClientFlow() {
         },
       ]
     );
-  }, [requestResp, liveData]);
+  }, [loading, requestResp, liveData]);
 
   const back = () => {
     if (step === "auth") return goRoleHome();

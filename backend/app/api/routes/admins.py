@@ -988,15 +988,35 @@ def reset_tanker_availability(tanker_id: int, db: Session = Depends(get_db), cur
     if not tanker:
         raise HTTPException(status_code=404, detail="Tanker not found")
 
+    _NON_TERMINAL_BATCH_STATUSES = {
+        "forming", "near_ready", "ready_for_assignment",
+        "assigned", "loading", "delivering", "arrived",
+    }
+    _PRE_DELIVERY = {"assigned", "loading"}
+
+    released_batches = []
+    stale_batches = (
+        db.query(Batch)
+        .filter(Batch.tanker_id == tanker_id, Batch.status.in_(_NON_TERMINAL_BATCH_STATUSES))
+        .all()
+    )
+    for batch in stale_batches:
+        if batch.status in _PRE_DELIVERY:
+            batch.status = "ready_for_assignment"
+            batch.loading_deadline = None
+        # For delivering/arrived batches, admin must resolve the delivery records
+        # separately — we only unlink the tanker so it can take new jobs.
+        batch.tanker_id = None
+        db.add(batch)
+        released_batches.append({"batch_id": batch.id, "prior_status": batch.status})
+
     tanker.pending_offer_type = None
     tanker.pending_offer_id = None
     tanker.offer_expires_at = None
     tanker.current_request_id = None
+    tanker.status = "available"
     tanker.is_available = True
-    if tanker.status in {"completed", "available", "assigned"}:
-        tanker.status = "available"
-    elif tanker.status not in {"loading", "delivering", "arrived"}:
-        tanker.status = "available"
+    tanker.paused_until = None
 
     db.add(tanker)
     db.commit()
@@ -1007,6 +1027,7 @@ def reset_tanker_availability(tanker_id: int, db: Session = Depends(get_db), cur
         "tanker_id": tanker.id,
         "status": tanker.status,
         "is_available": tanker.is_available,
+        "released_batches": released_batches,
     }
 
 

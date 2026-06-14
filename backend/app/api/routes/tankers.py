@@ -629,7 +629,7 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
 def reject_offer(tanker_id: int, db: Session = Depends(get_db)):
     tanker = get_tanker_or_404(db, tanker_id)
     if not tanker.pending_offer_type or not tanker.pending_offer_id:
-        raise HTTPException(status_code=404, detail="No pending offer found")
+        return {"message": "No pending offer — already rejected or expired", "tanker_id": tanker.id, "retry": None}
     pending_type = tanker.pending_offer_type
     pending_id = tanker.pending_offer_id
     offer = get_open_offer_for_tanker(db, tanker)

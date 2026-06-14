@@ -31,6 +31,14 @@ def confirm_batch_member_payment(member_id: int, db: Session = Depends(get_db)):
     if not member:
         raise HTTPException(status_code=404, detail="Batch member not found")
 
+    if member.payment_status == "paid" and member.status == "active":
+        return {
+            "message": "Payment already confirmed.",
+            "member_id": member.id,
+            "batch_id": member.batch_id,
+            "snapshot": None,
+        }
+
     member.payment_status = "paid"
     member.status = "active"
 

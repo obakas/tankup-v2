@@ -32,10 +32,23 @@ def leave_batch_member(db: Session, member_id: int) -> dict:
             detail=f"Cannot leave batch while batch status is '{batch.status}'"
         )
 
-    if member.status in {"withdrawn", "delivered"}:
+    if member.status == "withdrawn":
+        return {
+            "message": "You have already left this batch.",
+            "member_id": member.id,
+            "batch_id": member.batch_id,
+            "member_status": member.status,
+            "payment_status": member.payment_status,
+            "refund_status": member.refund_status,
+            "batch_status": batch.status,
+            "current_volume": batch.current_volume,
+            "target_volume": batch.target_volume,
+        }
+
+    if member.status == "delivered":
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot leave batch because member status is '{member.status}'"
+            detail="Cannot leave batch because delivery is already complete",
         )
 
     if member.payment_status != "paid":
