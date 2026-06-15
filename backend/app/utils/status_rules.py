@@ -21,7 +21,7 @@ BATCH_STATUS_TRANSITIONS = {
     "partially_completed": set(),
     "failed": set(),
     "expired": set(),
-    "assignment_failed": set(),
+    "assignment_failed": {"expired"},
 }
 
 REQUEST_STATUS_TRANSITIONS = {
