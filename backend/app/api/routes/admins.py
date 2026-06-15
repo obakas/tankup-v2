@@ -728,6 +728,31 @@ def force_expire_batch(batch_id: int, refund_paid_members: bool = True, db: Sess
     refunds: list[dict[str, Any]] = []
     members = db.query(BatchMember).filter(BatchMember.batch_id == batch.id).all()
     db.add(batch)
+
+    # Cancel linked requests for all active members
+    terminal_request_statuses = {"completed", "partially_completed", "failed", "cancelled", "assignment_failed"}
+    for member in members:
+        if member.request_id:
+            req = db.query(LiquidRequest).filter(LiquidRequest.id == member.request_id).first()
+            if req and req.status not in terminal_request_statuses:
+                req.status = "cancelled"
+                req.assignment_failed_reason = "admin_force_expired_batch"
+                req.assignment_failed_at = _utcnow()
+                req.refund_eligible = True
+                db.add(req)
+
+    # Free the assigned tanker so it can take new jobs
+    if batch.tanker_id:
+        tanker = db.query(Tanker).filter(Tanker.id == batch.tanker_id).first()
+        if tanker and tanker.status not in {"available", "completed"}:
+            tanker.status = "available"
+            tanker.pending_offer_type = None
+            tanker.pending_offer_id = None
+            tanker.offer_expires_at = None
+            tanker.current_request_id = None
+            tanker.is_available = True
+            db.add(tanker)
+
     db.commit()
     db.refresh(batch)
 
@@ -783,55 +808,56 @@ def admin_cancel_priority_request(
     if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    if request.delivery_type != "priority":
-        raise HTTPException(status_code=400, detail="Only priority requests can be cancelled here")
-
     if request.status == "cancelled":
         return {
-            "message": "Priority request already cancelled — no action needed",
+            "message": "Request already cancelled — no action needed",
             "request_id": request.id,
             "status": request.status,
             "affected_tanker_ids": [],
         }
-    if request.status in {"completed", "failed"}:
+    if request.status in {"completed", "partially_completed", "failed", "assignment_failed"}:
         raise HTTPException(status_code=400, detail=f"Cannot cancel request already resolved as '{request.status}'")
 
-    affected_tankers = (
-        db.query(Tanker)
-        .filter(
-            Tanker.pending_offer_type == "priority",
-            Tanker.pending_offer_id == request.id,
-        )
-        .all()
-    )
+    affected_tankers: list[Tanker] = []
 
-    for tanker in affected_tankers:
-        offer = (
-            db.query(JobOffer)
+    if request.delivery_type == "priority":
+        # For priority requests: clear any pending offer on the tanker and free it
+        affected_tankers = (
+            db.query(Tanker)
             .filter(
-                JobOffer.tanker_id == tanker.id,
-                JobOffer.job_type == "priority",
-                JobOffer.request_id == request.id,
-                JobOffer.response_type.is_(None),
+                Tanker.pending_offer_type == "priority",
+                Tanker.pending_offer_id == request.id,
             )
-            .order_by(JobOffer.id.desc())
-            .first()
+            .all()
         )
 
-        if offer:
-            mark_offer_declined(
-                db,
-                offer,
-                decline_reason=f"admin_cancelled_request:{payload.reason}",
+        for tanker in affected_tankers:
+            offer = (
+                db.query(JobOffer)
+                .filter(
+                    JobOffer.tanker_id == tanker.id,
+                    JobOffer.job_type == "priority",
+                    JobOffer.request_id == request.id,
+                    JobOffer.response_type.is_(None),
+                )
+                .order_by(JobOffer.id.desc())
+                .first()
             )
 
-        tanker.pending_offer_type = None
-        tanker.pending_offer_id = None
-        tanker.offer_expires_at = None
-        tanker.current_request_id = None
-        tanker.is_available = True
-        tanker.status = "available"
-        db.add(tanker)
+            if offer:
+                mark_offer_declined(
+                    db,
+                    offer,
+                    decline_reason=f"admin_cancelled_request:{payload.reason}",
+                )
+
+            tanker.pending_offer_type = None
+            tanker.pending_offer_id = None
+            tanker.offer_expires_at = None
+            tanker.current_request_id = None
+            tanker.is_available = True
+            tanker.status = "available"
+            db.add(tanker)
 
     request.status = "cancelled"
     request.assignment_failed_reason = f"admin_cancelled:{payload.reason}"
@@ -843,7 +869,7 @@ def admin_cancel_priority_request(
     db.refresh(request)
 
     return {
-        "message": "Priority request cancelled by admin",
+        "message": "Request cancelled by admin",
         "request_id": request.id,
         "status": request.status,
         "affected_tanker_ids": [t.id for t in affected_tankers],

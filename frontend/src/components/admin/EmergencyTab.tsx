@@ -79,20 +79,23 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
           </Button>
         </ControlCard>
 
-        {/* Cancel priority request */}
-        <ControlCard title="Cancel priority request">
+        {/* Cancel request (priority or batch) */}
+        <ControlCard title="Cancel request">
+          <p className="text-sm text-muted-foreground">
+            Works for both priority and batch requests. Priority: also clears pending offer and frees the tanker. Batch: marks the request cancelled and refund-eligible only (batch tanker is managed separately via "Force expire batch").
+          </p>
           <Input
             value={cancelPriorityRequestId}
             onChange={(e) => setCancelPriorityRequestId(e.target.value)}
-            placeholder="Priority Request ID"
+            placeholder="Request ID"
           />
           <Button
             variant="destructive"
             disabled={isActionLoading || !cancelPriorityRequestId}
             onClick={() =>
               askConfirm(
-                "Cancel priority request",
-                "Cancels the priority request, clears pending offers, frees the tanker, and marks it refund-eligible.",
+                "Cancel request",
+                "Cancels the request and marks it refund-eligible. For priority requests, also clears the pending offer and frees the tanker.",
                 () =>
                   adminCancelPriorityRequest(
                     Number(cancelPriorityRequestId),
@@ -101,7 +104,7 @@ export function EmergencyTab({ isActionLoading, askConfirm }: Props) {
               )
             }
           >
-            Cancel priority
+            Cancel request
           </Button>
         </ControlCard>
 
