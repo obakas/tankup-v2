@@ -1,6 +1,7 @@
 import re
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 # from fastapi_cloud_cli.logging import setup_logging
 
 from app.core.database import Base, engine
@@ -97,6 +98,11 @@ class UTCDatetimeMiddleware:
 
 
 app = FastAPI()
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"detail": str(exc)})
 
 
 @app.on_event("startup")
