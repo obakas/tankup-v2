@@ -69,6 +69,7 @@ def notify_batch_members(db: Session, batch_id: int, title: str, body: str, data
 def notify_driver(db: Session, tanker_id: int, title: str, body: str, data: dict | None = None) -> None:
     tanker = db.query(Tanker).filter(Tanker.id == tanker_id).first()
     if not tanker or not tanker.expo_push_token:
+        logger.warning("notify_driver skipped: tanker_id=%s has no push token", tanker_id)
         return
     if not is_enabled(db, "driver", str(tanker_id), "job_offers"):
         return
