@@ -1,5 +1,6 @@
 import "@/global.css";
 import "@/tasks/locationTask";
+import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
 
@@ -15,6 +16,17 @@ try {
   });
 } catch {
   // Expo Go — push notifications not supported
+}
+
+// Android 8+ requires a notification channel for background push delivery.
+// Without this, the OS silently drops all background notifications.
+if (Platform.OS === "android") {
+  Notifications.setNotificationChannelAsync("default", {
+    name: "Default",
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    sound: "default",
+  });
 }
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";

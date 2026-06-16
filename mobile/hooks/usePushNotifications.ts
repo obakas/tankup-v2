@@ -1,12 +1,7 @@
 import { Platform } from "react-native";
-import Constants from "expo-constants";
-
-const isExpoGo =
-  Constants.appOwnership === "expo" ||
-  Constants.executionEnvironment === "storeClient";
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (Platform.OS === "web" || isExpoGo) return null;
+  if (Platform.OS === "web") return null;
 
   try {
     const Notifications = await import("expo-notifications");

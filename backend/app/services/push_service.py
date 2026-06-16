@@ -21,6 +21,7 @@ def _send_expo_push(token: str, title: str, body: str, data: dict | None = None)
             "body": body,
             "data": data or {},
             "sound": "default",
+            "channelId": "default",
         }
         resp = http_requests.post(
             _EXPO_PUSH_URL,
