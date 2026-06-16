@@ -18,6 +18,8 @@ export function useLiveBatch(
   const [error, setError] = useState<string | null>(null);
 
   const intervalRef = useRef<number | null>(null);
+  // Track the active batchId so in-flight fetches for old IDs are discarded.
+  const activeBatchIdRef = useRef<number | null>(batchId);
 
   const stopPolling = useCallback(() => {
     if (intervalRef.current) {
@@ -39,6 +41,10 @@ export function useLiveBatch(
       setIsLoading(true);
       setError(null);
       const result = await fetchLiveBatch(batchId, memberId);
+
+      // Discard result if batchId changed while this fetch was in-flight.
+      if (activeBatchIdRef.current !== batchId) return;
+
       setBatch(result);
 
       if (!result) {
@@ -51,6 +57,7 @@ export function useLiveBatch(
         stopPolling();
       }
     } catch (err) {
+      if (activeBatchIdRef.current !== batchId) return;
       const message =
         err instanceof Error ? err.message : "Failed to fetch live batch";
       setError(message);
@@ -60,6 +67,7 @@ export function useLiveBatch(
   }, [batchId, memberId, stopPolling]);
 
   useEffect(() => {
+    activeBatchIdRef.current = batchId;
     stopPolling();
 
     if (!batchId) {

@@ -259,6 +259,12 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   }
 
   const resolvedStep = useMemo(() => {
+    // Pre-payment steps are not affected by live batch/priority state — stale
+    // data from a previous session must not override these early steps.
+    if (step === "auth" || step === "request" || step === "payment") {
+      return step;
+    }
+
     if (requestMode === "batch") {
       return resolveClientStep(liveBatch, step);
     }
