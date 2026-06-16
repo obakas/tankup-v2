@@ -214,6 +214,11 @@ export function useClientFlow() {
   const stepForFetchRef = useRef(step);
   stepForFetchRef.current = step;
 
+  // Mirror requestResp to a ref so in-flight fetchLive calls can detect when
+  // requestResp has changed underneath them and discard stale results.
+  const requestRespRef = useRef(requestResp);
+  requestRespRef.current = requestResp;
+
   const fetchLive = useCallback(async () => {
     if (!requestResp) return;
 
@@ -222,7 +227,10 @@ export function useClientFlow() {
 
       // Poll by request_id while waiting for a scheduled delivery to activate.
       if (stepForFetchRef.current === "scheduled" && requestResp.request_id) {
-        const data = await getRequestLive(requestResp.request_id);
+        const capturedRequestId = requestResp.request_id;
+        const data = await getRequestLive(capturedRequestId);
+        if (requestRespRef.current?.request_id !== capturedRequestId) return;
+
         setLiveData(data);
         setLiveError(null);
 
@@ -244,10 +252,14 @@ export function useClientFlow() {
       // requestResp.delivery_type is not included in the backend create response,
       // so we use the mode state (set before payment and stable thereafter).
       if (mode === "batch" && requestResp.batch_id) {
+        const capturedBatchId = requestResp.batch_id;
         const data = await getBatchLive(
-          requestResp.batch_id,
+          capturedBatchId,
           requestResp.member_id ?? undefined
         );
+        // Discard result if requestResp changed while this fetch was in-flight
+        // (e.g. user reset and paid again before the old poll completed).
+        if (requestRespRef.current?.batch_id !== capturedBatchId) return;
 
         setLiveData(data);
         setLiveError(null);
@@ -274,7 +286,9 @@ export function useClientFlow() {
       }
 
       if (mode === "priority" && requestResp.request_id) {
-        const data = await getPriorityRequestLive(requestResp.request_id);
+        const capturedRequestId = requestResp.request_id;
+        const data = await getPriorityRequestLive(capturedRequestId);
+        if (requestRespRef.current?.request_id !== capturedRequestId) return;
 
         setLiveData(data);
         setLiveError(null);
