@@ -14,13 +14,17 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       finalStatus = status;
     }
 
-    if (finalStatus !== "granted") return null;
+    if (finalStatus !== "granted") {
+      console.warn("[PushNotifications] permission not granted:", finalStatus);
+      return null;
+    }
 
     const tokenData = await Notifications.getExpoPushTokenAsync({
       projectId: "5f921855-fc23-4271-926b-2534f00d4012",
     });
     return tokenData.data;
-  } catch {
+  } catch (err) {
+    console.error("[PushNotifications] token registration failed:", err);
     return null;
   }
 }
