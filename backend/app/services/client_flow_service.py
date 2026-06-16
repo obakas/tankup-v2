@@ -238,26 +238,44 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
         )
         if member:
             batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
-            return {
-                "message": "Active batch request already exists.",
-                "request_id": existing.id,
-                "delivery_type": existing.delivery_type,
-                "batch_id": member.batch_id,
-                "member_id": member.id,
-                "request_status": existing.status,
-                "batch_status": getattr(batch, "status", None),
-                "payment_status": member.payment_status,
-                "member_status": member.status,
-                "delivery_code": getattr(member, "delivery_code", None),
-                "payment_confirmed": True,
-                "batch_snapshot": {
-                    "id": member.batch_id,
-                    "status": getattr(batch, "status", None),
-                    "current_volume": float(getattr(batch, "current_volume", 0) or 0),
-                    "target_volume": float(getattr(batch, "target_volume", 0) or 0),
-                },
-                "orchestration": None,
+
+            _BATCH_TERMINAL_BATCH_STATUSES = {
+                "completed", "partially_completed", "failed", "expired"
             }
+            _MEMBER_TERMINAL_STATUSES = {"delivered", "failed", "skipped"}
+            batch_status = getattr(batch, "status", None)
+            member_status = getattr(member, "status", None)
+
+            # Request status was not always transitioned to a terminal value
+            # for batch deliveries (historical data gap). Guard by also
+            # checking the batch and member status so we don't hand back a
+            # completed delivery as still-active.
+            if (
+                batch_status in _BATCH_TERMINAL_BATCH_STATUSES
+                or member_status in _MEMBER_TERMINAL_STATUSES
+            ):
+                pass  # fall through to create a fresh request below
+            else:
+                return {
+                    "message": "Active batch request already exists.",
+                    "request_id": existing.id,
+                    "delivery_type": existing.delivery_type,
+                    "batch_id": member.batch_id,
+                    "member_id": member.id,
+                    "request_status": existing.status,
+                    "batch_status": batch_status,
+                    "payment_status": member.payment_status,
+                    "member_status": member_status,
+                    "delivery_code": getattr(member, "delivery_code", None),
+                    "payment_confirmed": True,
+                    "batch_snapshot": {
+                        "id": member.batch_id,
+                        "status": batch_status,
+                        "current_volume": float(getattr(batch, "current_volume", 0) or 0),
+                        "target_volume": float(getattr(batch, "target_volume", 0) or 0),
+                    },
+                    "orchestration": None,
+                }
 
     if data.scheduled_for:
         request = create_batch_request_record(db, data)
