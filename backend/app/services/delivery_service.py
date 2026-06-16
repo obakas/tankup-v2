@@ -248,6 +248,26 @@ def _sync_customer_state_for_stop(db: Session, delivery: DeliveryRecord) -> None
             elif delivery.delivery_status == "skipped" and hasattr(member, "status"):
                 member.status = "skipped"
             db.add(member)
+
+            # Also terminate the member's LiquidRequest so the idempotency
+            # check in create_batch_request_flow never resurrects this
+            # completed request as "still active".
+            if member.request_id:
+                request = db.query(LiquidRequest).filter(
+                    LiquidRequest.id == member.request_id
+                ).first()
+                if request and request.status not in {
+                    "completed", "partially_completed", "failed",
+                    "expired", "assignment_failed", "cancelled",
+                }:
+                    if delivery.delivery_status == "delivered":
+                        request.status = "completed"
+                        request.completed_at = delivery.delivered_at or _utcnow()
+                    elif delivery.delivery_status == "failed":
+                        request.status = "failed"
+                    elif delivery.delivery_status == "skipped":
+                        request.status = "partially_completed"
+                    db.add(request)
     elif delivery.job_type == "priority" and delivery.request_id:
         request = db.query(LiquidRequest).filter(LiquidRequest.id == delivery.request_id).first()
         if request:
