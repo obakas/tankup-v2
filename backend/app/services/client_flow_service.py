@@ -208,61 +208,43 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
 
     No unpaid member reservation here.
     """
-    # Idempotency: return existing active batch request so a network retry
-    # (where the backend succeeded but the response never reached the client)
-    # doesn't create a duplicate.
-    existing = (
-        db.query(LiquidRequest)
-        .filter(
-            LiquidRequest.user_id == data.user_id,
-            LiquidRequest.delivery_type == "batch",
-            LiquidRequest.status.notin_(_BATCH_TERMINAL_STATUSES),
-        )
-        .order_by(LiquidRequest.id.desc())
-        .first()
-    )
-    if existing:
-        if existing.status == "scheduled":
-            return {
-                "message": "Active scheduled batch request already exists.",
-                "request_id": existing.id,
-                "delivery_type": existing.delivery_type,
-                "request_status": existing.status,
-                "scheduled_for": existing.scheduled_for.isoformat() if existing.scheduled_for else None,
-            }
-
-        member = (
-            db.query(BatchMember)
-            .filter(BatchMember.request_id == existing.id)
+    # Key-based idempotency: if the client sends the same UUID on a retry
+    # (network error, double-tap), return the cached response without creating
+    # a new request or new batch member.
+    if data.idempotency_key:
+        cached = (
+            db.query(LiquidRequest)
+            .filter(
+                LiquidRequest.idempotency_key == data.idempotency_key,
+                LiquidRequest.user_id == data.user_id,
+            )
             .first()
         )
-        if member:
-            batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
-
-            _BATCH_TERMINAL_BATCH_STATUSES = {
-                "completed", "partially_completed", "failed", "expired"
-            }
-            _MEMBER_TERMINAL_STATUSES = {"delivered", "failed", "skipped"}
-            batch_status = getattr(batch, "status", None)
-            member_status = getattr(member, "status", None)
-
-            # Request status was not always transitioned to a terminal value
-            # for batch deliveries (historical data gap). Guard by also
-            # checking the batch and member status so we don't hand back a
-            # completed delivery as still-active.
-            if (
-                batch_status in _BATCH_TERMINAL_BATCH_STATUSES
-                or member_status in _MEMBER_TERMINAL_STATUSES
-            ):
-                pass  # fall through to create a fresh request below
-            else:
+        if cached:
+            if cached.status == "scheduled":
                 return {
-                    "message": "Active batch request already exists.",
-                    "request_id": existing.id,
-                    "delivery_type": existing.delivery_type,
+                    "message": "Active scheduled batch request already exists.",
+                    "request_id": cached.id,
+                    "delivery_type": cached.delivery_type,
+                    "request_status": cached.status,
+                    "scheduled_for": cached.scheduled_for.isoformat() if cached.scheduled_for else None,
+                }
+            member = (
+                db.query(BatchMember)
+                .filter(BatchMember.request_id == cached.id)
+                .first()
+            )
+            if member:
+                batch = db.query(Batch).filter(Batch.id == member.batch_id).first()
+                batch_status = getattr(batch, "status", None)
+                member_status = getattr(member, "status", None)
+                return {
+                    "message": "Batch request already exists (idempotent).",
+                    "request_id": cached.id,
+                    "delivery_type": cached.delivery_type,
                     "batch_id": member.batch_id,
                     "member_id": member.id,
-                    "request_status": existing.status,
+                    "request_status": cached.status,
                     "batch_status": batch_status,
                     "payment_status": member.payment_status,
                     "member_status": member_status,
@@ -280,6 +262,8 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
     if data.scheduled_for:
         request = create_batch_request_record(db, data)
         request.status = "scheduled"
+        if data.idempotency_key:
+            request.idempotency_key = data.idempotency_key
         db.commit()
         db.refresh(request)
         return {
@@ -291,6 +275,8 @@ def create_batch_request_flow(db: Session, data: RequestCreate) -> dict[str, Any
         }
 
     request = create_batch_request_record(db, data)
+    if data.idempotency_key:
+        request.idempotency_key = data.idempotency_key
     batch_result = find_or_create_batch(db, request)
 
     batch = batch_result["batch"]

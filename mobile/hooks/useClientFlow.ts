@@ -59,6 +59,7 @@ type ClientFlowSession = {
   scheduledFor: string;
   requestResp: CreateRequestResponse | null;
   otp: string;
+  paymentIdempotencyKey: string | null;
 };
 
 const CLIENT_STATUS_MESSAGES: Record<string, string> = {
@@ -100,6 +101,7 @@ export function useClientFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isBoostLoading, setIsBoostLoading] = useState(false);
+  const [paymentIdempotencyKey, setPaymentIdempotencyKey] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const prevStatusRef = useRef<string>("");
@@ -127,6 +129,7 @@ export function useClientFlow() {
         if (session.scheduledFor) setScheduledFor(session.scheduledFor);
         if (session.requestResp) setRequestResp(session.requestResp);
         if (session.otp) setOtp(session.otp);
+        if (session.paymentIdempotencyKey) setPaymentIdempotencyKey(session.paymentIdempotencyKey);
 
         // Only restore a mid-flow step so we don't re-enter a terminal state
         const restorable: Array<ClientStep | "auth"> = [
@@ -167,10 +170,11 @@ export function useClientFlow() {
       scheduledFor,
       requestResp,
       otp,
+      paymentIdempotencyKey,
     };
 
     AsyncStorage.setItem(CLIENT_FLOW_KEY, JSON.stringify(session)).catch(() => {});
-  }, [user, step, mode, size, priorityMode, scheduledFor, requestResp, otp]);
+  }, [user, step, mode, size, priorityMode, scheduledFor, requestResp, otp, paymentIdempotencyKey]);
 
   // ── OTP sync from live data ───────────────────────────────────────────────
 
@@ -381,6 +385,11 @@ export function useClientFlow() {
 
   const handleSubmitRequest = () => {
     if (!user || !size || !selectedSiteId) return;
+    // Generate once per payment attempt; persisted in session so retries
+    // re-use the same key and the backend returns the cached response.
+    if (!paymentIdempotencyKey) {
+      setPaymentIdempotencyKey(crypto.randomUUID());
+    }
     setStep("payment");
   };
 
@@ -407,6 +416,7 @@ export function useClientFlow() {
           (mode === "batch" && !!scheduledFor)
             ? scheduledFor
             : undefined,
+        idempotency_key: paymentIdempotencyKey ?? undefined,
       });
 
       setRequestResp(resp);
@@ -441,6 +451,7 @@ export function useClientFlow() {
     setPriorityMode("asap");
     setScheduledFor("");
     setSelectedSiteId(null);
+    setPaymentIdempotencyKey(null);
     toast.success("Request cancelled before payment");
     setStep("request");
   };
@@ -456,6 +467,7 @@ export function useClientFlow() {
     setLiveData(null);
     setLiveError(null);
     setError(null);
+    setPaymentIdempotencyKey(null);
     setStep("request");
   }, []);
 

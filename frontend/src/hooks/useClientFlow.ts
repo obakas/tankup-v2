@@ -36,6 +36,7 @@ interface ClientSession {
   priorityMode: "asap" | "scheduled";
   scheduledFor: string;
   otp: string;
+  paymentIdempotencyKey: string | null;
 }
 
 interface RequestResponseWithOtp {
@@ -96,6 +97,8 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [batchId, setBatchId] = useState<number | null>(null);
   const [memberId, setMemberId] = useState<number | null>(null);
   const [paymentDeadline, setPaymentDeadline] = useState<string | null>(null);
+
+  const [paymentIdempotencyKey, setPaymentIdempotencyKey] = useState<string | null>(null);
 
   const [currentUser, setCurrentUser] = useState<UserResponse | null>(null);
   const [activeTab, setActiveTab] = useState<"request" | "history">("request");
@@ -331,6 +334,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       setPriorityMode(parsed.priorityMode ?? "asap");
       setScheduledFor(parsed.scheduledFor ?? "");
       setOtp(parsed.otp ?? "");
+      setPaymentIdempotencyKey(parsed.paymentIdempotencyKey ?? null);
 
       if (parsed.requestMode === "batch" && parsed.batchId) {
         setStep("batch");
@@ -366,6 +370,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       priorityMode,
       scheduledFor,
       otp,
+      paymentIdempotencyKey,
     };
 
     const hasSessionData =
@@ -374,6 +379,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       !!memberId ||
       !!paymentDeadline ||
       !!selectedSize ||
+      !!paymentIdempotencyKey ||
       otp.length > 0;
 
     if (hasSessionData) {
@@ -390,6 +396,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     priorityMode,
     scheduledFor,
     otp,
+    paymentIdempotencyKey,
   ]);
 
   const refreshUserSites = useCallback(async (userId: number) => {
@@ -489,6 +496,13 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       setStep("auth");
       return;
     }
+
+    // Generate once per payment attempt; survives page reload via session so
+    // retries re-use the same key and the backend returns the cached response.
+    if (!paymentIdempotencyKey) {
+      setPaymentIdempotencyKey(crypto.randomUUID());
+    }
+
     setStep("payment");
   };
 
@@ -520,6 +534,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setBatchId(null);
     setMemberId(null);
     setPaymentDeadline(null);
+    setPaymentIdempotencyKey(null);
   };
 
   const handleLogout = () => {
@@ -604,6 +619,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
         longitude: coords.longitude,
         delivery_type: requestMode,
         site_profile_id: selectedSiteId ?? undefined,
+        idempotency_key: paymentIdempotencyKey ?? undefined,
         ...(requestMode === "priority"
           ? priorityMode === "asap"
             ? { is_asap: true }
@@ -730,6 +746,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setScheduledFor("");
     setRequestMode("batch");
     setOtp("");
+    setPaymentIdempotencyKey(null);
     toast.success("Request cancelled before payment");
     setStep("request");
   };

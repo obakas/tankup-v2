@@ -36,6 +36,8 @@ class LiquidRequest(Base):
     delivering_started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
 
+    idempotency_key = Column(String, nullable=True, index=True)
+
     # Mid-delivery cancellation fields (priority only)
     cancelled_at = Column(DateTime, nullable=True)
     # pre_loading | en_route | arrived | partial_delivery

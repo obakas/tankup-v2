@@ -14,6 +14,7 @@ class RequestCreate(BaseModel):
     is_asap: Optional[bool] = None
     scheduled_for: Optional[datetime] = None
     site_profile_id: Optional[int] = None
+    idempotency_key: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_request(self):

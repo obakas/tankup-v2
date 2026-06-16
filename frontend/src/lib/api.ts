@@ -69,6 +69,9 @@ export interface CreateRequestPayload {
   // Priority only
   is_asap?: boolean;
   scheduled_for?: string;
+
+  idempotency_key?: string;
+  site_profile_id?: number;
 }
 
 export interface CreateRequestResponse {
