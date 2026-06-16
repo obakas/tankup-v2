@@ -69,9 +69,9 @@ export function useLiveBatch(
   useEffect(() => {
     activeBatchIdRef.current = batchId;
     stopPolling();
+    setBatch(null); // always clear stale data when batchId changes
 
     if (!batchId) {
-      setBatch(null);
       setError(null);
       setIsLoading(false);
       return;
