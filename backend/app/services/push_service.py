@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 import requests as http_requests
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from app.models.batch_member import BatchMember
 from app.models.tanker import Tanker
 from app.models.user import User
 from app.services.notification_preference_service import is_enabled
+
+logger = logging.getLogger(__name__)
 
 _EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
@@ -29,8 +32,14 @@ def _send_expo_push(token: str, title: str, body: str, data: dict | None = None)
             data=json.dumps(payload),
             timeout=10,
         )
+        try:
+            body_json = resp.json()
+        except Exception:
+            body_json = resp.text
+        logger.info("push token=%s status=%s response=%s", token[:20], resp.status_code, body_json)
         return resp.status_code == 200
-    except Exception:
+    except Exception as exc:
+        logger.error("push send failed: %s", exc)
         return False
 
 
