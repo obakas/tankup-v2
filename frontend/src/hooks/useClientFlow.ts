@@ -266,11 +266,15 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     }
 
     if (requestMode === "batch") {
-      return resolveClientStep(liveBatch, step);
+      // Discard liveBatch data synchronously if it belongs to a different batch
+      // (e.g. stale data from a previous session before the useLiveBatch effect
+      // has had a chance to clear it).
+      const freshBatch = liveBatch?.batch_id === batchId ? liveBatch : null;
+      return resolveClientStep(freshBatch, step);
     }
 
     return resolvePriorityClientStep(livePriorityRequest, step);
-  }, [requestMode, liveBatch, livePriorityRequest, step]);
+  }, [requestMode, batchId, liveBatch, livePriorityRequest, step]);
 
   const price = useMemo(() => {
     if (requestMode === "priority") {
