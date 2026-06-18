@@ -61,6 +61,10 @@ export function useDriverFlow() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const driverIdRef = useRef<number | null>(null);
   const prevTankerStatusRef = useRef<string>("");
+  // Tracks whether the initial AsyncStorage hydration has completed. The
+  // is_online persistence effect must not write before hydration so it
+  // doesn't overwrite a saved session with the default empty state.
+  const hydratedRef = useRef(false);
 
   const [showOfflineModal, setShowOfflineModal] = useState(false);
 
@@ -268,7 +272,6 @@ export function useDriverFlow() {
     (d: DriverResponse) => {
       setDriver(d);
       setOnline(d.is_online);
-      AsyncStorage.setItem(DRIVER_AUTH_KEY, JSON.stringify(d)).catch(() => {});
 
       registerForPushNotificationsAsync().then((token) => {
         if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
@@ -298,15 +301,29 @@ export function useDriverFlow() {
   // (e.g. via a tapped push notification, or simply reopening the app) doesn't
   // force a fresh login. Mirrors the hydration pattern in useClientFlow.ts.
   useEffect(() => {
-    AsyncStorage.getItem(DRIVER_AUTH_KEY).then((stored) => {
-      if (!stored) return;
-      try {
-        handleAuthComplete(JSON.parse(stored));
-      } catch {
-        // corrupted session — fall through to the auth screen
-      }
-    });
+    AsyncStorage.getItem(DRIVER_AUTH_KEY)
+      .then((stored) => {
+        if (!stored) return;
+        try {
+          handleAuthComplete(JSON.parse(stored));
+        } catch {
+          // corrupted session — fall through to the auth screen
+        }
+      })
+      .finally(() => {
+        hydratedRef.current = true;
+      });
   }, [handleAuthComplete]);
+
+  // Keep the persisted session's `is_online` in sync with live toggles
+  // (toggleOnline, confirmOffline). Without this, a stale "offline" snapshot
+  // from an earlier login would override the driver's real online status the
+  // next time the session is restored — e.g. when reopening via a notification
+  // after having gone online mid-session.
+  useEffect(() => {
+    if (!hydratedRef.current || !driver) return;
+    AsyncStorage.setItem(DRIVER_AUTH_KEY, JSON.stringify({ ...driver, is_online: online })).catch(() => {});
+  }, [driver, online]);
 
   const toggleOnline = useCallback(
     async (val: boolean) => {
