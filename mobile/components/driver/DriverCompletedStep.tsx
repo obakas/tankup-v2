@@ -90,6 +90,7 @@ function SiteForm({
   total,
   tankerId,
   onDone,
+  showToast,
   theme,
 }: {
   earning: DriverEarningOut;
@@ -97,6 +98,7 @@ function SiteForm({
   total: number;
   tankerId: number;
   onDone: (credited: boolean) => void;
+  showToast: (msg: string, ok?: boolean) => void;
   theme: ReturnType<typeof useAppTheme>["theme"];
 }) {
   const [tankHeight, setTankHeight] = useState<TankHeight | null>(null);
@@ -115,11 +117,12 @@ function SiteForm({
       await submitSiteReport(tankerId, earning.delivery_record_id, payload);
       onDone(true);
     } catch {
+      showToast("Couldn't submit site report — bonus not credited", false);
       onDone(false);
     } finally {
       setSubmitting(false);
     }
-  }, [tankerId, earning.delivery_record_id, tankHeight, hoseDiff, roadDiff, onDone]);
+  }, [tankerId, earning.delivery_record_id, tankHeight, hoseDiff, roadDiff, onDone, showToast]);
 
   const handleSkip = useCallback(() => {
     void skipSiteReport(tankerId, earning.delivery_record_id).catch(() => {});
@@ -350,6 +353,7 @@ export function DriverCompletedStep({
             total={pendingEarnings.length}
             tankerId={tankerId}
             onDone={handleFormDone}
+            showToast={showToast}
             theme={theme}
           />
         </View>
