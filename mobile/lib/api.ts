@@ -864,14 +864,14 @@ export const cancelPriorityRequest = (requestId: number) =>
 export function updatePushToken(userId: number, token: string) {
   return apiRequest(`/users/${userId}`, {
     method: "PATCH",
-    body: JSON.stringify({ expo_push_token: token }),
+    body: { expo_push_token: token },
   });
 }
 
 export function updateDriverPushToken(tankerId: number, token: string) {
   return apiRequest(`/tankers/${tankerId}/push-token`, {
     method: "PATCH",
-    body: JSON.stringify({ expo_push_token: token }),
+    body: { expo_push_token: token },
   });
 }
 
@@ -940,7 +940,7 @@ export function submitSiteReport(
 ) {
   return apiRequest<{ message: string; earning: DriverEarningOut }>(
     `/deliveries/${deliveryId}/site-report?tanker_id=${tankerId}`,
-    { method: "POST", body: JSON.stringify(payload) }
+    { method: "POST", body: payload }
   );
 }
 

@@ -39,6 +39,7 @@ const POLL_LOADING_MS = 15_000;
 const POLL_DELIVERING_MS = 5_000;
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const ROLE_KEY = "tankup_active_role";
+const DRIVER_AUTH_KEY = "driver_auth"; // must match app/index.tsx and tasks/locationTask.ts
 
 type FlowStep = DriverStep | "auth";
 
@@ -267,6 +268,7 @@ export function useDriverFlow() {
     (d: DriverResponse) => {
       setDriver(d);
       setOnline(d.is_online);
+      AsyncStorage.setItem(DRIVER_AUTH_KEY, JSON.stringify(d)).catch(() => {});
 
       registerForPushNotificationsAsync().then((token) => {
         if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
@@ -278,10 +280,33 @@ export function useDriverFlow() {
         setStep("offline");
       } else {
         setStep("available");
+        // Check immediately instead of waiting for the next 10s poll tick (POLL_AVAILABLE_MS) —
+        // this is exactly the path a driver takes after tapping a job-offer notification.
+        getIncomingOffer(d.tankerId).then((res) => {
+          if (res.has_offer) {
+            setOffer(res.offer);
+            setStep("incoming");
+            void triggerAlarm(res.offer?.offer_type ?? "batch");
+          }
+        }).catch(() => {});
       }
     },
-    [refreshJob]
+    [refreshJob, triggerAlarm]
   );
+
+  // Restore a persisted session on mount so navigating back into this screen
+  // (e.g. via a tapped push notification, or simply reopening the app) doesn't
+  // force a fresh login. Mirrors the hydration pattern in useClientFlow.ts.
+  useEffect(() => {
+    AsyncStorage.getItem(DRIVER_AUTH_KEY).then((stored) => {
+      if (!stored) return;
+      try {
+        handleAuthComplete(JSON.parse(stored));
+      } catch {
+        // corrupted session — fall through to the auth screen
+      }
+    });
+  }, [handleAuthComplete]);
 
   const toggleOnline = useCallback(
     async (val: boolean) => {

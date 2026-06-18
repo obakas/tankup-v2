@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "184751282643",
+    "project_id": "obakas-cbc99",
+    "storage_bucket": "obakas-cbc99.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184751282643:android:37676e945c3de3897ef726",
+        "android_client_info": {
+          "package_name": "com.obakas.tankupmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADB-pKqgt1wRVC1qxd8w3q2VqEIF0umB4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
