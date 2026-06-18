@@ -427,6 +427,7 @@ def assign_best_tanker_for_priority(
     tanker.pending_offer_id = request.id
     # tanker.offer_expires_at = datetime.utcnow() + timedelta(seconds=OFFER_TTL_SECONDS)
     tanker.offer_expires_at = datetime.utcnow() + timedelta(seconds=OFFER_ACCEPT_TIMEOUT_SECONDS)
+    tanker.offer_reminder_sent = False
     tanker.status = "available"
     tanker.is_available = False
 
@@ -786,6 +787,42 @@ def process_expired_offers(db: Session) -> list[dict[str, Any]]:
     return results
 
 
+def process_offer_reminders(db: Session) -> list[dict[str, Any]]:
+    """Send one reminder push partway through the offer accept window for
+    tankers that still haven't responded, so a driver who missed or dismissed
+    the first notification gets a second chance before the offer expires."""
+    now = datetime.utcnow()
+    halfway = timedelta(seconds=OFFER_ACCEPT_TIMEOUT_SECONDS / 2)
+
+    candidates = (
+        db.query(Tanker)
+        .filter(
+            Tanker.pending_offer_type.is_not(None),
+            Tanker.pending_offer_id.is_not(None),
+            Tanker.offer_expires_at.is_not(None),
+            Tanker.offer_reminder_sent.is_(False),
+            Tanker.offer_expires_at > now,
+            Tanker.offer_expires_at <= now + halfway,
+        )
+        .all()
+    )
+
+    results: list[dict[str, Any]] = []
+    for tanker in candidates:
+        tanker.offer_reminder_sent = True
+        db.commit()
+
+        push_service.notify_driver(
+            db, tanker.id,
+            title="Offer still waiting",
+            body="Your delivery offer is about to expire — tap to respond",
+            data={"type": "job_offer"},
+        )
+        results.append({"tanker_id": tanker.id, "pending_offer_type": tanker.pending_offer_type})
+
+    return results
+
+
 def assign_best_tanker_for_batch(
     db: Session,
     batch: Batch,
@@ -841,6 +878,7 @@ def assign_best_tanker_for_batch(
     tanker.pending_offer_id = batch.id
     # tanker.offer_expires_at = datetime.utcnow() + timedelta(seconds=OFFER_TTL_SECONDS)
     tanker.offer_expires_at = datetime.utcnow() + timedelta(seconds=OFFER_ACCEPT_TIMEOUT_SECONDS)
+    tanker.offer_reminder_sent = False
     tanker.status = "available"
     tanker.is_available = False
 

@@ -27,6 +27,7 @@ class Tanker(Base):
     pending_offer_type = Column(String, nullable=True)      # "priority" or "batch"
     pending_offer_id = Column(Integer, nullable=True)       # request_id or batch_id
     offer_expires_at = Column(DateTime, nullable=True)
+    offer_reminder_sent = Column(Boolean, default=False, nullable=False)
 
     expo_push_token = Column(String, nullable=True)
 

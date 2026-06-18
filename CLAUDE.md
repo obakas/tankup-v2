@@ -112,14 +112,17 @@ cd mobile && npx expo start --tunnel --clear
 
 Fleet heads currently use admin credentials (MVP simplification — no fleet-head-specific auth endpoint exists yet).
 
-**Background scheduler** (`app/core/scheduler.py`): APScheduler starts on startup with 8 jobs:
+**Background scheduler** (`app/core/scheduler.py`): APScheduler starts on startup with 11 jobs:
 - Offer expiry monitor — 15s
+- Offer reminder monitor — 15s (sends one reminder push partway through the 60s accept window if still unanswered)
+- Searching-driver retry monitor — 30s
 - Priority assignment timeout — 30s
 - Loading timeout — 30s
 - Late arrival flagging — 30s
 - Driver offline monitor — 30s
 - Batch health monitor — 60s
 - Nearby notification monitor — 60s
+- Scheduled request monitor — 60s
 - Delivery timeout — 5min
 
 **Status machines** — all defined in `app/utils/status_rules.py`. Every transition must go through `ensure_valid_transition()`.
@@ -319,6 +322,10 @@ Two site visits were made to the Asokoro tanker hub before the demo. The hub lea
 **Maintenance is the biggest financial pain** — up to ₦200k per incident. The app does not address this yet (future fleet management scope).
 
 **Peak demand: dry season (January–March).** Current period (June) is low season. Hub leader is time-poor during visits — keep demos tight.
+
+**Customers pay more to skip the queue during high demand.** The hub already does this informally — they tell the customer an expected delivery time, and a customer who doesn't want to wait can pay more to be served faster. This is already implemented as the **Priority** delivery mode (dedicated tanker, faster, costs more) — no new feature needed, just frame it in demos as "the fast-track customers already ask for, made formal."
+
+**Mid-delivery breakdowns are handled by transfer or replacement.** If a tanker breaks down mid-job and it's urgent, the hub transfers the water load to another tanker or sends a replacement. This is already covered by `driver_offline_service.py` (detects stale heartbeats, escalates with push if actively delivering) creating an `OperationAlert`, which an admin resolves via `POST /admin/operation-alerts/{id}/reassign` — no new feature needed.
 
 ### What the hub is skeptical about
 

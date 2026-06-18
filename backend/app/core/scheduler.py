@@ -7,6 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.core.database import SessionLocal
 from app.services.assignment_service import (
     process_expired_offers,
+    process_offer_reminders,
     process_priority_assignment_timeouts,
     process_unmatched_searching_driver_requests,
 )
@@ -73,6 +74,18 @@ def run_offer_expiry_monitor():
             logger.info("offer_expiry_monitor", extra={"results": results})
     except Exception:
         logger.exception("offer_expiry_monitor failed")
+    finally:
+        db.close()
+
+
+def run_offer_reminder_monitor():
+    db = SessionLocal()
+    try:
+        results = process_offer_reminders(db)
+        if results:
+            logger.info("offer_reminder_monitor", extra={"results": results})
+    except Exception:
+        logger.exception("offer_reminder_monitor failed")
     finally:
         db.close()
 
@@ -164,6 +177,13 @@ def start_scheduler():
             trigger="interval",
             seconds=15,
             id="offer_expiry_monitor_job",
+            replace_existing=True,
+        )
+        scheduler.add_job(
+            run_offer_reminder_monitor,
+            trigger="interval",
+            seconds=15,
+            id="offer_reminder_monitor_job",
             replace_existing=True,
         )
         scheduler.add_job(

@@ -937,6 +937,7 @@ def force_offer_priority_to_tanker(
     tanker.pending_offer_type = "priority"
     tanker.pending_offer_id = request.id
     tanker.offer_expires_at = _utcnow() + timedelta(seconds=60)
+    tanker.offer_reminder_sent = False
     tanker.is_available = False
     tanker.status = "available"
 
@@ -999,6 +1000,7 @@ def force_offer_batch_to_tanker(batch_id: int, tanker_id: int, db: Session = Dep
     tanker.pending_offer_type = "batch"
     tanker.pending_offer_id = batch.id
     tanker.offer_expires_at = _utcnow() + timedelta(seconds=60)
+    tanker.offer_reminder_sent = False
     tanker.is_available = False
     if tanker.status == "completed":
         tanker.status = "available"
