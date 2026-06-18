@@ -71,6 +71,9 @@ export default function RoleSelect() {
         if (data?.type === "delivery_status" || data?.type === "delivery_otp") {
           router.push("/client");
         }
+        if (data?.type === "driver_offline_update") {
+          router.push("/client");
+        }
       });
       const sub2 = Notifications.addNotificationReceivedListener((_notification: any) => {
         // Foreground arrival — banner/sound handled by setNotificationHandler in _layout.tsx.
