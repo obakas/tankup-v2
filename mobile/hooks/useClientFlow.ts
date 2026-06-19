@@ -388,7 +388,7 @@ export function useClientFlow() {
     // Generate once per payment attempt; persisted in session so retries
     // re-use the same key and the backend returns the cached response.
     if (!paymentIdempotencyKey) {
-      setPaymentIdempotencyKey(crypto.randomUUID());
+      setPaymentIdempotencyKey(Date.now().toString(36) + Math.random().toString(36).slice(2));
     }
     setStep("payment");
   };

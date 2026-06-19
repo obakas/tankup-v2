@@ -35,10 +35,14 @@ export async function apiRequest<T>(
 
   let data: unknown = null;
 
-  if (contentType && contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    data = await response.text();
+  try {
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+  } catch {
+    data = null;
   }
 
   if (!response.ok) {
