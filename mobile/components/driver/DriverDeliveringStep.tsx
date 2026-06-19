@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeMapView } from "@/components/ui/SafeMapView";
 import { CheckCircle, Navigation, Phone, RefreshCw, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
+import { StopActionModal } from "@/components/driver/StopActionModal";
 import type { DriverResponse } from "@/lib/api";
 import {
   arriveAtStop,
@@ -74,6 +75,9 @@ export function DriverDeliveringStep({
   const [siteRoadDifficulty, setSiteRoadDifficulty] = useState<number | null>(null);
   const [siteSubmitLoading, setSiteSubmitLoading] = useState(false);
   const [siteFormWasSubmitted, setSiteFormWasSubmitted] = useState(false);
+  const [actionModalMode, setActionModalMode] = useState<"skip" | "fail" | null>(null);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const siteIsVerified = !!stop?.customer?.site?.is_driver_verified;
   const lastVerifiedAt = stop?.customer?.site?.last_verified_at;
@@ -92,6 +96,25 @@ export function DriverDeliveringStep({
       setError(e.message);
     } finally {
       setStopLoading(false);
+    }
+  };
+
+  const submitStopAction = async (reason: string) => {
+    if (!actionModalMode || !stop) return;
+    setActionSubmitting(true);
+    setActionError(null);
+    try {
+      if (actionModalMode === "skip") {
+        await skipStop(stop.delivery_id, driver.tankerId, reason);
+      } else {
+        await failStop(stop.delivery_id, driver.tankerId, reason);
+      }
+      await onRefresh();
+      setActionModalMode(null);
+    } catch (e: any) {
+      setActionError(e.message ?? "Failed to submit. Try again.");
+    } finally {
+      setActionSubmitting(false);
     }
   };
 
@@ -271,11 +294,7 @@ export function DriverDeliveringStep({
               <View className="flex-row gap-2">
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
-                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("skip")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.border }}
                 >
@@ -283,11 +302,7 @@ export function DriverDeliveringStep({
                 </Pressable>
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
-                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("fail")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
                 >
@@ -325,11 +340,7 @@ export function DriverDeliveringStep({
               <View className="flex-row gap-2">
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
-                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("skip")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.border }}
                 >
@@ -337,11 +348,7 @@ export function DriverDeliveringStep({
                 </Pressable>
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
-                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("fail")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
                 >
@@ -387,11 +394,7 @@ export function DriverDeliveringStep({
               <View className="flex-row gap-2">
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Skip reason", "Why are you skipping?", (r) => {
-                      if (r?.trim()) doAction(() => skipStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("skip")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.border }}
                 >
@@ -400,11 +403,7 @@ export function DriverDeliveringStep({
 
                 <Pressable
                   disabled={stopLoading}
-                  onPress={() => {
-                    Alert.prompt("Failure reason", "Why did delivery fail?", (r) => {
-                      if (r?.trim()) doAction(() => failStop(stop.delivery_id, driver.tankerId, r.trim()));
-                    });
-                  }}
+                  onPress={() => setActionModalMode("fail")}
                   className="flex-1 rounded-xl py-3 items-center"
                   style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
                 >
@@ -639,6 +638,18 @@ export function DriverDeliveringStep({
           </Text>
         </Pressable>
       )}
+
+      <StopActionModal
+        visible={actionModalMode !== null}
+        mode={actionModalMode ?? "skip"}
+        loading={actionSubmitting}
+        error={actionError}
+        onClose={() => {
+          setActionModalMode(null);
+          setActionError(null);
+        }}
+        onSubmit={submitStopAction}
+      />
     </View>
   );
 }
