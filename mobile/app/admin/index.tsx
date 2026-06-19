@@ -109,6 +109,16 @@ const api = {
     adminReq(tok, `/admin/batches/${batchId}/expire?refund_paid_members=true`, { method: "POST" }),
   resetTanker: (tok: string, tnkId: number) =>
     adminReq(tok, `/admin/tankers/${tnkId}/reset`, { method: "POST" }),
+  forgiveDriver: (tok: string, tnkId: number) =>
+    adminReq(tok, `/admin/tankers/${tnkId}/forgive`, { method: "POST" }),
+  punishDriver: (tok: string, tnkId: number, hours: 2 | 24 | 48) =>
+    adminReq(tok, `/admin/tankers/${tnkId}/punish`, { method: "POST", body: { hours } }),
+  cancelAllPending: (tok: string) =>
+    adminReq<{ cancelled_count: number; request_ids: number[] }>(
+      tok,
+      "/admin/requests/cancel-all-pending",
+      { method: "POST" }
+    ),
   cleanup: (tok: string) =>
     adminReq(tok, "/admin/maintenance/cleanup-expired", { method: "POST" }),
   completeDelivery: (tok: string, id: number) =>
@@ -590,6 +600,27 @@ export default function AdminDashboard() {
                   title: "Reset tanker",
                   msg: `Reset tanker #${tId} to available?`,
                   action: () => api.resetTanker(token, tId),
+                })
+              }
+              onForgiveDriver={(tId) =>
+                setConfirm({
+                  title: "Forgive driver",
+                  msg: `Clear punishment for tanker #${tId}? Lets them take new jobs immediately without resetting their active delivery or batch.`,
+                  action: () => api.forgiveDriver(token, tId),
+                })
+              }
+              onPunishDriver={(tId, hours) =>
+                setConfirm({
+                  title: "Punish driver",
+                  msg: `Block tanker #${tId} from receiving new offers for ${hours}h. Their active delivery or batch is unaffected.`,
+                  action: () => api.punishDriver(token, tId, hours),
+                })
+              }
+              onCancelAllPending={() =>
+                setConfirm({
+                  title: "Cancel all pending requests",
+                  msg: "Cancel every request in 'pending' status and mark paid ones refund-eligible? This cannot be undone.",
+                  action: () => api.cancelAllPending(token),
                 })
               }
               onCleanup={() =>
@@ -1673,7 +1704,8 @@ function FinancialsTab({ theme, financials }: { theme: TankupTheme; financials: 
 function EmergencyTab({
   theme, actionLoading,
   onForceOfferPriority, onCancelPriority, onForceOfferBatch,
-  onExpireBatch, onResetTanker, onCleanup,
+  onExpireBatch, onResetTanker, onForgiveDriver, onPunishDriver,
+  onCancelAllPending, onCleanup,
 }: {
   theme: TankupTheme;
   actionLoading: boolean;
@@ -1682,6 +1714,9 @@ function EmergencyTab({
   onForceOfferBatch: (bId: number, tId: number) => void;
   onExpireBatch: (bId: number) => void;
   onResetTanker: (tId: number) => void;
+  onForgiveDriver: (tId: number) => void;
+  onPunishDriver: (tId: number, hours: 2 | 24 | 48) => void;
+  onCancelAllPending: () => void;
   onCleanup: () => void;
 }) {
   const [prioReqId, setPrioReqId] = useState("");
@@ -1691,6 +1726,9 @@ function EmergencyTab({
   const [batchTnkId, setBatchTnkId] = useState("");
   const [expireBId, setExpireBId] = useState("");
   const [resetTnkId, setResetTnkId] = useState("");
+  const [forgiveTnkId, setForgiveTnkId] = useState("");
+  const [punishTnkId, setPunishTnkId] = useState("");
+  const [punishHours, setPunishHours] = useState<2 | 24 | 48>(2);
 
   return (
     <>
@@ -1747,6 +1785,55 @@ function EmergencyTab({
         <EBtn theme={theme} label="Reset tanker" color={RED}
           disabled={actionLoading || !resetTnkId}
           onPress={() => onResetTanker(Number(resetTnkId))} />
+      </ECard>
+
+      <ECard theme={theme} title="Forgive driver (clear punishment)">
+        <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
+          Clears the driver&apos;s penalty without touching their active delivery or batch. Use when a
+          driver went offline briefly and came back.
+        </Text>
+        <NumInput theme={theme} placeholder="Tanker ID" value={forgiveTnkId} onChange={setForgiveTnkId} />
+        <EBtn theme={theme} label="Forgive driver" color={theme.primary}
+          disabled={actionLoading || !forgiveTnkId}
+          onPress={() => onForgiveDriver(Number(forgiveTnkId))} />
+      </ECard>
+
+      <ECard theme={theme} title="Punish driver (set penalty)">
+        <NumInput theme={theme} placeholder="Tanker ID" value={punishTnkId} onChange={setPunishTnkId} />
+        <Row>
+          {([2, 24, 48] as const).map((h) => (
+            <Pressable
+              key={h}
+              onPress={() => setPunishHours(h)}
+              style={{
+                flex: 1,
+                marginHorizontal: 3,
+                backgroundColor: punishHours === h ? RED_SOFT : theme.input,
+                borderWidth: 1,
+                borderColor: punishHours === h ? RED : theme.border,
+                borderRadius: 8,
+                paddingVertical: 8,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: punishHours === h ? RED : theme.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                {h}h
+              </Text>
+            </Pressable>
+          ))}
+        </Row>
+        <EBtn theme={theme} label="Punish driver" color={theme.destructive}
+          disabled={actionLoading || !punishTnkId}
+          onPress={() => onPunishDriver(Number(punishTnkId), punishHours)} />
+      </ECard>
+
+      <ECard theme={theme} title="Cancel all pending requests">
+        <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
+          Cancels every request in pending status. Use when the queue is stuck. Not reversible.
+        </Text>
+        <EBtn theme={theme} label="Cancel all pending" color={theme.destructive}
+          disabled={actionLoading}
+          onPress={onCancelAllPending} />
       </ECard>
 
       <ECard theme={theme} title="Run expired-member cleanup">
