@@ -1,6 +1,6 @@
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useDriverFlow } from "@/hooks/useDriverFlow";
@@ -35,6 +35,15 @@ export default function DriverFlow() {
   const [earningsVisible, setEarningsVisible] = useState(false);
   const [selectedOfflineReason, setSelectedOfflineReason] = useState<string | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (flow.step === "auth") return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      flow.back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [flow.step, flow.back]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>

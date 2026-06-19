@@ -1,6 +1,6 @@
 # app/services/time_policy.py
 
-OFFER_ACCEPT_TIMEOUT_SECONDS = 60
+OFFER_ACCEPT_TIMEOUT_SECONDS = 600  # TEMP: widened for manual emulator QA, revert to 60 after
 
 BATCH_FILL_TIMEOUT_MINUTES = 90
 BATCH_ASSIGNMENT_TIMEOUT_MINUTES = 45

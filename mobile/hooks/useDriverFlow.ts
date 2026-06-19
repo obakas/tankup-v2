@@ -254,33 +254,14 @@ export function useDriverFlow() {
         // getCurrentStop returns a different shape that lacks active_job; fetch proper job data
         const jobRes = await getCurrentJob(d.tankerId);
         setJob(jobRes);
+        setOffer(null);
         setStep("loading");
       } else if (["delivering", "arrived"].includes(tankerStatus)) {
         // getCurrentStop returns a different shape that lacks active_job; fetch proper job data
         const jobRes = await getCurrentJob(d.tankerId);
         setJob(jobRes);
+        setOffer(null);
         setStep("delivering");
-      } else {
-        setStep("available");
-      }
-    } catch {
-      setStep("available");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const handleAuthComplete = useCallback(
-    (d: DriverResponse) => {
-      setDriver(d);
-      setOnline(d.is_online);
-
-      registerForPushNotificationsAsync().then((token) => {
-        if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
-      }).catch(() => {});
-
-      if (["assigned", "loading", "delivering", "arrived"].includes(d.status)) {
-        refreshJob(d);
       } else if (!d.is_online) {
         setStep("offline");
       } else {
@@ -295,8 +276,30 @@ export function useDriverFlow() {
           }
         }).catch(() => {});
       }
+    } catch {
+      setStep("available");
+    } finally {
+      setLoading(false);
+    }
+  }, [triggerAlarm]);
+
+  const handleAuthComplete = useCallback(
+    (d: DriverResponse) => {
+      setDriver(d);
+      setOnline(d.is_online);
+
+      registerForPushNotificationsAsync().then((token) => {
+        if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
+      }).catch(() => {});
+
+      // Always resolve the step from live backend status rather than the
+      // d.status snapshot cached at login — that field is never refreshed
+      // as a job progresses, so trusting it here would strand a driver who
+      // backs out mid-job on a stale "available" screen while their actual
+      // job (assigned/loading/delivering) is invisible.
+      refreshJob(d);
     },
-    [refreshJob, triggerAlarm]
+    [refreshJob]
   );
 
   // Restore a persisted session on mount so navigating back into this screen
@@ -389,6 +392,7 @@ export function useDriverFlow() {
       const jobRes = await getCurrentJob(driver.tankerId);
       setJob(jobRes);
       setCurrentStop(null);
+      setOffer(null);
       setStep("loading");
       toast.success("Offer accepted — start loading!");
     } catch (e: any) {
