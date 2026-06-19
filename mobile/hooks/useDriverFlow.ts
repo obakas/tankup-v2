@@ -256,7 +256,9 @@ export function useDriverFlow() {
         setJob(jobRes);
         setStep("loading");
       } else if (["delivering", "arrived"].includes(tankerStatus)) {
-        setJob(res);
+        // getCurrentStop returns a different shape that lacks active_job; fetch proper job data
+        const jobRes = await getCurrentJob(d.tankerId);
+        setJob(jobRes);
         setStep("delivering");
       } else {
         setStep("available");
