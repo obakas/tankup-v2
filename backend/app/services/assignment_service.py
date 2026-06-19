@@ -930,11 +930,9 @@ def get_eligible_tankers_for_batch(
     max_radius_km = max(configured_radius, MIN_BATCH_ASSIGNMENT_RADIUS_KM)
     excluded = set(excluded_tanker_ids or [])
 
-    if batch_lat is None or batch_lon is None:
-        return []
-
     tankers = db.query(Tanker).all()
     eligible: list[Tanker] = []
+    fallback: list[Tanker] = []
 
     for tanker in tankers:
         if tanker.id in excluded:
@@ -943,79 +941,33 @@ def get_eligible_tankers_for_batch(
         if not _is_assignable_available_tanker(tanker):
             continue
 
-        if not _has_real_coordinates(tanker):
-            continue
+        # Strong candidates: real coords + recent location + within radius
+        if (
+            batch_lat is not None
+            and batch_lon is not None
+            and _has_real_coordinates(tanker)
+            and _has_recent_location(tanker)
+        ):
+            tanker_lat = getattr(tanker, "latitude", None)
+            tanker_lon = getattr(tanker, "longitude", None)
 
-        if not _has_recent_location(tanker):
-            continue
+            distance_km = haversine_km(
+                tanker_lat,
+                tanker_lon,
+                batch_lat,
+                batch_lon,
+            )
 
-        tanker_lat = getattr(tanker, "latitude", None)
-        tanker_lon = getattr(tanker, "longitude", None)
+            if distance_km <= max_radius_km:
+                eligible.append(tanker)
+                continue
 
-        distance_km = haversine_km(
-            tanker_lat,
-            tanker_lon,
-            batch_lat,
-            batch_lon,
-        )
+        # Fallback candidates for MVP: allow assignable tankers even if
+        # location is stale/missing, so a lapsed GPS heartbeat doesn't
+        # silently block batch assignment the way priority never does.
+        fallback.append(tanker)
 
-        if distance_km > max_radius_km:
-            continue
-
-        eligible.append(tanker)
-
-    return eligible
-
-# def get_eligible_tankers_for_batch(
-#     db: Session,
-#     batch: Batch,
-#     excluded_tanker_ids: Iterable[int] | None = None,
-# ) -> list[Tanker]:
-#     batch_lat = getattr(batch, "latitude", None)
-#     batch_lon = getattr(batch, "longitude", None)
-#     configured_radius = float(getattr(batch, "search_radius_km", 0) or 0)
-#     max_radius_km = max(configured_radius, MIN_BATCH_ASSIGNMENT_RADIUS_KM)
-#     excluded = set(excluded_tanker_ids or [])
-
-#     tankers = db.query(Tanker).all()
-#     eligible: list[Tanker] = []
-#     fallback: list[Tanker] = []
-
-#     for tanker in tankers:
-#         if tanker.id in excluded:
-#             continue
-
-#         if not _is_assignable_available_tanker(tanker):
-#             continue
-
-#         # Strong candidates: real coords + recent location + within radius
-#         if (
-#             batch_lat is not None
-#             and batch_lon is not None
-#             and _has_real_coordinates(tanker)
-#             and _has_recent_location(tanker)
-#         ):
-#             tanker_lat = getattr(tanker, "latitude", None)
-#             tanker_lon = getattr(tanker, "longitude", None)
-
-#             distance_km = haversine_km(
-#                 tanker_lat,
-#                 tanker_lon,
-#                 batch_lat,
-#                 batch_lon,
-#             )
-
-#             if distance_km <= max_radius_km:
-#                 eligible.append(tanker)
-#                 continue
-        
-#         if not _has_recent_location(tanker):
-#             continue
-#         # Fallback candidates for MVP:
-#         # allow assignable tankers even if location is stale/missing.
-#         fallback.append(tanker)
-
-#     return eligible if eligible else fallback
+    return eligible if eligible else fallback
 
 
 # -------- existing batch ranking helpers remain below --------
