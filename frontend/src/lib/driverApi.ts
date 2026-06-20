@@ -71,6 +71,12 @@ export async function setDriverOnline(tankerId: number, online: boolean, reason?
   });
 }
 
+export async function acknowledgeCompletion(tankerId: number) {
+  return apiRequest(`/tankers/${tankerId}/acknowledge-completion`, {
+    method: "POST",
+  });
+}
+
 /* =========================
    TYPES
 ========================= */

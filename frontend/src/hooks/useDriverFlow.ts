@@ -26,6 +26,7 @@ import {
   type IncomingDriverOffer,
   type TankerLocationResponse,
   getDriverLocation,
+  acknowledgeCompletion,
 } from "@/lib/driverApi";
 import { useDriverLocationHeartbeat } from "./useDriverLocationHeartbeat";
 
@@ -757,12 +758,15 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   }, [tankerId, currentStop, skipReason, runAction]);
 
   const resetToDashboard = useCallback(() => {
+    if (tankerId) {
+      acknowledgeCompletion(tankerId).catch(() => {});
+    }
     setJobResponse(null);
     setStopResponse(null);
     setIncomingOffer(null);
     setHadActiveStop(false);
     resetInputs();
-  }, [resetInputs]);
+  }, [tankerId, resetInputs]);
 
   return {
     step,
