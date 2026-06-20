@@ -89,7 +89,7 @@
       "eas": {
         "projectId": "5f921855-fc23-4271-926b-2534f00d4012"
       },
-      "API_BASE_URL": "http://10.0.2.2:8000"
+      "API_BASE_URL": "https://tankup-v2.onrender.com"
     },
     "owner": "obakas"
   }
