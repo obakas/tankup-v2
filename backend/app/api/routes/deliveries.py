@@ -322,13 +322,16 @@ def complete_stop(
         delivery_id=delivery_id,
     )
 
-    if delivery.delivery_status != "awaiting_otp":
+    # Already-delivered is handled idempotently below by complete_delivery_stop
+    # itself (re-runs finalize so a retried/duplicate request can't strand the
+    # tanker) — only block genuinely premature completion attempts here.
+    if delivery.delivery_status not in {"awaiting_otp", "delivered"}:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot complete delivery from status '{delivery.delivery_status}'",
         )
 
-    if delivery.measurement_required:
+    if delivery.delivery_status == "awaiting_otp" and delivery.measurement_required:
         if not delivery.measurement_valid:
             raise HTTPException(
                 status_code=400,
@@ -345,13 +348,13 @@ def complete_stop(
                 detail="Measurement data is incomplete",
             )
 
-    if delivery.otp_required and not delivery.otp_verified:
+    if delivery.delivery_status == "awaiting_otp" and delivery.otp_required and not delivery.otp_verified:
         raise HTTPException(
             status_code=400,
             detail="OTP must be verified before completing this stop",
         )
 
-    if delivery.otp_required and delivery.otp_consumed_at is None:
+    if delivery.delivery_status == "awaiting_otp" and delivery.otp_required and delivery.otp_consumed_at is None:
         raise HTTPException(
             status_code=400,
             detail="OTP verification record is missing",
