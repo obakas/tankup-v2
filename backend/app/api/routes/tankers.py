@@ -394,6 +394,24 @@ def build_priority_customer_payload(db: Session, request: LiquidRequest, deliver
 
 def build_current_job_response(db: Session, tanker: Tanker) -> dict[str, Any]:
     batch = get_active_batch_for_tanker(db, tanker)
+    request = None if batch else get_active_priority_for_tanker(db, tanker)
+
+    if not batch and not request and tanker.status == "completed":
+        # Job just finished and is awaiting driver acknowledgment (Back Online).
+        # Its batch/request status is now terminal, so the active-job lookups
+        # above return nothing — resolve it from the last delivery stop instead
+        # so the driver's job-complete/earnings screen still gets a batch_id/request_id.
+        last_delivery = (
+            db.query(DeliveryRecord)
+            .filter(DeliveryRecord.tanker_id == tanker.id)
+            .order_by(DeliveryRecord.id.desc())
+            .first()
+        )
+        if last_delivery and last_delivery.job_type == "batch" and last_delivery.batch_id:
+            batch = db.query(Batch).filter(Batch.id == last_delivery.batch_id).first()
+        elif last_delivery and last_delivery.job_type == "priority" and last_delivery.request_id:
+            request = db.query(LiquidRequest).filter(LiquidRequest.id == last_delivery.request_id).first()
+
     if batch:
         members = build_batch_members_payload(db, batch.id)
         total_volume = int(sum(member["volume_liters"] for member in members)) if members else int(batch.current_volume or 0)
@@ -434,10 +452,9 @@ def build_current_job_response(db: Session, tanker: Tanker) -> dict[str, Any]:
                 "members": members,
                 "current_stop": current_stop,
             },
-            "message": "Job in progress.",
+            "message": "Job in progress." if tanker.status != "completed" else "Job complete — awaiting acknowledgment.",
         }
 
-    request = get_active_priority_for_tanker(db, tanker)
     if request:
         delivery_record = (
             db.query(DeliveryRecord)
@@ -468,7 +485,7 @@ def build_current_job_response(db: Session, tanker: Tanker) -> dict[str, Any]:
                     "delivery_status": delivery_record.delivery_status if delivery_record else None,
                 },
             },
-            "message": "Job in progress.",
+            "message": "Job in progress." if tanker.status != "completed" else "Job complete — awaiting acknowledgment.",
         }
 
     return {
@@ -979,6 +996,20 @@ def complete_priority_delivery(tanker_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(tanker)
     return {"message": "Priority delivery completed successfully", "tanker_id": tanker.id, "request_id": request.id, "tanker_status": tanker.status, "request_status": request.status}
+
+
+@router.post("/{tanker_id}/acknowledge-completion")
+def acknowledge_completion(tanker_id: int, db: Session = Depends(get_db)):
+    """Driver taps 'Back Online' after viewing the job-complete/earnings screen."""
+    tanker = get_tanker_or_404(db, tanker_id)
+    if tanker.status == "available":
+        return {"message": "Tanker already available", "tanker_id": tanker.id, "tanker_status": tanker.status}
+    validate_transition_or_400(tanker.status, "available", TANKER_STATUS_TRANSITIONS, "Tanker")
+    tanker.status = "available"
+    tanker.is_available = True
+    db.commit()
+    db.refresh(tanker)
+    return {"message": "Tanker back online", "tanker_id": tanker.id, "tanker_status": tanker.status}
 
 
 _VALID_OFFLINE_REASONS = {"breakdown", "emergency", "technical"}

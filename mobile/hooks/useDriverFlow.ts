@@ -15,6 +15,7 @@ const DRIVER_STATUS_MESSAGES: Record<string, string> = {
 };
 import {
   acceptOffer,
+  acknowledgeCompletion,
   driverHeartbeat,
   DriverResponse,
   getCurrentJob,
@@ -150,18 +151,16 @@ export function useDriverFlow() {
         prevTankerStatusRef.current = tankerStatus;
       }
 
-      if (["available", "completed"].includes(tankerStatus)) {
-        const wasDelivering = ["delivering", "arrived"].includes(prevStatus);
+      if (tankerStatus === "completed") {
         prevTankerStatusRef.current = "";
-        if (wasDelivering) {
-          setStep("completed");
-          stopPolling();
-        } else {
-          setStep("available");
-          setJob(null);
-          stopPolling();
-          pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
-        }
+        setStep("completed");
+        stopPolling();
+      } else if (tankerStatus === "available") {
+        prevTankerStatusRef.current = "";
+        setStep("available");
+        setJob(null);
+        stopPolling();
+        pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
       }
     } catch {
       // Keep screen stable while backend/network breathes.
@@ -262,6 +261,14 @@ export function useDriverFlow() {
         setJob(jobRes);
         setOffer(null);
         setStep("delivering");
+      } else if (tankerStatus === "completed") {
+        // Job finished but the driver hasn't tapped "Back Online" yet (e.g. the
+        // app was backgrounded/killed right after the last stop) — show the
+        // job-complete/earnings screen instead of skipping straight to available.
+        const jobRes = await getCurrentJob(d.tankerId);
+        setJob(jobRes);
+        setOffer(null);
+        setStep("completed");
       } else if (!d.is_online) {
         setStep("offline");
       } else {
@@ -476,6 +483,9 @@ export function useDriverFlow() {
   }, [driver, job]);
 
   const markCompletedAsAvailable = useCallback(() => {
+    if (driverIdRef.current) {
+      acknowledgeCompletion(driverIdRef.current).catch(() => {});
+    }
     setStep("available");
     setOffer(null);
     setJob(null);

@@ -480,6 +480,9 @@ export const completeBatchDelivery = (tankerId: number, batchId: number) =>
 export const completePriorityDelivery = (tankerId: number) =>
   apiRequest<any>(`/tankers/${tankerId}/complete-priority`, { method: "POST" });
 
+export const acknowledgeCompletion = (tankerId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/acknowledge-completion`, { method: "POST" });
+
 // ── Delivery stop ─────────────────────────────────────────────────────────────
 
 export const getCurrentStop = (tankerId: number) =>
