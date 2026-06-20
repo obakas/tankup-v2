@@ -372,10 +372,18 @@ export function useClientFlow() {
     }
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      loadSites(user.id);
+    } else {
+      setUserSites([]);
+      setSelectedSiteId(null);
+    }
+  }, [user, loadSites]);
+
   const handleAuthComplete = (u: CurrentUser) => {
     setUser(u);
     setStep("request");
-    loadSites(u.id);
     toast.success(`Welcome, ${u.name}!`);
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
     registerForPushNotificationsAsync().then((token) => {

@@ -219,9 +219,11 @@ export default function ClientFlow() {
           visible={sitesVisible}
           user={flow.user}
           theme={theme}
+          selectedSiteId={flow.selectedSiteId}
+          onSelectSite={flow.setSelectedSiteId}
           onClose={() => {
             setSitesVisible(false);
-            if (flow.step === "request") flow.loadSites(flow.user!.id);
+            flow.loadSites(flow.user!.id);
           }}
         />
       )}

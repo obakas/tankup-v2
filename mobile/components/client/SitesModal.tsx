@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, ChevronLeft, Image as ImageIcon, MapPin, Pencil, Plus, Trash2, X } from "lucide-react-native";
+import { Camera, CheckCircle2, ChevronLeft, Image as ImageIcon, MapPin, Pencil, Plus, Trash2, X } from "lucide-react-native";
 import type { TankupTheme } from "@/components/ui/theme";
 import type { CurrentUser } from "@/types/client";
 import {
@@ -75,9 +75,11 @@ type Props = {
   user: CurrentUser;
   theme: TankupTheme;
   onClose: () => void;
+  selectedSiteId?: number | null;
+  onSelectSite?: (siteId: number) => void;
 };
 
-export function SitesModal({ visible, user, theme, onClose }: Props) {
+export function SitesModal({ visible, user, theme, onClose, selectedSiteId, onSelectSite }: Props) {
   const [sites, setSites] = useState<SiteProfileResponse[]>([]);
   const [loadingSites, setLoadingSites] = useState(false);
   const [view, setView] = useState<"list" | "form">("list");
@@ -376,16 +378,23 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                   </View>
                 ) : (
                   <View style={{ gap: 8 }}>
-                    {sites.map((site) => (
-                      <View
+                    {sites.map((site) => {
+                      const isSelected = selectedSiteId === site.id;
+                      return (
+                      <Pressable
                         key={site.id}
+                        onPress={() => {
+                          if (!onSelectSite) return;
+                          onSelectSite(site.id);
+                          onClose();
+                        }}
                         style={{
                           flexDirection: "row",
                           alignItems: "flex-start",
                           justifyContent: "space-between",
-                          backgroundColor: theme.background,
-                          borderWidth: 1,
-                          borderColor: theme.border,
+                          backgroundColor: isSelected ? theme.primary + "1a" : theme.background,
+                          borderWidth: isSelected ? 2 : 1,
+                          borderColor: isSelected ? theme.primary : theme.border,
                           borderRadius: 12,
                           padding: 12,
                           gap: 12,
@@ -424,6 +433,9 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                             {STATUS_LABELS[site.verification_status] ?? "Unverified"}
                           </Text>
                         </View>
+                        {isSelected && (
+                          <CheckCircle2 color={theme.primary} size={18} style={{ marginTop: 2 }} />
+                        )}
                         <View style={{ flexDirection: "row", gap: 6 }}>
                           <Pressable
                             onPress={() => openEditForm(site)}
@@ -464,8 +476,9 @@ export function SitesModal({ visible, user, theme, onClose }: Props) {
                             )}
                           </Pressable>
                         </View>
-                      </View>
-                    ))}
+                      </Pressable>
+                      );
+                    })}
                   </View>
                 )}
               </ScrollView>
