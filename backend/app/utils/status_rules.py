@@ -4,7 +4,7 @@ TANKER_STATUS_TRANSITIONS = {
     "available": {"assigned"},
     "assigned": {"loading", "available"},
     "loading": {"delivering", "available"},
-    "delivering": {"arrived", "available"},
+    "delivering": {"arrived", "available", "completed"},
     "arrived": {"completed", "available"},
     "completed": {"available"},
 }

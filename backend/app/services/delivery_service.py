@@ -422,7 +422,8 @@ def _finalize_job_if_possible(db: Session, delivery: DeliveryRecord) -> dict[str
             db.add(request)
     if tanker:
         tanker.current_request_id = None if delivery.job_type == "priority" else tanker.current_request_id
-        _apply_tanker_status(tanker, "completed")
+        if tanker.status not in {"completed", "available"}:
+            _apply_tanker_status(tanker, "completed")
         db.add(tanker)
     db.commit()
     return {
