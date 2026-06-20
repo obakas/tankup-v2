@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
+from app.models.tanker import Tanker
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -29,6 +30,9 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     updates = payload.dict(exclude_unset=True)
     for key, value in updates.items():
         setattr(user, key, value)
+    if updates.get("expo_push_token"):
+        # Same physical device may have previously registered this token as a driver.
+        db.query(Tanker).filter(Tanker.expo_push_token == updates["expo_push_token"]).update({"expo_push_token": None})
     db.commit()
     db.refresh(user)
     return user

@@ -875,6 +875,8 @@ def get_tanker(tanker_id: int, db: Session = Depends(get_db)):
 def update_tanker_push_token(tanker_id: int, payload: TankerPushTokenUpdate, db: Session = Depends(get_db)):
     tanker = get_tanker_or_404(db, tanker_id)
     tanker.expo_push_token = payload.expo_push_token
+    # Same physical device may have previously registered this token as a client.
+    db.query(User).filter(User.expo_push_token == payload.expo_push_token).update({"expo_push_token": None})
     db.commit()
     return {"tanker_id": tanker_id, "updated": True}
 
