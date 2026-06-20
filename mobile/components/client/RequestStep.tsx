@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Droplets, MapPin, Plus, Users, Zap, XCircle, CalendarClock } from "lucide-react-native";
+import { Droplets, MapPin, Plus, Users, Zap, XCircle, CalendarClock, CheckCircle2 } from "lucide-react-native";
 
 import {
   TANK_SIZES,
@@ -557,6 +557,9 @@ export function RequestStep({
                     </Text>
                   )}
                 </View>
+                {selectedSiteId === site.id && (
+                  <CheckCircle2 size={18} color={accentColor} style={{ marginTop: 2 }} />
+                )}
               </Pressable>
             ))}
           </View>

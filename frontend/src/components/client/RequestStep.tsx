@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
+import { CalendarClock, CheckCircle2, Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   TANK_SIZES,
@@ -440,6 +440,9 @@ const RequestStep = ({
                       </p>
                     )}
                   </div>
+                  {selectedSiteId === site.id && (
+                    <CheckCircle2 className={`h-[18px] w-[18px] shrink-0 mt-0.5 ${ac.iconText}`} />
+                  )}
                 </div>
               </button>
             ))}
