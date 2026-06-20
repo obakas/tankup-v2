@@ -597,6 +597,13 @@ def arrive_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int) -> De
     db.add(tanker)
     db.commit()
     db.refresh(delivery)
+    if delivery.user_id:
+        push_service.notify_user(
+            db, delivery.user_id,
+            title="Tanker arrived!",
+            body="Your delivery driver is at your location",
+            data={"type": "delivery_status", "status": "arrived", "delivery_id": delivery.id},
+        )
     return delivery
 
 
