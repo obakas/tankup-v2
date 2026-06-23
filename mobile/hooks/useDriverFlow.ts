@@ -112,6 +112,20 @@ export function useDriverFlow() {
     goRoleHome();
   }, [goRoleHome]);
 
+  const signOut = useCallback(async () => {
+    if (driver) {
+      stopPolling();
+      stopHeartbeat();
+      try {
+        await setDriverOnline(driver.tankerId, false);
+      } catch {
+        // best-effort
+      }
+    }
+    await AsyncStorage.multiRemove([ROLE_KEY, DRIVER_AUTH_KEY]);
+    router.replace("/");
+  }, [driver, stopPolling, stopHeartbeat]);
+
   const pollOffer = useCallback(async () => {
     if (!driver) return;
 
@@ -522,6 +536,7 @@ export function useDriverFlow() {
     setStep,
     back,
     goRoleHome,
+    signOut,
     pollOffer,
     pollJob,
     toggleOnline,

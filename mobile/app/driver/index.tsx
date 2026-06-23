@@ -1,4 +1,4 @@
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
@@ -54,7 +54,16 @@ export default function DriverFlow() {
         onBack={flow.back}
         onToggleOnline={flow.toggleOnline}
         onEditProfile={() => setProfileVisible(true)}
-        onLogout={flow.goRoleHome}
+        onLogout={() =>
+          Alert.alert(
+            "Sign out?",
+            "You will need to register again to receive delivery jobs.",
+            [
+              { text: "Cancel", style: "cancel" },
+              { text: "Sign out", style: "destructive", onPress: () => flow.signOut() },
+            ]
+          )
+        }
         onOpenHelp={() => setHelpVisible(true)}
         onOpenHistory={() => setHistoryVisible(true)}
         onOpenEarnings={() => setEarningsVisible(true)}
