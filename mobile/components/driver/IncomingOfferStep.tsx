@@ -262,6 +262,7 @@ export function IncomingOfferStep({ offer, onAccept, onDecline, loading }: Props
               verification_status: stop.verification_status,
               is_driver_verified: stop.is_driver_verified,
               last_verified_at: stop.last_verified_at,
+              tank_photo_url: stop.tank_photo_url,
             }}
             volume={stop.volume_liters}
           />

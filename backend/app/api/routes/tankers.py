@@ -239,6 +239,7 @@ def build_priority_offer_payload(db: Session, request: LiquidRequest, seconds_le
             "verification_status": site.verification_status,
             "is_driver_verified": site.verification_status in ("verified", "partially_verified"),
             "last_verified_at": site.last_verified_at.isoformat() if site.last_verified_at else None,
+            "tank_photo_url": site.tank_photo_url,
         } if site else None,
         "payment_confirmed": True,
         "estimated_earnings_naira": round(float(request.volume_liters) * DRIVER_PRIORITY_RATE_PER_LITER),
@@ -276,6 +277,7 @@ def build_batch_offer_payload(db: Session, batch: Batch, seconds_left: int) -> d
             "verification_status": site.verification_status if site else None,
             "is_driver_verified": site.verification_status in ("verified", "partially_verified") if site else False,
             "last_verified_at": site.last_verified_at.isoformat() if site and site.last_verified_at else None,
+            "tank_photo_url": site.tank_photo_url if site else None,
         })
 
     return {

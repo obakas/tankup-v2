@@ -1,4 +1,5 @@
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { Image, Text, View } from "react-native";
 import { CheckCircle, Droplets, Layers, Lock, MapPin, Navigation, Truck } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
@@ -31,6 +32,7 @@ export type SiteProfile = {
   verification_status?: string | null;
   is_driver_verified?: boolean;
   last_verified_at?: string | null;
+  tank_photo_url?: string | null;
 };
 
 export function DifficultyDots({ value, max = 5 }: { value: number; max?: number }) {
@@ -57,10 +59,20 @@ type Props = {
 
 export function SiteCard({ site, volume }: Props) {
   const { theme } = useAppTheme();
+  const [imgError, setImgError] = useState(false);
   if (!site) return null;
 
   return (
     <View className="gap-2 mt-3">
+      {site.tank_photo_url && !imgError && (
+        <Image
+          source={{ uri: site.tank_photo_url }}
+          className="w-full rounded-xl"
+          style={{ height: 160, backgroundColor: theme.cardSoft }}
+          resizeMode="cover"
+          onError={() => setImgError(true)}
+        />
+      )}
       {(site.address || site.landmark_notes) && (
         <View className="flex-row items-start gap-2">
           <MapPin color={theme.mutedForeground} size={14} style={{ marginTop: 2 }} />
