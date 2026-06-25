@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { adminRefundMember, adminResetTanker, getAdminPayments, getAdminTankers } from "@/lib/admin";
+import { formatNigeriaTime } from "@/lib/datetime";
 import { formatNumber, StatusPill } from "./shared";
 
 const POLL_MS = 30_000;
@@ -180,12 +181,17 @@ export function PaymentsTab({ canLoad, isActionLoading, askConfirm }: Props) {
                   </TableCell>
                 </TableRow>
               ) : (
-                tankers.map((item) => (
+                tankers.map((item) => {
+                  const isPunished = !!item.paused_until && new Date(item.paused_until) > new Date();
+                  return (
                   <TableRow key={item.id}>
                     <TableCell>#{item.id}</TableCell>
                     <TableCell>{item.driver_name}</TableCell>
                     <TableCell>
                       <StatusPill status={item.status} />
+                      {isPunished && (
+                        <p className="text-xs text-destructive font-medium mt-0.5">⛔ until {formatNigeriaTime(item.paused_until)}</p>
+                      )}
                     </TableCell>
                     <TableCell>{item.is_online ? "Yes" : "No"}</TableCell>
                     <TableCell>{item.is_available ? "Yes" : "No"}</TableCell>
@@ -207,7 +213,8 @@ export function PaymentsTab({ canLoad, isActionLoading, askConfirm }: Props) {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

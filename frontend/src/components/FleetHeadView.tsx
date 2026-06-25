@@ -31,7 +31,7 @@ import {
   type TankerCard,
 } from "@/lib/fleetHeadApi";
 import { FleetHeadFinancialsTab } from "@/components/FleetHeadFinancialsTab";
-import { parseApiDate } from "@/lib/datetime";
+import { parseApiDate, formatNigeriaTime } from "@/lib/datetime";
 
 const POLL_MS = 15_000;
 type Tab = "live" | "tankers" | "overview" | "financials";
@@ -201,27 +201,33 @@ function LiveTab({ live }: { live: LiveData | null }) {
         {activeTankers.length === 0 ? (
           <EmptyCard message="No tankers currently active." />
         ) : (
-          activeTankers.map((t) => (
-            <div key={t.id} className="bg-card rounded-2xl border border-border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground truncate">{t.driver_name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{t.phone} · {t.tank_plate_number}</p>
-                  {(t.active_batch_id || t.current_request_id) && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {t.active_batch_id ? `Batch #${t.active_batch_id}` : `Request #${t.current_request_id}`}
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <StatusBadge status={t.status} />
-                  <span className={`text-xs font-medium ${t.is_online ? "text-success" : "text-muted-foreground"}`}>
-                    {t.is_online ? "● Online" : "○ Offline"}
-                  </span>
+          activeTankers.map((t) => {
+            const isPunished = !!t.paused_until && new Date(t.paused_until) > new Date();
+            return (
+              <div key={t.id} className={`bg-card rounded-2xl border p-4 ${isPunished ? "border-destructive" : "border-border"}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground truncate">{t.driver_name}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t.phone} · {t.tank_plate_number}</p>
+                    {(t.active_batch_id || t.current_request_id) && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t.active_batch_id ? `Batch #${t.active_batch_id}` : `Request #${t.current_request_id}`}
+                      </p>
+                    )}
+                    {isPunished && (
+                      <p className="text-xs font-medium text-destructive mt-1">⛔ Suspended until {formatNigeriaTime(t.paused_until)}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <StatusBadge status={t.status} />
+                    <span className={`text-xs font-medium ${t.is_online ? "text-success" : "text-muted-foreground"}`}>
+                      {t.is_online ? "● Online" : "○ Offline"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </Section>
 
@@ -505,7 +511,7 @@ function TankersTab({
             const isPunishing = punishLoadingId === t.id;
             const feedback = actionFeedback?.id === t.id ? actionFeedback : null;
             return (
-              <div key={t.id} className="bg-card rounded-2xl border border-border p-4">
+              <div key={t.id} className={`bg-card rounded-2xl border p-4 ${isPunished ? "border-destructive" : "border-border"}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground">{t.driver_name}</p>
@@ -524,7 +530,7 @@ function TankersTab({
                       </p>
                     )}
                     {isPunished && (
-                      <p className="text-xs text-destructive mt-1 font-medium">⚠ Penalised — blocked from new offers</p>
+                      <p className="text-xs text-destructive mt-1 font-medium">⛔ Suspended until {formatNigeriaTime(t.paused_until)}</p>
                     )}
                     {feedback && (
                       <p className={`text-xs mt-1 font-medium ${feedback.ok ? "text-success" : "text-destructive"}`}>

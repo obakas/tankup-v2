@@ -1435,8 +1435,10 @@ function PaymentsTab({
       {tankers.length === 0 ? (
         <EmptyState theme={theme} message="No tankers found" />
       ) : (
-        tankers.map((t) => (
-          <View key={t.id} style={card(theme)}>
+        tankers.map((t) => {
+          const isPunished = !!t.paused_until && new Date(t.paused_until) > new Date();
+          return (
+          <View key={t.id} style={{ ...card(theme), borderColor: isPunished ? theme.destructive : theme.border }}>
             <Row>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 13 }}>
@@ -1446,6 +1448,11 @@ function PaymentsTab({
                   {t.tank_plate_number} • Online: {t.is_online ? "Yes" : "No"} • Avail:{" "}
                   {t.is_available ? "Yes" : "No"}
                 </Text>
+                {isPunished && (
+                  <Text style={{ color: theme.destructive, fontSize: 11, fontWeight: "600", marginTop: 2 }}>
+                    ⛔ Suspended until {new Date(t.paused_until!).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                  </Text>
+                )}
               </View>
               <StatusBadge status={t.status} theme={theme} />
             </Row>
@@ -1460,7 +1467,8 @@ function PaymentsTab({
               />
             </View>
           </View>
-        ))
+          );
+        })
       )}
     </>
   );

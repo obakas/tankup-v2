@@ -176,8 +176,9 @@ function StatCard({
 // ── Live tab ──────────────────────────────────────────────────────────────────
 
 function TankerActiveCard({ tanker, theme }: { tanker: TankerCard; theme: TankupTheme }) {
+  const isPunished = !!tanker.paused_until && new Date(tanker.paused_until) > new Date();
   return (
-    <View style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
+    <View style={{ backgroundColor: theme.card, borderColor: isPunished ? theme.destructive : theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 15 }} numberOfLines={1}>
@@ -189,6 +190,11 @@ function TankerActiveCard({ tanker, theme }: { tanker: TankerCard; theme: Tankup
           {(tanker.active_batch_id || tanker.current_request_id) && (
             <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 4 }}>
               {tanker.active_batch_id ? `Batch #${tanker.active_batch_id}` : `Request #${tanker.current_request_id}`}
+            </Text>
+          )}
+          {isPunished && (
+            <Text style={{ color: theme.destructive, fontSize: 11, fontWeight: "600", marginTop: 4 }}>
+              ⛔ Suspended until {new Date(tanker.paused_until!).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true })}
             </Text>
           )}
         </View>
@@ -550,7 +556,7 @@ function TankersTab({
             const selectedHours = punishHours[t.id] ?? 2;
             const PUNISH_OPTIONS: Array<2 | 24 | 48> = [2, 24, 48];
             return (
-              <View key={t.id} style={{ backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
+              <View key={t.id} style={{ backgroundColor: theme.card, borderColor: isPunished ? theme.destructive : theme.border, borderWidth: 1, borderRadius: 16, padding: 16 }}>
                 <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 15 }}>{t.driver_name}</Text>
@@ -568,7 +574,7 @@ function TankersTab({
                     )}
                     {isPunished && (
                       <Text style={{ color: theme.destructive, fontSize: 12, fontWeight: "600", marginTop: 4 }}>
-                        ⚠ Penalised — blocked from new offers
+                        ⛔ Suspended until {new Date(t.paused_until!).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true })}
                       </Text>
                     )}
                   </View>

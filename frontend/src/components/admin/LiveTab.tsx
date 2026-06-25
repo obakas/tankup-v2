@@ -66,22 +66,28 @@ export function LiveTab({ canLoad }: Props) {
           {tankers.length === 0 ? (
             <EmptyCard message="No active tankers" />
           ) : (
-            tankers.map((tanker) => (
-              <div key={tanker.id} className="rounded-xl border p-3 space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-foreground">{tanker.driver_name}</span>
-                  <StatusPill status={tanker.status} />
+            tankers.map((tanker) => {
+              const isPunished = !!tanker.paused_until && new Date(tanker.paused_until) > new Date();
+              return (
+                <div key={tanker.id} className={`rounded-xl border p-3 space-y-1.5 ${isPunished ? "border-destructive" : ""}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground">{tanker.driver_name}</span>
+                    <StatusPill status={tanker.status} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Plate: {tanker.tank_plate_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Online: {tanker.is_online ? "Yes" : "No"} • Available:{" "}
+                    {tanker.is_available ? "Yes" : "No"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Last location: {formatNigeriaTime(tanker.last_location_update_at)}
+                  </p>
+                  {isPunished && (
+                    <p className="text-xs font-medium text-destructive">⛔ Suspended until {formatNigeriaTime(tanker.paused_until)}</p>
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">Plate: {tanker.tank_plate_number}</p>
-                <p className="text-sm text-muted-foreground">
-                  Online: {tanker.is_online ? "Yes" : "No"} • Available:{" "}
-                  {tanker.is_available ? "Yes" : "No"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Last location: {formatNigeriaTime(tanker.last_location_update_at)}
-                </p>
-              </div>
-            ))
+              );
+            })
           )}
         </section>
 
