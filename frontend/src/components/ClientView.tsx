@@ -453,7 +453,11 @@ const ClientView = ({ onBack }: ClientViewProps) => {
         </div>
 
         {["batch", "tanker", "delivery", "completed"].includes(step) && activeTab !== "history" && (
-          <DeliveryStepBar step={step} requestMode={requestMode} />
+          <DeliveryStepBar
+            step={step}
+            requestMode={requestMode}
+            liveData={requestMode === "priority" ? livePriorityRequest : liveBatch}
+          />
         )}
       </header>
 

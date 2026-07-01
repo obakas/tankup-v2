@@ -65,7 +65,7 @@ export default function ClientFlow() {
       />
 
       {["batch", "searching", "tanker", "delivery", "completed"].includes(flow.step) && (
-        <DeliveryStepBar currentStep={flow.step} mode={flow.mode} theme={theme} />
+        <DeliveryStepBar currentStep={flow.step} mode={flow.mode} liveData={flow.liveData} theme={theme} />
       )}
 
       <KeyboardAvoidingView

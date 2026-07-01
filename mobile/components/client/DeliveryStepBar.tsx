@@ -8,33 +8,80 @@ import {
 } from "@/constants/timePolicy";
 
 interface StepDef {
-  key: string;
   label: string;
   timeLabel: string;
 }
 
 const BATCH_STEPS: StepDef[] = [
-  { key: "batch",     label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
-  { key: "tanker",    label: "Tanker Loading",  timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
-  { key: "delivery",  label: "En Route",        timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { key: "completed", label: "Delivered",       timeLabel: "" },
+  { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
+  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
+  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
+  { label: "Arrived",        timeLabel: "" },
+  { label: "Delivered",      timeLabel: "" },
 ];
 
 const PRIORITY_STEPS: StepDef[] = [
-  { key: "searching", label: "Finding Tanker",  timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
-  { key: "delivery",  label: "En Route",        timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { key: "completed", label: "Delivered",       timeLabel: "" },
+  { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
+  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
+  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
+  { label: "Arrived",        timeLabel: "" },
+  { label: "Delivered",      timeLabel: "" },
 ];
+
+function computeStepIndex(
+  mode: "batch" | "priority",
+  liveData: any,
+  fallbackStep: string,
+): number {
+  if (!liveData) {
+    if (fallbackStep === "batch" || fallbackStep === "searching") return 0;
+    if (fallbackStep === "tanker") return 1;
+    if (fallbackStep === "delivery") return 2;
+    if (fallbackStep === "completed") return 4;
+    return 0;
+  }
+
+  if (mode === "batch") {
+    const batchStatus: string = liveData.status ?? "";
+    const memberStatus: string = liveData.member_delivery_status ?? "";
+
+    if (memberStatus === "delivered" || ["completed", "partially_completed"].includes(batchStatus))
+      return 4;
+    if (["arrived", "measuring", "awaiting_otp"].includes(memberStatus) || batchStatus === "arrived")
+      return 3;
+    if (memberStatus === "en_route" || batchStatus === "delivering")
+      return 2;
+    if (["assigned", "loading"].includes(batchStatus))
+      return 1;
+    return 0;
+  }
+
+  // priority
+  const reqStatus: string = liveData.request_status ?? "";
+  const deliveryStatus: string = liveData.delivery_status ?? "";
+  const tankerStatus: string = liveData.tanker_status ?? "";
+
+  if (deliveryStatus === "delivered" || ["completed", "partially_completed"].includes(reqStatus))
+    return 4;
+  if (["arrived", "measuring", "awaiting_otp"].includes(deliveryStatus) || reqStatus === "arrived")
+    return 3;
+  if (deliveryStatus === "en_route" || reqStatus === "delivering")
+    return 2;
+  if (tankerStatus === "loading" || reqStatus === "loading")
+    return 1;
+  return 0;
+}
 
 interface DeliveryStepBarProps {
   currentStep: string;
   mode: "batch" | "priority";
+  liveData: any;
   theme: TankupTheme;
 }
 
-export function DeliveryStepBar({ currentStep, mode, theme }: DeliveryStepBarProps) {
+export function DeliveryStepBar({ currentStep, mode, liveData, theme }: DeliveryStepBarProps) {
   const steps = mode === "priority" ? PRIORITY_STEPS : BATCH_STEPS;
-  const currentIndex = steps.findIndex((s) => s.key === currentStep);
+  const currentIndex = computeStepIndex(mode, liveData, currentStep);
 
   return (
     <View
@@ -50,35 +97,34 @@ export function DeliveryStepBar({ currentStep, mode, theme }: DeliveryStepBarPro
       {/* Dot + line row */}
       <View className="flex-row items-center">
         {steps.map((step, i) => {
-          const isPast = i < currentIndex;
-          const isCurrent = i === currentIndex;
-          const dotColor = isPast ? theme.success : isCurrent ? theme.primary : theme.border;
+          const isDone = i < currentIndex || (i === currentIndex && i === steps.length - 1);
+          const isCurrent = i === currentIndex && i < steps.length - 1;
+          const dotColor = isDone ? theme.success : isCurrent ? theme.primary : theme.border;
           const lineColor = i < currentIndex ? theme.success : theme.border;
+          const isLast = i === steps.length - 1;
 
           return (
-            <View key={step.key} className="flex-row items-center flex-1">
-              {/* Dot */}
+            <View key={i} className="flex-row items-center flex-1">
               <View
                 style={{
                   width: 18,
                   height: 18,
                   borderRadius: 9,
-                  backgroundColor: isPast || isCurrent ? dotColor : "transparent",
+                  backgroundColor: isDone || isCurrent ? dotColor : "transparent",
                   borderWidth: 2,
                   borderColor: dotColor,
                   alignItems: "center",
                   justifyContent: "center",
                 }}
               >
-                {isPast && (
+                {isDone && (
                   <Text style={{ color: theme.primaryForeground, fontSize: 10, fontWeight: "700" }}>
                     ✓
                   </Text>
                 )}
               </View>
 
-              {/* Connecting line (not after last step) */}
-              {i < steps.length - 1 && (
+              {!isLast && (
                 <View
                   className="flex-1"
                   style={{ height: 2, backgroundColor: lineColor }}
@@ -92,36 +138,28 @@ export function DeliveryStepBar({ currentStep, mode, theme }: DeliveryStepBarPro
       {/* Label row */}
       <View className="flex-row" style={{ marginTop: 6 }}>
         {steps.map((step, i) => {
-          const isPast = i < currentIndex;
-          const isCurrent = i === currentIndex;
-          const labelColor = isPast
+          const isDone = i < currentIndex || (i === currentIndex && i === steps.length - 1);
+          const isCurrent = i === currentIndex && i < steps.length - 1;
+          const labelColor = isDone
             ? theme.success
             : isCurrent
             ? theme.primary
             : theme.mutedForeground;
-
-          // Each label sits under its dot. The dots are spaced by flex-1 on the
-          // connecting lines, so we mirror that with matching flex weights here.
-          // First and last labels are pinned at the edges; middle labels are centered.
           const isFirst = i === 0;
           const isLast = i === steps.length - 1;
-          const flex = i < steps.length - 1 ? 1 : 0;
 
           return (
             <View
-              key={step.key}
+              key={i}
               style={{
-                flex,
+                flex: isLast ? 0 : 1,
                 alignItems: isFirst ? "flex-start" : isLast ? "flex-end" : "center",
-                // Offset the middle labels so they centre under their dot rather
-                // than the midpoint of the flex segment.
-                ...(isLast ? {} : {}),
               }}
             >
               <Text
                 style={{
                   fontSize: 10,
-                  fontWeight: isCurrent ? "700" : "500",
+                  fontWeight: isCurrent || isDone ? "700" : "500",
                   color: labelColor,
                 }}
                 numberOfLines={1}
