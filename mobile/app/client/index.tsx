@@ -19,6 +19,7 @@ import { FailedStep } from "@/components/client/FailedStep";
 import { ScheduledStep } from "@/components/client/ScheduledStep";
 import { HelpModal } from "@/components/client/HelpModal";
 import { ReportIncidentModal } from "@/components/client/ReportIncidentModal";
+import { DeliveryStepBar } from "@/components/client/DeliveryStepBar";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { OrderHistoryModal } from "@/components/client/OrderHistoryModal";
 import { ProfileModal } from "@/components/client/ProfileModal";
@@ -62,6 +63,10 @@ export default function ClientFlow() {
         onOpenHistory={() => setHistoryVisible(true)}
         onOpenNotificationSettings={() => router.push("/client/settings")}
       />
+
+      {["batch", "searching", "tanker", "delivery", "completed"].includes(flow.step) && (
+        <DeliveryStepBar currentStep={flow.step} mode={flow.mode} theme={theme} />
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}

@@ -16,6 +16,7 @@ import LeaveBatchWarningModal from "@/components/client/LeaveBatchWarningModal";
 import CancelPriorityDeliveryModal from "@/components/client/CancelPriorityDeliveryModal";
 import { ProfileDialog } from "@/components/client/ProfileDialog";
 import { SitesDialog } from "@/components/client/SitesDialog";
+import DeliveryStepBar from "@/components/client/DeliveryStepBar";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useClientFlow } from "@/hooks/useClientFlow";
 import type { ClientViewProps } from "@/types/client";
@@ -450,6 +451,10 @@ const ClientView = ({ onBack }: ClientViewProps) => {
             </div>
           </div>
         </div>
+
+        {["batch", "tanker", "delivery", "completed"].includes(step) && activeTab !== "history" && (
+          <DeliveryStepBar step={step} requestMode={requestMode} />
+        )}
       </header>
 
       <main className="mx-auto max-w-md p-5">
