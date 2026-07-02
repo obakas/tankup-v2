@@ -1,8 +1,9 @@
 import { useState } from "react";
 import * as Location from "expo-location";
-import { View, Text, Pressable, ActivityIndicator, Switch, ScrollView } from "react-native";
-import { Plus, X } from "lucide-react-native";
-import { createUser, loginUser, createSite } from "@/lib/api";
+import * as ImagePicker from "expo-image-picker";
+import { View, Text, Pressable, ActivityIndicator, Switch, ScrollView, Alert, Image } from "react-native";
+import { Camera, Image as ImageIcon, MapPin, Plus, X } from "lucide-react-native";
+import { createUser, loginUser, createSite, uploadSitePhoto, type TankFloorLevel } from "@/lib/api";
 import { Input } from "@/components/ui/Input";
 import { CurrentUser } from "@/types/client";
 import { DEFAULT_LAT, DEFAULT_LNG } from "@/constants/clientConstants";
@@ -12,16 +13,40 @@ interface SiteFormData {
   label: string;
   landmarkNotes: string;
   tankCapacity: string;
+  tankFloorLevel: TankFloorLevel | null;
   hasGate: boolean;
   gateNotes: string;
+  latitude: number;
+  longitude: number;
+  locationCaptured: boolean;
+  capturingLocation: boolean;
+  locationPermissionDenied: boolean;
+  photoUri: string | null;
+  photoMimeType: string | null;
 }
+
+const FLOOR_OPTIONS: { value: TankFloorLevel; label: string }[] = [
+  { value: "ground", label: "Ground" },
+  { value: "first_floor", label: "1st Floor" },
+  { value: "second_floor", label: "2nd Floor" },
+  { value: "third_floor", label: "3rd Floor" },
+  { value: "rooftop", label: "Roof" },
+];
 
 const newSite = (label = ""): SiteFormData => ({
   label,
   landmarkNotes: "",
   tankCapacity: "",
+  tankFloorLevel: null,
   hasGate: false,
   gateNotes: "",
+  latitude: DEFAULT_LAT,
+  longitude: DEFAULT_LNG,
+  locationCaptured: false,
+  capturingLocation: false,
+  locationPermissionDenied: false,
+  photoUri: null,
+  photoMimeType: null,
 });
 
 type AuthStepProps = {
@@ -49,6 +74,62 @@ export function AuthStep({ onComplete }: AuthStepProps) {
   const removeSite = (index: number) =>
     setSites((prev) => prev.filter((_, i) => i !== index));
 
+  const captureSiteLocation = async (index: number) => {
+    updateSite(index, { capturingLocation: true, locationPermissionDenied: false });
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        updateSite(index, { capturingLocation: false, locationPermissionDenied: true });
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      updateSite(index, {
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        locationCaptured: true,
+        capturingLocation: false,
+      });
+    } catch {
+      updateSite(index, { capturingLocation: false });
+      setError("Could not get your location. Please try again.");
+    }
+  };
+
+  const pickSitePhoto = async (index: number, source: "camera" | "gallery") => {
+    const permResult =
+      source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permResult.granted) {
+      Alert.alert(
+        "Permission required",
+        source === "camera"
+          ? "Camera access is needed to take a photo."
+          : "Photo library access is needed to choose a photo."
+      );
+      return;
+    }
+
+    const result =
+      source === "camera"
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.7, allowsEditing: false })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7, allowsEditing: false });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      updateSite(index, { photoUri: asset.uri, photoMimeType: asset.mimeType ?? "image/jpeg" });
+    }
+  };
+
+  const showSitePhotoPicker = (index: number) => {
+    Alert.alert("Tank Photo", "How would you like to add a photo?", [
+      { text: "Take Photo", onPress: () => pickSitePhoto(index, "camera") },
+      { text: "Choose from Library", onPress: () => pickSitePhoto(index, "gallery") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   const handleSubmit = async () => {
     if (!phone.trim()) { setError("Phone number is required"); return; }
     if (isSignup && (!name.trim() || !address.trim())) {
@@ -65,34 +146,25 @@ export function AuthStep({ onComplete }: AuthStepProps) {
         : await loginUser({ phone: phone.trim() });
 
       if (isSignup) {
-        let lat = DEFAULT_LAT;
-        let lng = DEFAULT_LNG;
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === "granted") {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            lat = pos.coords.latitude;
-            lng = pos.coords.longitude;
-          }
-        } catch {
-          // silently fall back to Abuja defaults
-        }
-
         try {
           await Promise.allSettled(
-            sites.map((site) => {
+            sites.map(async (site) => {
               const rawCapacity = site.tankCapacity.trim();
-              return createSite({
+              const saved = await createSite({
                 user_id: user.id,
-                latitude: lat,
-                longitude: lng,
+                latitude: site.latitude,
+                longitude: site.longitude,
                 label: site.label.trim() || "Home",
                 address: address.trim(),
                 landmark_notes: site.landmarkNotes.trim() || undefined,
                 tank_capacity_liters: rawCapacity ? parseInt(rawCapacity, 10) : undefined,
+                tank_floor_level: site.tankFloorLevel ?? undefined,
                 has_gate: site.hasGate,
                 gate_notes: site.hasGate && site.gateNotes.trim() ? site.gateNotes.trim() : undefined,
               });
+              if (site.photoUri && site.photoMimeType) {
+                await uploadSitePhoto(saved.id, site.photoUri, site.photoMimeType);
+              }
             })
           );
         } catch {
@@ -213,6 +285,43 @@ export function AuthStep({ onComplete }: AuthStepProps) {
                   placeholder="Home, Office, Warehouse…"
                 />
 
+                {/* Delivery location */}
+                <View className="gap-2">
+                  <Text className="text-sm font-medium" style={{ color: theme.foreground }}>Delivery Location</Text>
+                  <Text className="text-xs" style={{ color: theme.mutedForeground }}>
+                    Go to this site and tap the button below so drivers can find you.
+                  </Text>
+                  <Pressable
+                    onPress={() => captureSiteLocation(i)}
+                    disabled={site.capturingLocation}
+                    className="flex-row items-center justify-center gap-2 rounded-xl py-3"
+                    style={{
+                      borderWidth: 1,
+                      borderColor: site.locationCaptured ? theme.success : theme.border,
+                      backgroundColor: site.locationCaptured ? theme.successSoft : theme.background,
+                    }}
+                  >
+                    {site.capturingLocation ? (
+                      <ActivityIndicator color={theme.primary} size={16} />
+                    ) : (
+                      <>
+                        <MapPin size={16} color={site.locationCaptured ? theme.success : theme.primary} />
+                        <Text
+                          className="text-sm font-semibold"
+                          style={{ color: site.locationCaptured ? theme.success : theme.foreground }}
+                        >
+                          {site.locationCaptured ? "Location captured ✓" : "I'm at this site — use my current location"}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                  {site.locationPermissionDenied && (
+                    <Text className="text-xs" style={{ color: theme.destructive }}>
+                      Location permission denied. Please enable it in Settings.
+                    </Text>
+                  )}
+                </View>
+
                 <Input
                   label="Landmark / Notes (optional)"
                   value={site.landmarkNotes}
@@ -227,6 +336,79 @@ export function AuthStep({ onComplete }: AuthStepProps) {
                   placeholder="e.g. 5000"
                   keyboardType="phone-pad"
                 />
+
+                {/* Tank floor level */}
+                <View className="gap-2">
+                  <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
+                    Tank Location <Text className="font-normal">(optional)</Text>
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {FLOOR_OPTIONS.map((opt) => {
+                      const selected = site.tankFloorLevel === opt.value;
+                      return (
+                        <Pressable
+                          key={opt.value}
+                          onPress={() => updateSite(i, { tankFloorLevel: selected ? null : opt.value })}
+                          className="rounded-lg px-3 py-2"
+                          style={{
+                            borderWidth: 1,
+                            borderColor: selected ? theme.primary : theme.border,
+                            backgroundColor: selected ? theme.primary + "22" : theme.background,
+                          }}
+                        >
+                          <Text
+                            className="text-sm"
+                            style={{ fontWeight: selected ? "700" : "400", color: selected ? theme.primary : theme.foreground }}
+                          >
+                            {opt.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Tank photo */}
+                <View className="gap-2">
+                  <Text className="text-sm font-medium" style={{ color: theme.foreground }}>
+                    Tank Photo <Text className="font-normal">(optional — helps drivers estimate height)</Text>
+                  </Text>
+                  {site.photoUri ? (
+                    <View className="gap-2">
+                      <Image
+                        source={{ uri: site.photoUri }}
+                        style={{ width: "100%", height: 140, borderRadius: 12 }}
+                        resizeMode="cover"
+                      />
+                      <View className="flex-row gap-2">
+                        <Pressable
+                          onPress={() => showSitePhotoPicker(i)}
+                          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2.5"
+                          style={{ borderWidth: 1, borderColor: theme.border, backgroundColor: theme.background }}
+                        >
+                          <Camera size={14} color={theme.mutedForeground} />
+                          <Text className="text-sm" style={{ color: theme.foreground }}>Retake</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => updateSite(i, { photoUri: null, photoMimeType: null })}
+                          className="rounded-lg px-3.5 py-2.5"
+                          style={{ borderWidth: 1, borderColor: theme.destructive, backgroundColor: theme.destructiveSoft }}
+                        >
+                          <Text className="text-sm" style={{ color: theme.destructive }}>Remove</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ) : (
+                    <Pressable
+                      onPress={() => showSitePhotoPicker(i)}
+                      className="flex-row items-center justify-center gap-2 rounded-xl border-dashed py-6"
+                      style={{ borderWidth: 1, borderColor: theme.border, backgroundColor: theme.background }}
+                    >
+                      <ImageIcon size={18} color={theme.mutedForeground} />
+                      <Text className="text-sm" style={{ color: theme.mutedForeground }}>Add Tank Photo</Text>
+                    </Pressable>
+                  )}
+                </View>
 
                 <View
                   className="flex-row items-center justify-between rounded-xl px-4 py-3"
