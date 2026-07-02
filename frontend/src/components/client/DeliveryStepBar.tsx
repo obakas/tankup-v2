@@ -8,6 +8,9 @@ import {
   DELIVERY_TIMEOUT_HOURS,
 } from "@/constants/timePolicy";
 
+const DOT_SIZE = 18;
+const LABEL_WIDTH = 64;
+
 interface StepDef {
   label: string;
   timeLabel: string;
@@ -28,6 +31,15 @@ const PRIORITY_STEPS: StepDef[] = [
   { label: "Arrived",        timeLabel: "" },
   { label: "Delivered",      timeLabel: "" },
 ];
+
+// Minimal shape covering both BatchLiveResponse and PriorityLiveResponse
+interface LiveSnapshot {
+  status?: string | null;
+  member_delivery_status?: string | null;
+  request_status?: string | null;
+  delivery_status?: string | null;
+  tanker_status?: string | null;
+}
 
 function computeStepIndex(
   mode: RequestMode,
@@ -72,15 +84,6 @@ function computeStepIndex(
   return 0;
 }
 
-// Minimal shape covering both BatchLiveResponse and PriorityLiveResponse
-interface LiveSnapshot {
-  status?: string | null;
-  member_delivery_status?: string | null;
-  request_status?: string | null;
-  delivery_status?: string | null;
-  tanker_status?: string | null;
-}
-
 interface DeliveryStepBarProps {
   step: ClientStep;
   requestMode: RequestMode;
@@ -92,74 +95,76 @@ export default function DeliveryStepBar({ step, requestMode, liveData }: Deliver
   const currentIndex = computeStepIndex(requestMode, liveData, step);
 
   return (
-    <div className="border-b border-border bg-card px-4 pb-3 pt-2.5">
-      {/* Dots + connecting lines */}
-      <div className="flex items-center">
+    <div className="border-b border-border bg-card px-4 pb-4 pt-2.5">
+      <div className="flex items-start">
         {steps.map((s, i) => {
-          const isDone = i < currentIndex || (i === currentIndex && i === steps.length - 1);
-          const isCurrent = i === currentIndex && i < steps.length - 1;
+          const isFirst = i === 0;
           const isLast = i === steps.length - 1;
+          const isDone = i < currentIndex || (i === currentIndex && isLast);
+          const isCurrent = i === currentIndex && !isLast;
+          // Line before step i is green when i <= currentIndex
+          const lineGreen = i <= currentIndex;
+          const labelMarginLeft = isFirst
+            ? 0
+            : isLast
+            ? -(LABEL_WIDTH - DOT_SIZE)
+            : -(LABEL_WIDTH - DOT_SIZE) / 2;
+          const textAlign: "left" | "center" | "right" = isFirst ? "left" : isLast ? "right" : "center";
 
           return (
-            <div key={i} className="flex flex-1 items-center last:flex-none">
-              <div
-                className={cn(
-                  "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2",
-                  isDone
-                    ? "border-emerald-500 bg-emerald-500"
-                    : isCurrent
-                    ? "border-primary bg-primary"
-                    : "border-muted-foreground/40 bg-transparent"
-                )}
-              >
-                {isDone && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
-              </div>
-
-              {!isLast && (
+            <div key={i} className="contents">
+              {/* Connecting line — before each step except the first */}
+              {!isFirst && (
                 <div
                   className={cn(
-                    "h-0.5 flex-1",
-                    i < currentIndex ? "bg-emerald-500" : "bg-border"
+                    "h-0.5 flex-1 self-start",
+                    lineGreen ? "bg-emerald-500" : "bg-border"
                   )}
+                  // Vertically aligns with dot center: marginTop = (DOT_SIZE/2) - (lineHeight/2)
+                  style={{ marginTop: DOT_SIZE / 2 - 1 }}
                 />
               )}
-            </div>
-          );
-        })}
-      </div>
 
-      {/* Labels */}
-      <div className="mt-1.5 flex">
-        {steps.map((s, i) => {
-          const isDone = i < currentIndex || (i === currentIndex && i === steps.length - 1);
-          const isCurrent = i === currentIndex && i < steps.length - 1;
-          const isLast = i === steps.length - 1;
+              {/* Step column: dot + label */}
+              <div style={{ width: DOT_SIZE }} className="flex flex-col items-center">
+                {/* Dot */}
+                <div
+                  className={cn(
+                    "flex items-center justify-center rounded-full border-2",
+                    isDone
+                      ? "border-emerald-500 bg-emerald-500"
+                      : isCurrent
+                      ? "border-primary bg-primary"
+                      : "border-muted-foreground/40 bg-transparent"
+                  )}
+                  style={{ width: DOT_SIZE, height: DOT_SIZE, borderRadius: DOT_SIZE / 2 }}
+                >
+                  {isDone && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+                </div>
 
-          return (
-            <div
-              key={i}
-              className={cn(
-                "flex flex-col",
-                isLast ? "items-end" : i === 0 ? "flex-1 items-start" : "flex-1 items-center"
-              )}
-            >
-              <span
-                className={cn(
-                  "text-[10px] leading-tight",
-                  isDone
-                    ? "font-bold text-emerald-600 dark:text-emerald-400"
-                    : isCurrent
-                    ? "font-bold text-primary"
-                    : "font-medium text-muted-foreground"
-                )}
-              >
-                {s.label}
-              </span>
-              {s.timeLabel && (
-                <span className="text-[9px] leading-tight text-muted-foreground">
-                  {s.timeLabel}
+                {/* Label — overflows the DOT_SIZE column via negative marginLeft */}
+                <span
+                  className={cn(
+                    "mt-1 block text-[10px] leading-tight",
+                    isDone
+                      ? "font-bold text-emerald-600 dark:text-emerald-400"
+                      : isCurrent
+                      ? "font-bold text-primary"
+                      : "font-medium text-muted-foreground"
+                  )}
+                  style={{ width: LABEL_WIDTH, marginLeft: labelMarginLeft, textAlign }}
+                >
+                  {s.label}
                 </span>
-              )}
+                {s.timeLabel && (
+                  <span
+                    className="block text-[9px] leading-tight text-muted-foreground"
+                    style={{ width: LABEL_WIDTH, marginLeft: labelMarginLeft, textAlign }}
+                  >
+                    {s.timeLabel}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
