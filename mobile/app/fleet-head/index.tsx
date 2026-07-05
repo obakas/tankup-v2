@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -46,8 +47,10 @@ import {
   getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
+  getFleetHeadPendingRequests,
   getFleetHeadTankers,
   getFleetHeadToken,
+  forceOfferToTanker,
   loginFleetHead,
   registerTanker,
   setFleetHeadToken,
@@ -57,6 +60,7 @@ import {
   type LiveData,
   type OperationAlert,
   type OverviewData,
+  type PendingRequestItem,
   type TankerCard,
 } from "@/lib/fleetHeadApi";
 
@@ -85,6 +89,7 @@ const STATUS_MAP: Record<string, { bg: string; text: string }> = {
   offline:               { bg: "rgba(100,116,139,0.15)", text: "#64748b" },
   inactive:              { bg: "rgba(100,116,139,0.15)", text: "#64748b" },
   pending:               { bg: "rgba(245,158,11,0.15)",  text: "#f59e0b" },
+  searching_driver:      { bg: "rgba(245,158,11,0.15)",  text: "#f59e0b" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -270,7 +275,17 @@ function DeliveryRowCard({ delivery, theme }: { delivery: DeliveryCard; theme: T
   );
 }
 
-function LiveTab({ live, theme }: { live: LiveData | null; theme: TankupTheme }) {
+function LiveTab({
+  live,
+  theme,
+  pendingRequests,
+  onAssignDriver,
+}: {
+  live: LiveData | null;
+  theme: TankupTheme;
+  pendingRequests: PendingRequestItem[];
+  onAssignDriver: (req: PendingRequestItem) => void;
+}) {
   if (!live) {
     return <EmptyCard message="No live data available. Refresh to try again." theme={theme} />;
   }
@@ -304,6 +319,54 @@ function LiveTab({ live, theme }: { live: LiveData | null; theme: TankupTheme })
           theme={theme}
         />
       </View>
+
+      {/* Pending queue — requests waiting to be dispatched to a driver */}
+      {pendingRequests.length > 0 && (
+        <Section title="Waiting for Driver" count={pendingRequests.length} theme={theme}>
+          <View style={{ gap: 10 }}>
+            {pendingRequests.map((r) => {
+              const timeStr =
+                parseApiDate(r.created_at)?.toLocaleTimeString("en-NG", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }) ?? "—";
+              return (
+                <View
+                  key={r.id}
+                  style={{
+                    backgroundColor: theme.card,
+                    borderColor: "#f59e0b",
+                    borderWidth: 1,
+                    borderRadius: 16,
+                    padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 14 }}>
+                        Request #{r.id}
+                      </Text>
+                      <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 2 }}>
+                        {r.volume_liters.toLocaleString()}L · {timeStr}
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: "flex-end", gap: 8 }}>
+                      <StatusBadge status={r.status} />
+                      <Pressable
+                        onPress={() => onAssignDriver(r)}
+                        style={{ backgroundColor: VIOLET, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7 }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Assign Driver</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </Section>
+      )}
 
       {/* Active tankers */}
       <Section title="Active Tankers" count={activeTankers.length} theme={theme}>
@@ -362,7 +425,7 @@ function LiveTab({ live, theme }: { live: LiveData | null; theme: TankupTheme })
         </Section>
       )}
 
-      {batches.length === 0 && deliveries.length === 0 && priority_requests.length === 0 && activeTankers.length === 0 && (
+      {batches.length === 0 && deliveries.length === 0 && priority_requests.length === 0 && activeTankers.length === 0 && pendingRequests.length === 0 && (
         <EmptyCard message="No active jobs right now. Everything is quiet." theme={theme} />
       )}
     </View>
@@ -1170,6 +1233,9 @@ export default function FleetHeadScreen() {
   const [archivedAlerts, setArchivedAlerts] = useState<OperationAlert[]>([]);
   const [showAlertArchive, setShowAlertArchive] = useState(false);
   const [dismissingAlertId, setDismissingAlertId] = useState<number | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequestItem[]>([]);
+  const [assignModalRequest, setAssignModalRequest] = useState<PendingRequestItem | null>(null);
+  const [offerLoading, setOfferLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tabRef = useRef(tab);
   tabRef.current = tab;
@@ -1185,18 +1251,20 @@ export default function FleetHeadScreen() {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [liveData, tankersData, overviewData, financialsData, alertsData] = await Promise.all([
+      const [liveData, tankersData, overviewData, financialsData, alertsData, pendingData] = await Promise.all([
         getFleetHeadLive(currentToken),
         getFleetHeadTankers(currentToken),
         getFleetHeadOverview(currentToken),
         getFleetHeadFinancials(currentToken),
         getFleetHeadAlerts(currentToken),
+        getFleetHeadPendingRequests(currentToken),
       ]);
       setLive(liveData);
       setTankers(tankersData.items ?? []);
       setOverview(overviewData);
       setFinancials(financialsData);
       setAlerts(alertsData.items ?? []);
+      setPendingRequests(pendingData.items ?? []);
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e.message);
@@ -1298,6 +1366,21 @@ export default function FleetHeadScreen() {
       } catch {}
     }
     setShowAlertArchive((v) => !v);
+  };
+
+  const handleForceOffer = async (requestId: number, tanker: TankerCard) => {
+    if (!token) return;
+    setOfferLoading(true);
+    try {
+      const result = await forceOfferToTanker(token, requestId, tanker.id);
+      toast.success(result.message);
+      setAssignModalRequest(null);
+      fetchAll(token, true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send offer");
+    } finally {
+      setOfferLoading(false);
+    }
   };
 
   const openNotificationSettings = () => {
@@ -1439,7 +1522,14 @@ export default function FleetHeadScreen() {
             />
           }
         >
-          {tab === "live" && <LiveTab live={live} theme={theme} />}
+          {tab === "live" && (
+            <LiveTab
+              live={live}
+              theme={theme}
+              pendingRequests={pendingRequests}
+              onAssignDriver={setAssignModalRequest}
+            />
+          )}
           {tab === "financials" && <FinancialsTab data={financials} theme={theme} />}
           {tab === "tankers" && token && (
             <TankersTab
@@ -1471,6 +1561,86 @@ export default function FleetHeadScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Assign Driver Modal */}
+      <Modal
+        visible={assignModalRequest !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAssignModalRequest(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: theme.card, borderRadius: 18, padding: 20, gap: 14, maxHeight: "80%" }}>
+            {/* Header */}
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: theme.foreground, fontWeight: "700", fontSize: 16 }}>Assign Driver</Text>
+              <Pressable onPress={() => setAssignModalRequest(null)} style={{ padding: 6 }}>
+                <Text style={{ color: theme.mutedForeground, fontSize: 20, lineHeight: 22 }}>✕</Text>
+              </Pressable>
+            </View>
+
+            {/* Request summary */}
+            {assignModalRequest && (
+              <View style={{ backgroundColor: theme.muted, borderRadius: 12, padding: 12, gap: 6 }}>
+                <Text style={{ color: theme.foreground, fontSize: 13, fontWeight: "500" }}>
+                  Request #{assignModalRequest.id} · {assignModalRequest.volume_liters.toLocaleString()}L
+                </Text>
+                <StatusBadge status={assignModalRequest.status} />
+              </View>
+            )}
+
+            {/* Available drivers list */}
+            <Text style={{ color: theme.mutedForeground, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.6 }}>
+              Available Drivers
+            </Text>
+            {(() => {
+              const available = tankers.filter((t) => t.status === "available" && !t.pending_offer_type);
+              return available.length === 0 ? (
+                <View style={{ padding: 16, alignItems: "center" }}>
+                  <Text style={{ color: theme.mutedForeground, fontSize: 13, textAlign: "center" }}>
+                    No available drivers right now.{"\n"}Check the Tankers tab or wait for one to become free.
+                  </Text>
+                </View>
+              ) : (
+                <ScrollView style={{ maxHeight: 280 }}>
+                  <View style={{ gap: 10 }}>
+                    {available.map((t) => (
+                      <View
+                        key={t.id}
+                        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.background, borderColor: theme.border, borderWidth: 1, borderRadius: 12, padding: 12 }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: theme.foreground, fontWeight: "600", fontSize: 14 }}>{t.driver_name}</Text>
+                          <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>{t.phone}</Text>
+                        </View>
+                        <Pressable
+                          onPress={() => assignModalRequest && handleForceOffer(assignModalRequest.id, t)}
+                          disabled={offerLoading}
+                          style={{ backgroundColor: VIOLET, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, opacity: offerLoading ? 0.6 : 1, minWidth: 72, alignItems: "center" }}
+                        >
+                          {offerLoading ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                          ) : (
+                            <Text style={{ color: "#fff", fontSize: 12, fontWeight: "600" }}>Assign</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              );
+            })()}
+
+            {/* Cancel */}
+            <Pressable
+              onPress={() => setAssignModalRequest(null)}
+              style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+            >
+              <Text style={{ color: theme.foreground, fontWeight: "500" }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

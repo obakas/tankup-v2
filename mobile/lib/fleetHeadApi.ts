@@ -168,3 +168,34 @@ export const punishDriver = (token: string, tankerId: number, hours: 2 | 24 | 48
     `/admin/tankers/${tankerId}/punish`,
     { method: "POST", body: { hours } },
   );
+
+export interface PendingRequestItem {
+  id: number;
+  delivery_type: string;
+  status: string;
+  volume_liters: number;
+  is_asap: boolean;
+  scheduled_for: string | null;
+  created_at: string | null;
+}
+
+export interface ForceOfferResult {
+  message: string;
+  request_id: number;
+  tanker_id: number;
+  offer_id: number;
+  offer_expires_at: string | null;
+}
+
+export const getFleetHeadPendingRequests = (token: string) =>
+  fleetRequest<{ items: PendingRequestItem[]; total: number }>(
+    token,
+    "/admin/requests?delivery_type=priority&status=pending&status=searching_driver&limit=50"
+  );
+
+export const forceOfferToTanker = (token: string, requestId: number, tankerId: number) =>
+  fleetRequest<ForceOfferResult>(
+    token,
+    `/admin/requests/${requestId}/offer/${tankerId}`,
+    { method: "POST" }
+  );

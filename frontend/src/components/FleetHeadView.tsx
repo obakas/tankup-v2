@@ -11,13 +11,16 @@ import {
   Truck,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   clearFleetHeadToken,
   fleetForgiveDriver,
   fleetPunishDriver,
+  forceOfferToTanker,
   getFleetHeadFinancials,
   getFleetHeadLive,
   getFleetHeadOverview,
+  getFleetHeadPendingRequests,
   getFleetHeadTankers,
   getFleetHeadToken,
   loginFleetHead,
@@ -28,8 +31,15 @@ import {
   type FinancialSummary,
   type LiveData,
   type OverviewData,
+  type PendingRequestItem,
   type TankerCard,
 } from "@/lib/fleetHeadApi";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { FleetHeadFinancialsTab } from "@/components/FleetHeadFinancialsTab";
 import { parseApiDate, formatNigeriaTime } from "@/lib/datetime";
 
@@ -58,6 +68,7 @@ function StatusBadge({ status }: { status: string }) {
     offline: "bg-border text-muted-foreground",
     inactive: "bg-border text-muted-foreground",
     pending: "bg-warning/15 text-warning",
+    searching_driver: "bg-warning/15 text-warning",
   };
   const cls = map[status] ?? "bg-border text-muted-foreground";
   return (
@@ -164,7 +175,15 @@ function FleetHeadLoginScreen({
 
 // ── Live tab ──────────────────────────────────────────────────────────────────
 
-function LiveTab({ live }: { live: LiveData | null }) {
+function LiveTab({
+  live,
+  pendingRequests,
+  onAssignDriver,
+}: {
+  live: LiveData | null;
+  pendingRequests: PendingRequestItem[];
+  onAssignDriver: (req: PendingRequestItem) => void;
+}) {
   if (!live) {
     return <EmptyCard message="No live data available. Refresh to try again." />;
   }
@@ -195,6 +214,37 @@ function LiveTab({ live }: { live: LiveData | null }) {
           color="text-success"
         />
       </div>
+
+      {/* Pending queue — requests waiting to be dispatched to a driver */}
+      {pendingRequests.length > 0 && (
+        <Section title="Waiting for Driver" count={pendingRequests.length}>
+          {pendingRequests.map((r) => {
+            const d = r.created_at ? parseApiDate(r.created_at) : null;
+            const timeStr = d ? d.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
+            return (
+              <div key={r.id} className="bg-card rounded-2xl border border-amber-500/60 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">Request #{r.id}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {r.volume_liters.toLocaleString()}L · {timeStr}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <StatusBadge status={r.status} />
+                    <button
+                      onClick={() => onAssignDriver(r)}
+                      className="bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition"
+                    >
+                      Assign Driver
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Section>
+      )}
 
       {/* Active tankers */}
       <Section title="Active Tankers" count={activeTankers.length}>
@@ -266,7 +316,7 @@ function LiveTab({ live }: { live: LiveData | null }) {
         </Section>
       )}
 
-      {batches.length === 0 && deliveries.length === 0 && priority_requests.length === 0 && activeTankers.length === 0 && (
+      {batches.length === 0 && deliveries.length === 0 && priority_requests.length === 0 && activeTankers.length === 0 && pendingRequests.length === 0 && (
         <EmptyCard message="No active jobs right now. Everything is quiet." />
       )}
     </div>
@@ -731,22 +781,27 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequestItem[]>([]);
+  const [assignModalRequest, setAssignModalRequest] = useState<PendingRequestItem | null>(null);
+  const [offerLoading, setOfferLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const [liveData, tankersData, overviewData, financialsData] = await Promise.all([
+      const [liveData, tankersData, overviewData, financialsData, pendingData] = await Promise.all([
         getFleetHeadLive(),
         getFleetHeadTankers(),
         getFleetHeadOverview(),
         getFleetHeadFinancials(),
+        getFleetHeadPendingRequests(),
       ]);
       setLive(liveData);
       setTankers(tankersData.items ?? []);
       setOverview(overviewData);
       setFinancials(financialsData);
+      setPendingRequests(pendingData.items ?? []);
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e.message);
@@ -785,6 +840,20 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
     setRefreshing(true);
     await fetchAll(true);
     setRefreshing(false);
+  };
+
+  const handleForceOffer = async (requestId: number, tanker: TankerCard) => {
+    setOfferLoading(true);
+    try {
+      const result = await forceOfferToTanker(requestId, tanker.id);
+      toast.success(result.message);
+      setAssignModalRequest(null);
+      fetchAll(true);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send offer");
+    } finally {
+      setOfferLoading(false);
+    }
   };
 
   if (!token) {
@@ -867,7 +936,13 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
           </div>
         ) : (
           <>
-            {tab === "live" && <LiveTab live={live} />}
+            {tab === "live" && (
+              <LiveTab
+                live={live}
+                pendingRequests={pendingRequests}
+                onAssignDriver={setAssignModalRequest}
+              />
+            )}
             {tab === "tankers" && (
               <TankersTab tankers={tankers} onTankerAdded={() => fetchAll(true)} />
             )}
@@ -876,6 +951,57 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
           </>
         )}
       </main>
+
+      {/* Assign Driver Dialog */}
+      <Dialog open={assignModalRequest !== null} onOpenChange={(open) => !open && setAssignModalRequest(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Driver</DialogTitle>
+          </DialogHeader>
+
+          {assignModalRequest && (
+            <div className="bg-muted rounded-xl p-3 space-y-1.5">
+              <p className="text-sm font-medium text-foreground">
+                Request #{assignModalRequest.id} · {assignModalRequest.volume_liters.toLocaleString()}L
+              </p>
+              <StatusBadge status={assignModalRequest.status} />
+            </div>
+          )}
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Available Drivers</p>
+
+          {(() => {
+            const available = tankers.filter((t) => t.status === "available" && !t.pending_offer_type);
+            return available.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No available drivers right now. Check the Tankers tab or wait for one to become free.
+              </p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto space-y-2">
+                {available.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between gap-3 bg-background border border-border rounded-xl p-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground text-sm">{t.driver_name}</p>
+                      <p className="text-xs text-muted-foreground">{t.phone}</p>
+                    </div>
+                    <button
+                      onClick={() => assignModalRequest && handleForceOffer(assignModalRequest.id, t)}
+                      disabled={offerLoading}
+                      className="bg-violet-500 hover:bg-violet-600 disabled:opacity-60 text-white text-xs font-semibold px-4 py-2 rounded-lg transition min-w-[64px] flex items-center justify-center"
+                    >
+                      {offerLoading ? (
+                        <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      ) : (
+                        "Assign"
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
