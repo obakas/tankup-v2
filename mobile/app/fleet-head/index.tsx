@@ -632,7 +632,7 @@ function TankersTab({
                     )}
                     {t.pending_offer_type && (
                       <Text style={{ color: theme.warning, fontSize: 12, marginTop: 4 }}>
-                        Pending {t.pending_offer_type} offer
+                        Awaiting driver response ({t.pending_offer_type})
                       </Text>
                     )}
                     {isPunished && (

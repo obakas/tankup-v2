@@ -576,7 +576,7 @@ function TankersTab({
                     )}
                     {t.pending_offer_type && (
                       <p className="text-xs text-warning mt-1">
-                        Pending {t.pending_offer_type} offer
+                        Awaiting driver response ({t.pending_offer_type})
                       </p>
                     )}
                     {isPunished && (
