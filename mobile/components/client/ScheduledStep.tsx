@@ -34,7 +34,7 @@ export function ScheduledStep({ scheduledFor, liveLoading, onCancel }: Props) {
           Delivery Scheduled
         </Text>
         <Text style={mutedText} className="text-sm mt-2 text-center">
-          Your payment is confirmed. We'll start searching for a driver when your window opens.
+          Your payment is confirmed. We&apos;ll start searching for a driver when your window opens.
         </Text>
       </View>
 
@@ -53,7 +53,7 @@ export function ScheduledStep({ scheduledFor, liveLoading, onCancel }: Props) {
 
         <View style={{ borderTopColor: theme.border }} className="border-t pt-3">
           <Text style={mutedText} className="text-xs">
-            We'll notify you when a driver is confirmed. No need to keep the app open.
+            We&apos;ll notify you when a driver is confirmed. No need to keep the app open.
           </Text>
         </View>
       </View>

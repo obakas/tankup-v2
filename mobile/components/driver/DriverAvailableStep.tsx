@@ -17,9 +17,9 @@ export function DriverAvailableStep({ onRefresh }: { onRefresh: () => void }) {
           <Wifi color={theme.success} size={36} />
         </View>
         <View className="items-center gap-1">
-          <Text className="font-bold text-xl" style={{ color: theme.foreground }}>You're online</Text>
+          <Text className="font-bold text-xl" style={{ color: theme.foreground }}>You&apos;re online</Text>
           <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
-            Listening for job offers. You'll be notified the moment one is ready for you.
+            Listening for job offers. You&apos;ll be notified the moment one is ready for you.
           </Text>
         </View>
         <View className="flex-row items-center gap-2">

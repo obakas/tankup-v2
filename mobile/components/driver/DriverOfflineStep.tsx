@@ -16,7 +16,7 @@ export function DriverOfflineStep() {
         <Truck color={theme.mutedForeground} size={36} />
       </View>
       <View className="items-center gap-1">
-        <Text className="font-bold text-xl" style={{ color: theme.foreground }}>You're offline</Text>
+        <Text className="font-bold text-xl" style={{ color: theme.foreground }}>You&apos;re offline</Text>
         <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
           Toggle online using the switch above to start receiving delivery offers.
         </Text>

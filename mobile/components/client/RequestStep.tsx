@@ -613,7 +613,7 @@ export function RequestStep({
                 Volume exceeds registered tank capacity
               </Text>
               <Text style={mutedText} className="text-xs mt-1">
-                You selected {size.toLocaleString()}L but your site's registered capacity is{" "}
+                You selected {size.toLocaleString()}L but your site&apos;s registered capacity is{" "}
                 {selectedSite.tank_capacity_liters.toLocaleString()}L. You can still proceed.
               </Text>
             </View>
