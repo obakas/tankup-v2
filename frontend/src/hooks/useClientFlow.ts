@@ -45,6 +45,7 @@ interface RequestResponseWithOtp {
   member_id?: number | null;
   payment_deadline?: string | null;
   delivery_code?: string | null;
+  request_status?: string | null;
 }
 
 const CLIENT_SESSION_KEY = "water_client_session";
@@ -642,7 +643,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
       if (requestMode === "batch") {
         // Scheduled batch — no member yet; batch formation is deferred
-        if ((response as any).request_status === "scheduled") {
+        if (response.request_status === "scheduled") {
           setRequestId(nextRequestId);
           const clientSession: ClientSession = {
             requestId: nextRequestId,
@@ -668,18 +669,19 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
 
         // Simulate successful payment after request creation.
         // Backend will then promote batch / refresh state / trigger assignment.
-        const paymentConfirmResponse = await confirmPayment(nextMemberId);
+        const paymentConfirmResponse =
+          (await confirmPayment(nextMemberId)) as RequestResponseWithOtp;
 
         const confirmedRequestId =
-          (paymentConfirmResponse as any)?.request_id ?? nextRequestId;
+          paymentConfirmResponse.request_id ?? nextRequestId;
         const confirmedBatchId =
-          (paymentConfirmResponse as any)?.batch_id ?? nextBatchId;
+          paymentConfirmResponse.batch_id ?? nextBatchId;
         const confirmedMemberId =
-          (paymentConfirmResponse as any)?.member_id ?? nextMemberId;
+          paymentConfirmResponse.member_id ?? nextMemberId;
         const confirmedPaymentDeadline =
-          (paymentConfirmResponse as any)?.payment_deadline ?? nextPaymentDeadline;
+          paymentConfirmResponse.payment_deadline ?? nextPaymentDeadline;
         const confirmedOtp =
-          (paymentConfirmResponse as any)?.delivery_code ?? nextOtp;
+          paymentConfirmResponse.delivery_code ?? nextOtp;
 
         setRequestId(confirmedRequestId);
         setBatchId(confirmedBatchId);

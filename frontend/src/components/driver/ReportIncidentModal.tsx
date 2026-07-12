@@ -48,8 +48,8 @@ const DriverReportIncidentModal = ({ onClose, batchId, tankerId, deliveryRecordI
                 },
             });
             setSubmitted(true);
-        } catch (e: any) {
-            setError(e.message ?? "Failed to submit. Try again.");
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to submit. Try again.");
         } finally {
             setLoading(false);
         }

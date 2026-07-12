@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api";
+import type { AdminRequestItem } from "@/lib/admin";
 
 const FLEET_HEAD_TOKEN_KEY = "fleet_head_auth";
 const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET || "dev-admin-secret";
@@ -85,7 +86,7 @@ export interface LiveData {
   batches: BatchCard[];
   tankers: TankerCard[];
   deliveries: DeliveryCard[];
-  priority_requests: any[];
+  priority_requests: AdminRequestItem[];
 }
 
 export interface OverviewData {

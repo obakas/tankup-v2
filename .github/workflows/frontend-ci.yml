@@ -32,7 +32,6 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        continue-on-error: true # TODO: pre-existing no-explicit-any errors; make this blocking once fixed
 
       - name: Test
         run: npm run test
