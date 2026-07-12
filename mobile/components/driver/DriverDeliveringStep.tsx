@@ -261,7 +261,7 @@ export function DriverDeliveringStep({
               {stopLoading ? (
                 <ActivityIndicator color={theme.primaryForeground} />
               ) : (
-                <Text className="font-semibold" style={{ color: theme.primaryForeground }}>I've Arrived</Text>
+                <Text className="font-semibold" style={{ color: theme.primaryForeground }}>I&apos;ve Arrived</Text>
               )}
             </Pressable>
           )}
