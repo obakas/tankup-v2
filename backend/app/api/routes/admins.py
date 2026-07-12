@@ -394,20 +394,45 @@ def admin_session():
 
 # ---------- read endpoints ----------
 
+def _resolve_hub_scope(current_admin: dict, hub_id_param: int | None = None) -> int | None:
+    """
+    Fleet heads are always locked to their own hub_id, ignoring any query param.
+    Global admins are unscoped by default, optionally filtering to one hub via ?hub_id=.
+    """
+    if current_admin.get("role") == "fleet_head":
+        return current_admin.get("hub_id")
+    return hub_id_param
+
+
 @router.get("/overview")
-def admin_overview(db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
+def admin_overview(
+    hub_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    scope_hub_id = _resolve_hub_scope(current_admin, hub_id)
+
+    batch_query = db.query(Batch)
+    tanker_query = db.query(Tanker)
+    request_query = db.query(LiquidRequest)
+    if scope_hub_id is not None:
+        batch_query = batch_query.filter(Batch.hub_id == scope_hub_id)
+        tanker_query = tanker_query.filter(Tanker.hub_id == scope_hub_id)
+        request_query = request_query.filter(LiquidRequest.hub_id == scope_hub_id)
+
     batch_status_counts = {
         status: count
-        for status, count in db.query(Batch.status, func.count(Batch.id)).group_by(Batch.status).all()
+        for status, count in batch_query.with_entities(Batch.status, func.count(Batch.id)).group_by(Batch.status).all()
     }
     tanker_status_counts = {
         status: count
-        for status, count in db.query(Tanker.status, func.count(Tanker.id)).group_by(Tanker.status).all()
+        for status, count in tanker_query.with_entities(Tanker.status, func.count(Tanker.id)).group_by(Tanker.status).all()
     }
     request_status_counts = {
         status: count
-        for status, count in db.query(LiquidRequest.status, func.count(LiquidRequest.id)).group_by(LiquidRequest.status).all()
+        for status, count in request_query.with_entities(LiquidRequest.status, func.count(LiquidRequest.id)).group_by(LiquidRequest.status).all()
     }
+    # Payments/deliveries have no direct hub_id and aren't scoped in v1 (see plan doc).
     delivery_status_counts = {
         status: count
         for status, count in db.query(DeliveryRecord.delivery_status, func.count(DeliveryRecord.id)).group_by(DeliveryRecord.delivery_status).all()
@@ -424,15 +449,15 @@ def admin_overview(db: Session = Depends(get_db), current_admin: dict = Depends(
         "generated_at": _iso(_utcnow()),
         "totals": {
             "users": db.query(func.count(User.id)).scalar() or 0,
-            "batches": db.query(func.count(Batch.id)).scalar() or 0,
-            "priority_requests": db.query(func.count(LiquidRequest.id)).filter(LiquidRequest.delivery_type == "priority").scalar() or 0,
-            "tankers": db.query(func.count(Tanker.id)).scalar() or 0,
+            "batches": batch_query.with_entities(func.count(Batch.id)).scalar() or 0,
+            "priority_requests": request_query.filter(LiquidRequest.delivery_type == "priority").with_entities(func.count(LiquidRequest.id)).scalar() or 0,
+            "tankers": tanker_query.with_entities(func.count(Tanker.id)).scalar() or 0,
             "payments": db.query(func.count(Payment.id)).scalar() or 0,
             "delivery_records": db.query(func.count(DeliveryRecord.id)).scalar() or 0,
-            "online_tankers": db.query(func.count(Tanker.id)).filter(Tanker.is_online.is_(True)).scalar() or 0,
-            "available_tankers": db.query(func.count(Tanker.id)).filter(Tanker.is_available.is_(True), Tanker.status == "available").scalar() or 0,
-            "active_batches": db.query(func.count(Batch.id)).filter(Batch.status.in_(list(ACTIVE_BATCH_STATUSES))).scalar() or 0,
-            "active_priority_requests": db.query(func.count(LiquidRequest.id)).filter(LiquidRequest.status.in_(list(ACTIVE_REQUEST_STATUSES)), LiquidRequest.delivery_type == "priority").scalar() or 0,
+            "online_tankers": tanker_query.filter(Tanker.is_online.is_(True)).with_entities(func.count(Tanker.id)).scalar() or 0,
+            "available_tankers": tanker_query.filter(Tanker.is_available.is_(True), Tanker.status == "available").with_entities(func.count(Tanker.id)).scalar() or 0,
+            "active_batches": batch_query.filter(Batch.status.in_(list(ACTIVE_BATCH_STATUSES))).with_entities(func.count(Batch.id)).scalar() or 0,
+            "active_priority_requests": request_query.filter(LiquidRequest.status.in_(list(ACTIVE_REQUEST_STATUSES)), LiquidRequest.delivery_type == "priority").with_entities(func.count(LiquidRequest.id)).scalar() or 0,
             "active_deliveries": db.query(func.count(DeliveryRecord.id)).filter(DeliveryRecord.delivery_status.in_(list(ACTIVE_DELIVERY_STATUSES))).scalar() or 0,
         },
         "payment_value": {
@@ -483,21 +508,25 @@ def admin_financials_summary(db: Session = Depends(get_db), current_admin: dict 
 
 
 @router.get("/live")
-def admin_live(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
-    active_batches = (
-        db.query(Batch)
-        .filter(Batch.status.in_(list(ACTIVE_BATCH_STATUSES)))
-        .order_by(Batch.created_at.desc(), Batch.id.desc())
-        .limit(limit)
-        .all()
-    )
-    active_tankers = (
-        db.query(Tanker)
-        .filter((Tanker.status.in_(list(ACTIVE_TANKER_STATUSES))) | (Tanker.pending_offer_type.is_not(None)))
-        .order_by(Tanker.id.desc())
-        .limit(limit)
-        .all()
-    )
+def admin_live(
+    limit: int = Query(20, ge=1, le=100),
+    hub_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    scope_hub_id = _resolve_hub_scope(current_admin, hub_id)
+
+    batch_q = db.query(Batch).filter(Batch.status.in_(list(ACTIVE_BATCH_STATUSES)))
+    tanker_q = db.query(Tanker).filter((Tanker.status.in_(list(ACTIVE_TANKER_STATUSES))) | (Tanker.pending_offer_type.is_not(None)))
+    request_q = db.query(LiquidRequest).filter(LiquidRequest.delivery_type == "priority", LiquidRequest.status.in_(list(ACTIVE_REQUEST_STATUSES)))
+    if scope_hub_id is not None:
+        batch_q = batch_q.filter(Batch.hub_id == scope_hub_id)
+        tanker_q = tanker_q.filter(Tanker.hub_id == scope_hub_id)
+        request_q = request_q.filter(LiquidRequest.hub_id == scope_hub_id)
+
+    active_batches = batch_q.order_by(Batch.created_at.desc(), Batch.id.desc()).limit(limit).all()
+    active_tankers = tanker_q.order_by(Tanker.id.desc()).limit(limit).all()
+    # Deliveries have no direct hub_id and aren't scoped in v1 (see plan doc).
     active_deliveries = (
         db.query(DeliveryRecord)
         .filter(DeliveryRecord.delivery_status.in_(list(ACTIVE_DELIVERY_STATUSES)))
@@ -505,13 +534,7 @@ def admin_live(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_d
         .limit(limit)
         .all()
     )
-    active_requests = (
-        db.query(LiquidRequest)
-        .filter(LiquidRequest.delivery_type == "priority", LiquidRequest.status.in_(list(ACTIVE_REQUEST_STATUSES)))
-        .order_by(LiquidRequest.updated_at.desc(), LiquidRequest.id.desc())
-        .limit(limit)
-        .all()
-    )
+    active_requests = request_q.order_by(LiquidRequest.updated_at.desc(), LiquidRequest.id.desc()).limit(limit).all()
 
     return {
         "generated_at": _iso(_utcnow()),
@@ -532,10 +555,14 @@ def admin_requests(
     search: str | None = Query(None),
     from_date: str | None = Query(None),
     to_date: str | None = Query(None),
+    hub_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
     current_admin: dict = Depends(require_admin)
 ):
+    scope_hub_id = _resolve_hub_scope(current_admin, hub_id)
     query = db.query(LiquidRequest)
+    if scope_hub_id is not None:
+        query = query.filter(LiquidRequest.hub_id == scope_hub_id)
     if delivery_type:
         query = query.filter(LiquidRequest.delivery_type == delivery_type)
     if status:
@@ -638,8 +665,18 @@ def admin_payments(limit: int = Query(50, ge=1, le=200), status: str | None = Qu
 
 
 @router.get("/tankers")
-def admin_tankers(limit: int = Query(50, ge=1, le=200), status: str | None = Query(None), search: str | None = Query(None), db: Session = Depends(get_db), current_admin: dict = Depends(require_admin)):
+def admin_tankers(
+    limit: int = Query(50, ge=1, le=200),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    hub_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    scope_hub_id = _resolve_hub_scope(current_admin, hub_id)
     query = db.query(Tanker)
+    if scope_hub_id is not None:
+        query = query.filter(Tanker.hub_id == scope_hub_id)
     if status:
         query = query.filter(Tanker.status == status)
     if search and search.strip():
@@ -1144,12 +1181,6 @@ def admin_skip_delivery_manually(delivery_id: int, payload: AdminReasonPayload, 
         "finalize_result": result["finalize_result"],
     }
 
-
-
-def require_admin(x_admin_secret: str | None = Header(default=None)):
-    if x_admin_secret != settings.ADMIN_SECRET:
-        raise HTTPException(status_code=401, detail="Invalid admin secret")
-    return True
 
 
 @router.get("/audit-logs", dependencies=[Depends(require_admin)])

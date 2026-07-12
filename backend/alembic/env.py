@@ -73,6 +73,7 @@ from app.models import admin_user  # noqa: F401
 from app.models import batch  # noqa: F401
 from app.models import batch_member  # noqa: F401
 from app.models import driver_metric  # noqa: F401
+from app.models import hub  # noqa: F401
 from app.models import incident  # noqa: F401
 from app.models import job_offer  # noqa: F401
 from app.models import liquid  # noqa: F401

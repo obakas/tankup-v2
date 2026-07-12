@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.request import LiquidRequest
 from app.schemas.request import RequestCreate
+from app.services.hub_service import find_nearest_hub
 
 ASAP_BUFFER_MINUTES = 90
 
@@ -30,16 +31,18 @@ def resolve_priority_scheduled_for(data: RequestCreate) -> datetime:
     return data.scheduled_for
 
 
-def build_batch_request(data: RequestCreate) -> LiquidRequest:
+def build_batch_request(db: Session, data: RequestCreate) -> LiquidRequest:
     """
     Create an unsaved batch request model instance.
     """
+    hub = find_nearest_hub(db, data.latitude, data.longitude)
     return LiquidRequest(
         user_id=data.user_id,
         liquid_id=data.liquid_id,
         volume_liters=data.volume_liters,
         latitude=data.latitude,
         longitude=data.longitude,
+        hub_id=hub.id if hub else None,
         delivery_type="batch",
         is_asap=False,
         scheduled_for=None,
@@ -48,7 +51,7 @@ def build_batch_request(data: RequestCreate) -> LiquidRequest:
     )
 
 
-def build_priority_request(data: RequestCreate) -> LiquidRequest:
+def build_priority_request(db: Session, data: RequestCreate) -> LiquidRequest:
     """
     Create an unsaved priority request model instance.
     """
@@ -58,12 +61,14 @@ def build_priority_request(data: RequestCreate) -> LiquidRequest:
     # For scheduled, keep it pending until activation.
     initial_status = "pending"
 
+    hub = find_nearest_hub(db, data.latitude, data.longitude)
     return LiquidRequest(
         user_id=data.user_id,
         liquid_id=data.liquid_id,
         volume_liters=data.volume_liters,
         latitude=data.latitude,
         longitude=data.longitude,
+        hub_id=hub.id if hub else None,
         delivery_type="priority",
         is_asap=data.is_asap,
         scheduled_for=final_scheduled_for,
@@ -87,7 +92,7 @@ def create_batch_request_record(db: Session, data: RequestCreate) -> LiquidReque
     """
     Build + save a batch request.
     """
-    request = build_batch_request(data)
+    request = build_batch_request(db, data)
     return save_request(db, request)
 
 
@@ -95,7 +100,7 @@ def create_priority_request_record(db: Session, data: RequestCreate) -> LiquidRe
     """
     Build + save a priority request.
     """
-    request = build_priority_request(data)
+    request = build_priority_request(db, data)
     return save_request(db, request)
 
 

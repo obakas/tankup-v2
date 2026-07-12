@@ -19,6 +19,8 @@ class Batch(Base):
     latitude = Column(Float)
     longitude = Column(Float)
 
+    hub_id = Column(Integer, ForeignKey("hubs.id"), nullable=True)
+
     status = Column(String, default="forming")
     base_price = Column(Float, default=40000)
 

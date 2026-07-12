@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey
 from app.core.database import Base
 
 
@@ -11,6 +11,7 @@ class Tanker(Base):
     phone = Column(String, nullable=True)
     tank_plate_number = Column(String, unique=True, nullable=False)
     fleet_number = Column(String, nullable=True)
+    hub_id = Column(Integer, ForeignKey("hubs.id"), nullable=True)
 
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

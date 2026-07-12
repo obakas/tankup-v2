@@ -14,4 +14,5 @@ class TokenResponse(BaseModel):
 class AdminMeResponse(BaseModel):
     username: str
     role: str = "admin"
+    hub_id: int | None = None
     is_active: bool = True

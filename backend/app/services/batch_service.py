@@ -93,6 +93,7 @@ def create_new_batch_with_request(db: Session, request: LiquidRequest) -> dict[s
         target_volume=TARGET_BATCH_VOLUME,
         latitude=request.latitude,
         longitude=request.longitude,
+        hub_id=request.hub_id,
         status="forming",
         search_radius_km=RADIUS_KM,
     )

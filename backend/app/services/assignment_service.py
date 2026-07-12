@@ -92,8 +92,11 @@ def _is_assignable_available_tanker(tanker: Tanker) -> bool:
     return True
 
 
-def get_eligible_tankers(db: Session):
-    tankers = db.query(Tanker).all()
+def get_eligible_tankers(db: Session, hub_id: int | None = None):
+    query = db.query(Tanker)
+    if hub_id is not None:
+        query = query.filter(Tanker.hub_id == hub_id)
+    tankers = query.all()
     return [tanker for tanker in tankers if _is_assignable_available_tanker(tanker)]
 
 
@@ -104,8 +107,9 @@ def rank_tankers_for_job(
     job_lon: float,
     job_type: str,
     site_profile=None,
+    hub_id: int | None = None,
 ):
-    tankers = get_eligible_tankers(db)
+    tankers = get_eligible_tankers(db, hub_id=hub_id)
     site_difficulty = compute_site_difficulty_score(site_profile) if site_profile is not None else 0.0
 
     ranked = []
@@ -292,6 +296,7 @@ def has_assignable_tanker_for_request(
         job_lon=request.longitude,
         job_type="priority",
         site_profile=_load_site_profile_for_request(db, request),
+        hub_id=request.hub_id,
     )
     ranked = _filter_ranked_candidates(ranked, excluded_tanker_ids)
     return len(ranked) > 0
@@ -414,6 +419,7 @@ def assign_best_tanker_for_priority(
         job_lon=request.longitude,
         job_type="priority",
         site_profile=_load_site_profile_for_request(db, request),
+        hub_id=request.hub_id,
     )
 
     ranked = _filter_ranked_candidates(ranked, excluded_tanker_ids)[:offer_limit]
@@ -930,7 +936,10 @@ def get_eligible_tankers_for_batch(
     max_radius_km = max(configured_radius, MIN_BATCH_ASSIGNMENT_RADIUS_KM)
     excluded = set(excluded_tanker_ids or [])
 
-    tankers = db.query(Tanker).all()
+    tanker_query = db.query(Tanker)
+    if batch.hub_id is not None:
+        tanker_query = tanker_query.filter(Tanker.hub_id == batch.hub_id)
+    tankers = tanker_query.all()
     eligible: list[Tanker] = []
     fallback: list[Tanker] = []
 

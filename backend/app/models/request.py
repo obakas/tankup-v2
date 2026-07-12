@@ -15,6 +15,8 @@ class LiquidRequest(Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
 
+    hub_id = Column(Integer, ForeignKey("hubs.id"), nullable=True)
+
     delivery_type = Column(String, nullable=False)   # batch or priority
     is_asap = Column(Boolean, default=False)         # meaningful only for priority
     scheduled_for = Column(DateTime, nullable=True)  # meaningful only for priority
