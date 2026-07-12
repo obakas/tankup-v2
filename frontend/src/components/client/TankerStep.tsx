@@ -94,6 +94,19 @@ function getBatchTankerState(batch?: BatchLiveResponse | null) {
     };
   }
 
+  if (batch.status === "queued") {
+    return {
+      headline: "Tanker queued to load",
+      subtext: "The tanker is in line to load water for your delivery.",
+      tankerId: batch.tanker_id ?? null,
+      driverName: batch.driver_name ?? null,
+      driverPhone: batch.tanker_phone ?? null,
+      tankerStatus: "queued",
+      deliveryStatus: stopStatus ?? null,
+      arrived: false,
+    };
+  }
+
   if (batch.status === "loading") {
     return {
       headline: "Tanker loading",
@@ -196,6 +209,19 @@ function getPriorityTankerState(priority?: PriorityLiveResponse | null) {
     return {
       headline: "Tanker en route",
       subtext: "Your priority delivery is on the way.",
+      tankerId: priority.tanker_id,
+      driverName: priority.driver_name,
+      driverPhone: priority.tanker_phone,
+      tankerStatus,
+      deliveryStatus,
+      arrived: false,
+    };
+  }
+
+  if (tankerStatus === "queued") {
+    return {
+      headline: "Tanker queued to load",
+      subtext: "The tanker is in line to load water for your priority request.",
       tankerId: priority.tanker_id,
       driverName: priority.driver_name,
       driverPhone: priority.tanker_phone,

@@ -7,6 +7,7 @@ export interface PriorityLiveResponse {
   request_status:
   | "searching_driver"
   | "assigned"
+  | "queued"
   | "loading"
   | "delivering"
   | "arrived"

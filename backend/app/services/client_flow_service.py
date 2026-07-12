@@ -124,6 +124,7 @@ def get_active_priority_request_for_user_flow(
         "paid",
         "searching_driver",
         "assigned",
+        "queued",
         "loading",
         "delivering",
         "arrived",
@@ -433,7 +434,7 @@ def _compute_cancellation(
         )
 
     # Pre-loading: offer accepted but tanker hasn't started loading yet
-    if request.status == "assigned" and dr_status in (None, "pending"):
+    if request.status in ("assigned", "queued") and dr_status in (None, "pending"):
         return "pre_loading", 0.5
 
     # Measuring with both meter readings: prorate by liters actually delivered

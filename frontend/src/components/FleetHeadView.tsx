@@ -434,7 +434,7 @@ function TankersTab({
     }
   };
 
-  const statusOptions = ["all", "available", "assigned", "loading", "delivering", "arrived", "offline", "inactive"];
+  const statusOptions = ["all", "available", "assigned", "queued", "loading", "delivering", "arrived", "offline", "inactive"];
 
   const filtered = filter === "all" ? tankers : tankers.filter((t) => t.status === filter);
 

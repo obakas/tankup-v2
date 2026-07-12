@@ -8,6 +8,8 @@ import { toast } from "@/lib/toast";
 import { useDriverOfferAlarm } from "@/hooks/useDriverOfferAlarm";
 
 const DRIVER_STATUS_MESSAGES: Record<string, string> = {
+  assigned: "Offer accepted — join the queue to load",
+  queued: "You're in the queue — get ready to load",
   loading: "Tanker loading — prepare for departure",
   delivering: "Delivery run in progress",
   arrived: "You have arrived at the delivery point",
@@ -21,8 +23,10 @@ import {
   getCurrentJob,
   getCurrentStop,
   getIncomingOffer,
+  markBatchJoinQueue,
   markBatchLoaded,
   markBatchStartLoading,
+  markPriorityJoinQueue,
   markPriorityLoaded,
   markPriorityStartLoading,
   rejectOffer,
@@ -197,7 +201,13 @@ export function useDriverFlow() {
   useEffect(() => {
     return addNotificationArrivedListener(() => {
       if (stepRef.current === "available") void pollOfferRef.current();
-      else if (stepRef.current === "loading" || stepRef.current === "delivering") void pollJobRef.current();
+      else if (
+        stepRef.current === "assigned" ||
+        stepRef.current === "queued" ||
+        stepRef.current === "loading" ||
+        stepRef.current === "delivering"
+      )
+        void pollJobRef.current();
     });
   }, []);
 
@@ -208,6 +218,10 @@ export function useDriverFlow() {
 
     if (step === "available") {
       pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+    }
+
+    if (step === "assigned" || step === "queued") {
+      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
     }
 
     if (step === "loading") {
@@ -235,6 +249,9 @@ export function useDriverFlow() {
     if (step === "available") {
       pollOffer();
       pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+    } else if (step === "assigned" || step === "queued") {
+      pollJob();
+      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
     } else if (step === "loading") {
       pollJob();
       pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
@@ -263,8 +280,18 @@ export function useDriverFlow() {
       const tankerStatus = res?.tanker?.status ?? res?.tanker_status ?? "";
       prevTankerStatusRef.current = tankerStatus; // baseline — suppress toast on initial restore
 
-      if (["assigned", "loading"].includes(tankerStatus)) {
+      if (tankerStatus === "assigned") {
         // getCurrentStop returns a different shape that lacks active_job; fetch proper job data
+        const jobRes = await getCurrentJob(d.tankerId);
+        setJob(jobRes);
+        setOffer(null);
+        setStep("assigned");
+      } else if (tankerStatus === "queued") {
+        const jobRes = await getCurrentJob(d.tankerId);
+        setJob(jobRes);
+        setOffer(null);
+        setStep("queued");
+      } else if (tankerStatus === "loading") {
         const jobRes = await getCurrentJob(d.tankerId);
         setJob(jobRes);
         setOffer(null);
@@ -356,7 +383,7 @@ export function useDriverFlow() {
       if (!driver) return;
 
       // If going offline during an active delivery, show the reason modal instead
-      if (!val && (step === "delivering" || step === "loading")) {
+      if (!val && (step === "delivering" || step === "loading" || step === "queued")) {
         setShowOfflineModal(true);
         return;
       }
@@ -414,8 +441,8 @@ export function useDriverFlow() {
       setJob(jobRes);
       setCurrentStop(null);
       setOffer(null);
-      setStep("loading");
-      toast.success("Offer accepted — start loading!");
+      setStep("assigned");
+      toast.success("Offer accepted — join the queue to load!");
     } catch (e: any) {
       setError(e.message);
       toast.error(e.message);
@@ -423,6 +450,32 @@ export function useDriverFlow() {
       setActionLoading(false);
     }
   }, [driver, cancelAlarm]);
+
+  const handleJoinQueue = useCallback(async () => {
+    if (!driver || !job) return;
+
+    setActionLoading(true);
+    setError(null);
+
+    try {
+      if (job.assignment_type === "batch" || job.active_job?.batch_id) {
+        const batchId = job.active_job?.batch_id ?? job.batch_id;
+        await markBatchJoinQueue(driver.tankerId, batchId);
+      } else {
+        const requestId = job.active_job?.request_id ?? job.request_id;
+        await markPriorityJoinQueue(driver.tankerId, requestId);
+      }
+      const jobRes = await getCurrentJob(driver.tankerId);
+      setJob(jobRes);
+      setStep("queued");
+      toast.success("You're in the queue.");
+    } catch (e: any) {
+      setError(e.message);
+      toast.error(e.message);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [driver, job]);
 
   const handleStartLoading = useCallback(async () => {
     if (!driver || !job) return;
@@ -440,6 +493,7 @@ export function useDriverFlow() {
       }
       const jobRes = await getCurrentJob(driver.tankerId);
       setJob(jobRes);
+      setStep("loading");
       toast.success("Loading started");
     } catch (e: any) {
       setError(e.message);
@@ -514,6 +568,8 @@ export function useDriverFlow() {
     offline: "Driver",
     available: "Driver",
     incoming: "Incoming Offer",
+    assigned: "Assignment Received",
+    queued: "In Queue to Load",
     loading: "Load Tanker",
     delivering: "Delivery Run",
     completed: "Job Complete",
@@ -545,6 +601,7 @@ export function useDriverFlow() {
     handleAuthComplete,
     handleAcceptOffer,
     handleRejectOffer,
+    handleJoinQueue,
     handleStartLoading,
     handleLoaded,
     markCompletedAsAvailable,

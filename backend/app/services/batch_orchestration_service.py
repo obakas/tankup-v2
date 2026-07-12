@@ -68,6 +68,7 @@ def determine_next_batch_status(batch: Batch, members: list[BatchMember]) -> str
 
     protected_statuses = {
         "assigned",
+        "queued",
         "loading",
         "delivering",
         "arrived",
@@ -207,7 +208,7 @@ def assign_tanker_if_ready(
         }
 
     current_status = str(getattr(batch, "status", "") or "").lower()
-    if current_status in {"assigned", "loading", "delivering", "arrived", "completed"}:
+    if current_status in {"assigned", "queued", "loading", "delivering", "arrived", "completed"}:
         return {
             "assigned": False,
             "reason": f"Batch already in operational status '{current_status}'",
@@ -239,7 +240,7 @@ def prepare_batch_for_delivery(db: Session, batch_id: int) -> dict[str, Any]:
 
     members = get_batch_members(db, batch_id)
 
-    if batch.status not in {"assigned", "loading"}:
+    if batch.status not in {"assigned", "queued", "loading"}:
         return {"error": "Batch not ready for delivery planning"}
 
     ordered_stops = plan_batch_delivery_order(batch=batch, members=members)

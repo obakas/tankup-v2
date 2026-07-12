@@ -6,7 +6,7 @@ export const statusTone = (status?: string | null) => {
     return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
   if (["failed", "expired", "cancelled", "skipped", "refunded"].includes(s))
     return "bg-red-500/10 text-red-700 dark:text-red-300";
-  if (["assigned", "loading", "en_route", "delivering", "arrived", "awaiting_otp", "measuring"].includes(s))
+  if (["assigned", "queued", "loading", "en_route", "delivering", "arrived", "awaiting_otp", "measuring"].includes(s))
     return "bg-blue-500/10 text-blue-700 dark:text-blue-300";
   return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
 };

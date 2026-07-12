@@ -7,6 +7,7 @@ from pydantic import BaseModel, field_validator
 TankerStatus = Literal[
     "available",
     "assigned",
+    "queued",
     "loading",
     "delivering",
     "arrived",

@@ -11,6 +11,7 @@ ALLOWED_LEAVE_BATCH_STATUSES = {
     "near_ready",
     "ready_for_assignment",
     "assigned",
+    "queued",
     "loading",
     "delivering",
     "arrived",

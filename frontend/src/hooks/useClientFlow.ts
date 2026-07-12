@@ -188,6 +188,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       deliveryStatus === "pending" ||
       deliveryStatus === "en_route" ||
       tankerStatus === "assigned" ||
+      tankerStatus === "queued" ||
       tankerStatus === "loading" ||
       tankerStatus === "delivering" ||
       tankerStatus === "arrived"
@@ -232,7 +233,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       return "batch";
     }
 
-    if (["assigned", "loading"].includes(status)) {
+    if (["assigned", "queued", "loading"].includes(status)) {
       return "tanker";
     }
 
@@ -802,7 +803,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     let stage: CancelPriorityResponse["cancellation_stage"] = "en_route";
     let refundPct = 0;
 
-    if (reqStatus === "assigned" && (!drStatus || drStatus === "pending")) {
+    if ((reqStatus === "assigned" || reqStatus === "queued") && (!drStatus || drStatus === "pending")) {
       stage = "pre_loading";
       refundPct = 0.5;
     } else if (drStatus === "measuring") {

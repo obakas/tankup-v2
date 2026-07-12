@@ -1,18 +1,18 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { CheckCircle2, Droplets, Package, Phone, User } from "lucide-react-native";
+import { Clock, Droplets, Package, Phone, User } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { SiteCard } from "@/components/driver/SiteCard";
 import { SafeMapView, SafeMultiMapView } from "@/components/ui/SafeMapView";
 
 type Props = {
   job: any;
-  onLoaded: () => void;
+  onStartLoading: () => void;
   loading: boolean;
   driverLat?: number | null;
   driverLon?: number | null;
 };
 
-export function DriverLoadingStep({ job, onLoaded, loading, driverLat, driverLon }: Props) {
+export function DriverQueuedStep({ job, onStartLoading, loading, driverLat, driverLon }: Props) {
   const { theme } = useAppTheme();
   const totalVol =
     job?.active_job?.total_volume ??
@@ -68,13 +68,14 @@ export function DriverLoadingStep({ job, onLoaded, loading, driverLat, driverLon
           className="w-16 h-16 rounded-full items-center justify-center"
           style={{ backgroundColor: theme.warningSoft }}
         >
-          <ActivityIndicator size="large" color={theme.warning} />
+          <Clock size={32} color={theme.warning} />
         </View>
         <Text className="text-xl font-bold" style={{ color: theme.foreground }}>
-          Loading Water
+          In the Queue to Load
         </Text>
         <Text className="text-sm text-center" style={{ color: theme.mutedForeground }}>
-          Confirm when the tanker is loaded and ready to move.
+          You&apos;re waiting your turn at the loading point. Tap below once you
+          start filling the tanker.
         </Text>
       </View>
 
@@ -218,20 +219,17 @@ export function DriverLoadingStep({ job, onLoaded, loading, driverLat, driverLon
 
       {/* CTA */}
       <Pressable
-        onPress={onLoaded}
+        onPress={onStartLoading}
         disabled={loading}
-        className="h-14 rounded-xl items-center justify-center"
-        style={{ backgroundColor: theme.warning }}
+        className="rounded-xl py-4 items-center"
+        style={{ backgroundColor: theme.success }}
       >
         {loading ? (
           <ActivityIndicator color={theme.primaryForeground} />
         ) : (
-          <View className="flex-row items-center gap-2">
-            <CheckCircle2 size={20} color={theme.primaryForeground} />
-            <Text className="font-semibold text-base" style={{ color: theme.primaryForeground }}>
-              Water Loaded — Start Delivery
-            </Text>
-          </View>
+          <Text className="font-semibold" style={{ color: theme.primaryForeground }}>
+            I&apos;m Loading
+          </Text>
         )}
       </Pressable>
     </View>

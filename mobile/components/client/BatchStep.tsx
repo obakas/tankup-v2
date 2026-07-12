@@ -62,6 +62,7 @@ function getBatchHeadline(status?: string | null) {
     case "near_ready": return "Your batch is almost full";
     case "ready_for_assignment": return "Your batch is ready for tanker assignment";
     case "assigned": return "A tanker has been assigned";
+    case "queued": return "Your tanker is queued to load water";
     case "loading": return "Your tanker is loading water";
     case "delivering": return "Your delivery is on the way";
     case "arrived": return "Your tanker has arrived";
@@ -80,6 +81,7 @@ function getBatchSubtext(status?: string | null) {
     case "near_ready": return "Good news — this batch is getting close to dispatch.";
     case "ready_for_assignment": return "Your batch is full enough and waiting for the best tanker match.";
     case "assigned": return "A driver has been matched to your batch.";
+    case "queued": return "The assigned tanker is in line to load water for your batch.";
     case "loading": return "The assigned tanker is currently loading for delivery.";
     case "delivering": return "Keep your phone close. Delivery is in progress.";
     case "arrived": return "Share your OTP only after water measurement is complete.";
@@ -93,7 +95,7 @@ function getBatchSubtext(status?: string | null) {
 }
 
 function canViewTanker(status?: string | null) {
-  return ["assigned", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(status ?? "");
+  return ["assigned", "queued", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(status ?? "");
 }
 
 export function BatchStep({ requestResp, liveData, liveLoading = false, liveError = null, size, price, paymentDeadline, onLeave, onRefresh, onViewTanker, onBoost, isBoostLoading }: Props) {

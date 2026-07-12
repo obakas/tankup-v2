@@ -40,8 +40,8 @@ router = APIRouter(prefix="/tankers", tags=["Tankers"])
 
 # OFFER_TTL_SECONDS = 60
 # LOADING_WINDOW_MINUTES = 90
-ACTIVE_JOB_BATCH_STATUSES = {"assigned", "loading", "delivering", "arrived"}
-ACTIVE_JOB_REQUEST_STATUSES = {"assigned", "loading", "delivering", "arrived"}
+ACTIVE_JOB_BATCH_STATUSES = {"assigned", "queued", "loading", "delivering", "arrived"}
+ACTIVE_JOB_REQUEST_STATUSES = {"assigned", "queued", "loading", "delivering", "arrived"}
 RESOLVED_DELIVERY_STATUSES = {"delivered", "failed", "skipped"}
 
 from app.core.rate_constants import (
@@ -552,7 +552,7 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         ensure_one_active_job_rule(db, tanker, expected_request_id=request.id)
 
         # idempotent replay
-        if tanker.current_request_id == request.id and tanker.status in {"assigned", "loading", "delivering", "arrived"}:
+        if tanker.current_request_id == request.id and tanker.status in {"assigned", "queued", "loading", "delivering", "arrived"}:
             clear_tanker_offer(db, tanker, make_available=False)
             db.commit()
             return {
@@ -583,12 +583,12 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         push_service.notify_user(
             db, request.user_id,
             title="Tanker assigned",
-            body="Your tanker is loading water",
+            body="A tanker has been assigned. It will queue to load water shortly.",
             data={"type": "delivery_status", "status": "assigned"},
         )
 
         return {
-            "message": "Offer accepted. Start loading when ready.",
+            "message": "Offer accepted. Join the queue when ready.",
             "tanker_id": tanker.id,
             "request_id": request.id,
             "status": tanker.status,
@@ -599,7 +599,7 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         ensure_one_active_job_rule(db, tanker, expected_batch_id=batch.id)
 
         # idempotent replay
-        if batch.tanker_id == tanker.id and tanker.status in {"assigned", "loading", "delivering", "arrived"}:
+        if batch.tanker_id == tanker.id and tanker.status in {"assigned", "queued", "loading", "delivering", "arrived"}:
             clear_tanker_offer(db, tanker, make_available=False)
             db.commit()
             return {
@@ -630,12 +630,12 @@ def accept_offer(tanker_id: int, db: Session = Depends(get_db)):
         push_service.notify_batch_members(
             db, batch.id,
             title="Tanker assigned",
-            body="Your tanker is loading water",
+            body="A tanker has been assigned. It will queue to load water shortly.",
             data={"type": "delivery_status", "status": "assigned"},
         )
 
         return {
-            "message": "Batch accepted. Start loading when ready.",
+            "message": "Batch accepted. Join the queue when ready.",
             "tanker_id": tanker.id,
             "batch_id": batch.id,
             "status": tanker.status,
@@ -675,6 +675,102 @@ def reject_offer(tanker_id: int, db: Session = Depends(get_db)):
 @router.get("/{tanker_id}/current-job")
 def get_current_job(tanker_id: int, db: Session = Depends(get_db)):
     return build_current_job_response(db, get_tanker_or_404(db, tanker_id))
+
+
+@router.post("/{tanker_id}/queue/{batch_id}")
+def queue_batch_job(tanker_id: int, batch_id: int, db: Session = Depends(get_db)):
+    tanker = get_tanker_or_404(db, tanker_id)
+    batch = get_batch_or_404(db, batch_id)
+
+    if batch.tanker_id != tanker.id:
+        raise HTTPException(status_code=403, detail="This batch is not assigned to this tanker")
+
+    if batch.status == "queued" and tanker.status == "queued":
+        return {
+            "message": "Batch already moved to the queue.",
+            "tanker_id": tanker.id,
+            "batch_id": batch.id,
+            "status": tanker.status,
+        }
+
+    validate_transition_or_400(tanker.status, "queued", TANKER_STATUS_TRANSITIONS, "Tanker")
+    validate_transition_or_400(batch.status, "queued", BATCH_STATUS_TRANSITIONS, "Batch")
+
+    batch.status = "queued"
+    batch.queued_at = batch.queued_at or datetime.utcnow()
+
+    tanker.status = "queued"
+    tanker.is_available = False
+
+    db.commit()
+    db.refresh(tanker)
+    db.refresh(batch)
+
+    push_service.notify_batch_members(
+        db, batch.id,
+        title="Tanker queued to load",
+        body="Your tanker is in line to load water.",
+        data={"type": "delivery_status", "status": "queued"},
+    )
+
+    return {
+        "message": "Batch moved to the queue.",
+        "tanker_id": tanker.id,
+        "batch_id": batch.id,
+        "status": tanker.status,
+    }
+
+
+@router.post("/{tanker_id}/queue-priority/{request_id}")
+def queue_priority_job(tanker_id: int, request_id: int, db: Session = Depends(get_db)):
+    tanker = get_tanker_or_404(db, tanker_id)
+    request = get_request_or_404(db, request_id)
+
+    # Recovery path: heal a missing current_request_id link, mirroring the
+    # equivalent block in accept_priority_job_legacy below.
+    if tanker.current_request_id is None and request.status == "assigned" and tanker.status == "assigned":
+        tanker.current_request_id = request.id
+        db.add(tanker)
+        db.commit()
+        db.refresh(tanker)
+
+    if tanker.current_request_id == request.id and request.status == "queued" and tanker.status == "queued":
+        return {
+            "message": "Priority request already moved to the queue.",
+            "tanker_id": tanker.id,
+            "request_id": request.id,
+            "status": tanker.status,
+        }
+
+    if tanker.current_request_id != request.id:
+        raise HTTPException(status_code=403, detail="This priority request is not assigned to this tanker")
+
+    validate_transition_or_400(tanker.status, "queued", TANKER_STATUS_TRANSITIONS, "Tanker")
+    validate_transition_or_400(request.status, "queued", REQUEST_STATUS_TRANSITIONS, "Priority request")
+
+    tanker.status = "queued"
+    tanker.is_available = False
+
+    request.status = "queued"
+    request.queued_at = request.queued_at or datetime.utcnow()
+
+    db.commit()
+    db.refresh(tanker)
+    db.refresh(request)
+
+    push_service.notify_user(
+        db, request.user_id,
+        title="Tanker queued to load",
+        body="Your tanker is in line to load water.",
+        data={"type": "delivery_status", "status": "queued"},
+    )
+
+    return {
+        "message": "Priority request moved to the queue.",
+        "tanker_id": tanker.id,
+        "request_id": request.id,
+        "status": tanker.status,
+    }
 
 
 @router.post("/{tanker_id}/accept/{batch_id}")
@@ -729,9 +825,9 @@ def accept_priority_job_legacy(tanker_id: int, request_id: int, db: Session = De
     request = get_request_or_404(db, request_id)
 
     # Recovery path:
-    # If the request is already in assigned state and the tanker is assigned,
+    # If the request is already in assigned/queued state and the tanker matches,
     # but current_request_id was not persisted correctly, heal it here.
-    if tanker.current_request_id is None and request.status == "assigned" and tanker.status == "assigned":
+    if tanker.current_request_id is None and request.status in {"assigned", "queued"} and tanker.status == request.status:
         tanker.current_request_id = request.id
         db.add(tanker)
         db.commit()
@@ -1018,7 +1114,7 @@ def acknowledge_completion(tanker_id: int, db: Session = Depends(get_db)):
 
 _VALID_OFFLINE_REASONS = {"breakdown", "emergency", "technical"}
 _ACTIVE_DELIVERY_STATUSES = {"delivering", "arrived", "measuring"}
-_PRE_DELIVERY_JOB_STATUSES = {"assigned", "loading"}
+_PRE_DELIVERY_JOB_STATUSES = {"assigned", "queued", "loading"}
 
 
 @router.post("/{tanker_id}/heartbeat")
@@ -1160,7 +1256,7 @@ def set_driver_online(tanker_id: int, payload: OnlineToggle, db: Session = Depen
         # status with a stale current_request_id, the toggle would silently
         # leave is_available=False and the tanker invisible to assignment.
         _TERMINAL_REQUEST_STATUSES = {"completed", "partially_completed", "failed", "expired", "assignment_failed", "cancelled"}
-        _ACTIVE_TANKER_STATUSES = {"assigned", "loading", "delivering", "arrived"}
+        _ACTIVE_TANKER_STATUSES = {"assigned", "queued", "loading", "delivering", "arrived"}
 
         linked_request_is_terminal = False
         if tanker.current_request_id:

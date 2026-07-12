@@ -9,6 +9,8 @@ import { DriverAuthStep } from "@/components/driver/DriverAuthStep";
 import { DriverOfflineStep } from "@/components/driver/DriverOfflineStep";
 import { DriverAvailableStep } from "@/components/driver/DriverAvailableStep";
 import { IncomingOfferStep } from "@/components/driver/IncomingOfferStep";
+import { DriverAssignedStep } from "@/components/driver/DriverAssignedStep";
+import { DriverQueuedStep } from "@/components/driver/DriverQueuedStep";
 import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
 import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
@@ -120,10 +122,27 @@ export default function DriverFlow() {
           />
         )}
 
+        {!flow.loading && flow.step === "assigned" && flow.job && (
+          <DriverAssignedStep
+            job={flow.job}
+            onJoinQueue={flow.handleJoinQueue}
+            loading={flow.actionLoading}
+          />
+        )}
+
+        {!flow.loading && flow.step === "queued" && flow.job && (
+          <DriverQueuedStep
+            job={flow.job}
+            onStartLoading={flow.handleStartLoading}
+            loading={flow.actionLoading}
+            driverLat={flow.driverLocation?.latitude ?? null}
+            driverLon={flow.driverLocation?.longitude ?? null}
+          />
+        )}
+
         {!flow.loading && flow.step === "loading" && flow.job && (
           <DriverLoadingStep
             job={flow.job}
-            onStartLoading={flow.handleStartLoading}
             onLoaded={flow.handleLoaded}
             loading={flow.actionLoading}
             driverLat={flow.driverLocation?.latitude ?? null}

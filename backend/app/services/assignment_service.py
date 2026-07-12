@@ -830,7 +830,7 @@ def assign_best_tanker_for_batch(
     excluded_tanker_ids: Iterable[int] | None = None,
 ) -> dict[str, Any]:
     current_status = str(getattr(batch, "status", "") or "").lower()
-    if current_status in {"assigned", "loading", "delivering", "completed"}:
+    if current_status in {"assigned", "queued", "loading", "delivering", "completed"}:
         return {
             "assigned": False,
             "batch_id": batch.id,

@@ -20,6 +20,7 @@ const orderedSteps = [
   "near_ready",
   "ready_for_assignment",
   "assigned",
+  "queued",
   "loading",
   "delivering",
   "completed",
@@ -30,6 +31,7 @@ const stepLabels: Record<string, string> = {
   near_ready: "Near Ready",
   ready_for_assignment: "Ready for Assignment",
   assigned: "Assigned",
+  queued: "Queued",
   loading: "Loading",
   delivering: "Delivering",
   arrived: "Arrived",
@@ -61,6 +63,8 @@ function getHint(batch: BatchLiveResponse) {
       return "This batch is ready and waiting for tanker assignment.";
     case "assigned":
       return "A tanker has been assigned to this batch.";
+    case "queued":
+      return "The tanker is queued to load water.";
     case "loading":
       return "The tanker is currently loading water.";
     case "delivering":

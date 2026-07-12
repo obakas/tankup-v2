@@ -454,7 +454,7 @@ function TankersTab({
   const [punishLoadingId, setPunishLoadingId] = useState<number | null>(null);
   const [punishHours, setPunishHours] = useState<Record<number, 2 | 24 | 48>>({});
 
-  const statusOptions = ["all", "available", "assigned", "loading", "delivering", "arrived", "offline", "inactive"];
+  const statusOptions = ["all", "available", "assigned", "queued", "loading", "delivering", "arrived", "offline", "inactive"];
   const filtered = filter === "all" ? tankers : tankers.filter((t) => t.status === filter);
 
   const handleForgive = async (tankerId: number) => {

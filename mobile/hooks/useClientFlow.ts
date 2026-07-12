@@ -283,7 +283,7 @@ export function useClientFlow() {
         if (data?.member_delivery_status === "delivered") setStep("completed");
         else if (["completed", "partially_completed"].includes(batchStatus)) setStep("completed");
         else if (["delivering", "arrived"].includes(batchStatus)) setStep("delivery");
-        else if (["assigned", "loading"].includes(batchStatus)) setStep("tanker");
+        else if (["assigned", "queued", "loading"].includes(batchStatus)) setStep("tanker");
         else if (["failed", "expired", "assignment_failed"].includes(batchStatus)) setStep("failed");
 
         if (data?.otp) setOtp(data.otp);
@@ -554,7 +554,7 @@ export function useClientFlow() {
     let stageLabel = "The tanker has already committed to your trip.";
     let refundLine = "No refund will be issued.";
 
-    if (reqStatus === "assigned" && (!drStatus || drStatus === "pending")) {
+    if ((reqStatus === "assigned" || reqStatus === "queued") && (!drStatus || drStatus === "pending")) {
       stageLabel = "Tanker assigned but not yet loaded.";
       refundLine = "You will receive a 50% refund.";
     } else if (drStatus === "measuring") {

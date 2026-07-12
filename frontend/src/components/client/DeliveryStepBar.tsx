@@ -18,6 +18,7 @@ interface StepDef {
 
 const BATCH_STEPS: StepDef[] = [
   { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
+  { label: "Queued",         timeLabel: "" },
   { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
   { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
   { label: "Arrived",        timeLabel: "" },
@@ -26,6 +27,7 @@ const BATCH_STEPS: StepDef[] = [
 
 const PRIORITY_STEPS: StepDef[] = [
   { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
+  { label: "Queued",         timeLabel: "" },
   { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
   { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
   { label: "Arrived",        timeLabel: "" },
@@ -49,8 +51,8 @@ function computeStepIndex(
   if (!liveData) {
     if (step === "batch") return 0;
     if (step === "tanker") return mode === "priority" ? 0 : 1;
-    if (step === "delivery") return 2;
-    if (step === "completed") return 4;
+    if (step === "delivery") return 3;
+    if (step === "completed") return 5;
     return 0;
   }
 
@@ -59,12 +61,14 @@ function computeStepIndex(
     const memberStatus = liveData.member_delivery_status ?? "";
 
     if (memberStatus === "delivered" || ["completed", "partially_completed"].includes(batchStatus))
-      return 4;
+      return 5;
     if (["arrived", "measuring", "awaiting_otp"].includes(memberStatus) || batchStatus === "arrived")
-      return 3;
+      return 4;
     if (memberStatus === "en_route" || batchStatus === "delivering")
+      return 3;
+    if (batchStatus === "loading")
       return 2;
-    if (["assigned", "loading"].includes(batchStatus))
+    if (batchStatus === "queued")
       return 1;
     return 0;
   }
@@ -74,12 +78,14 @@ function computeStepIndex(
   const tankerStatus = liveData.tanker_status ?? "";
 
   if (deliveryStatus === "delivered" || ["completed", "partially_completed"].includes(reqStatus))
-    return 4;
+    return 5;
   if (["arrived", "measuring", "awaiting_otp"].includes(deliveryStatus) || reqStatus === "arrived")
-    return 3;
+    return 4;
   if (deliveryStatus === "en_route" || reqStatus === "delivering")
-    return 2;
+    return 3;
   if (tankerStatus === "loading" || reqStatus === "loading")
+    return 2;
+  if (tankerStatus === "queued" || reqStatus === "queued")
     return 1;
   return 0;
 }

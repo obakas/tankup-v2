@@ -34,7 +34,7 @@ function statusLabel(item: ClientHistoryItem) {
     }
 
     if (
-        ["assigned", "loading", "delivering", "arrived"].includes(item.request_status) ||
+        ["assigned", "queued", "loading", "delivering", "arrived"].includes(item.request_status) ||
         ["pending", "en_route", "arrived", "measuring", "awaiting_otp"].includes(item.delivery_status || "")
     ) {
         return "In progress";

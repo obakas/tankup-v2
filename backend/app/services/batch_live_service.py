@@ -17,6 +17,8 @@ def build_next_action_hint(status: str, remaining_volume: float) -> str:
         return "Batch is ready and waiting for tanker assignment."
     if status == "assigned":
         return "A tanker has been assigned to this batch."
+    if status == "queued":
+        return "The tanker is queued to load water."
     if status == "loading":
         return "Driver is loading water."
     if status == "delivering":

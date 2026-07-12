@@ -10,6 +10,8 @@ import {
   rejectIncomingOffer,
   // acceptDriverBatch,
   // acceptDriverPriority,
+  joinDriverBatchQueue,
+  joinDriverPriorityQueue,
   startDriverBatchLoading,
   startDriverPriorityLoading,
   markDriverBatchLoaded,
@@ -160,6 +162,8 @@ function getStepFromState(
   switch (tankerStatus) {
     case "assigned":
       return "assigned";
+    case "queued":
+      return "queued";
     case "loading":
       return "loading";
     case "delivering":
@@ -376,7 +380,11 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     }
 
     if (tankerStatus === "assigned") {
-      return "Start loading water now.";
+      return "Tap to join the queue to load water.";
+    }
+
+    if (tankerStatus === "queued") {
+      return "You're queued. Tap 'I'm Loading' once you start filling the tanker.";
     }
 
     if (tankerStatus === "loading") {
@@ -462,7 +470,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     );
   }, [tankerId, incomingOffer, runAction]);
 
-  const startLoading = useCallback(async () => {
+  const joinQueue = useCallback(async () => {
     if (!tankerId) {
       toast.error("Please log in as a driver first.");
       return;
@@ -474,7 +482,54 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     }
 
     if (jobResponse.tanker_status !== "assigned") {
-      toast.error("This job is not ready for loading yet.");
+      toast.error("This job is not ready to join the queue yet.");
+      return;
+    }
+
+    if (jobResponse.assignment_type === "batch") {
+      const batchId = jobResponse.active_job.batch_id;
+      if (!batchId) {
+        toast.error("Batch ID is missing.");
+        return;
+      }
+
+      await runAction(
+        async () => {
+          await joinDriverBatchQueue(tankerId, batchId);
+        },
+        "You're in the queue. Tap 'I'm Loading' once you begin."
+      );
+
+      return;
+    }
+
+    const requestId = jobResponse.active_job.request_id;
+    if (!requestId) {
+      toast.error("Priority request ID is missing.");
+      return;
+    }
+
+    await runAction(
+      async () => {
+        await joinDriverPriorityQueue(tankerId, requestId);
+      },
+      "You're in the queue. Tap 'I'm Loading' once you begin."
+    );
+  }, [tankerId, jobResponse, runAction]);
+
+  const startLoading = useCallback(async () => {
+    if (!tankerId) {
+      toast.error("Please log in as a driver first.");
+      return;
+    }
+
+    if (!jobResponse?.active_job || !jobResponse.assignment_type) {
+      toast.error("No active assigned job found.");
+      return;
+    }
+
+    if (jobResponse.tanker_status !== "queued") {
+      toast.error("You must join the queue before starting loading.");
       return;
     }
 
@@ -823,6 +878,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     setActiveTab,
 
     nextInstruction,
+    joinQueue,
     startLoading,
     driverLocation,
   };

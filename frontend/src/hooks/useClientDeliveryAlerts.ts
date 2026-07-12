@@ -25,6 +25,8 @@ function buildAlert(input: AlertInput) {
   switch (status) {
     case "assigned":
       return ["🚚 Tanker Assigned", "A tanker has been assigned to your order."];
+    case "queued":
+      return ["⏳ Tanker Queued", "Your tanker is in line to load water."];
     case "loading":
       return ["💧 Tanker Loading", "Your tanker is loading water."];
     case "delivering":

@@ -2,6 +2,7 @@ export type DriverStep =
   | "offline"
   | "available"
   | "assigned"
+  | "queued"
   | "loading"
   | "delivering"
   | "arrived"
@@ -11,6 +12,7 @@ export type DriverJobType = "batch" | "priority";
 
 export type DriverJobStatus =
   | "assigned"
+  | "queued"
   | "loading"
   | "delivering"
   | "arrived"

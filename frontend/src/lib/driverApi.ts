@@ -365,9 +365,33 @@ export async function fetchCurrentDriverJob(
   );
 }
 
+export async function joinDriverBatchQueue(
+  tankerId: number,
+  batchId: number
+): Promise<DriverActionResponse> {
+  return apiRequest<DriverActionResponse>(
+    `/tankers/${tankerId}/queue/${batchId}`,
+    {
+      method: "POST",
+    }
+  );
+}
+
+export async function joinDriverPriorityQueue(
+  tankerId: number,
+  requestId: number
+): Promise<DriverActionResponse> {
+  return apiRequest<DriverActionResponse>(
+    `/tankers/${tankerId}/queue-priority/${requestId}`,
+    {
+      method: "POST",
+    }
+  );
+}
+
 /**
  * Legacy backend endpoints, but in the UI they really mean:
- * "move assigned job into loading state"
+ * "move queued job into loading state"
  */
 export async function startDriverBatchLoading(
   tankerId: number,

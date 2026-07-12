@@ -7,6 +7,7 @@ import { setDriverOnline } from "@/lib/driverApi";
 import { DriverHeader } from "@/components/driver/DriverHeader";
 import { DriverAvailableStep } from "@/components/driver/DriverAvailableStep";
 import { DriverLoadingStep } from "@/components/driver/DriverLoadingStep";
+import { DriverQueuedStep } from "@/components/driver/DriverQueuedStep";
 import { DriverDeliveringStep } from "@/components/driver/DriverDeliveringStep";
 import { DriverCompletedStep } from "@/components/driver/DriverCompletedStep";
 import DriverIncomingOfferStep from "@/components/driver/DriverIncomingOfferStep";
@@ -139,7 +140,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     }
 
     // Going offline — intercept if currently in an active delivery
-    if (["delivering", "arrived"].includes(step)) {
+    if (["queued", "delivering", "arrived"].includes(step)) {
       setShowOfflineModal(true);
       return;
     }
@@ -213,6 +214,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     resetToDashboard,
     activeTab,
     setActiveTab,
+    joinQueue,
     startLoading,
     nextInstruction,
     driverLocation,
@@ -351,15 +353,35 @@ const DriverView = ({ onBack }: DriverViewProps) => {
 
         return (
           <NextStepCard
-            title="Start loading water"
+            title="Join the loading queue"
             message={
               nextInstruction ||
-              "You already accepted this offer. Start loading water now."
+              "You already accepted this offer. Join the queue to load water."
             }
-            primaryLabel="Start Loading"
-            onPrimary={startLoading}
+            primaryLabel="I'm in the Queue"
+            onPrimary={joinQueue}
             onSecondary={refreshJob}
             isLoading={isActionLoading}
+          />
+        );
+
+      case "queued":
+        if (!activeJob) {
+          return (
+            <StateBridgeCard
+              title="Preparing Queue Step"
+              message="The app is syncing your queued job. Refresh in a moment."
+              onRefresh={refreshJob}
+              isLoading={isActionLoading}
+            />
+          );
+        }
+
+        return (
+          <DriverQueuedStep
+            job={activeJob}
+            isLoading={isActionLoading}
+            onStartLoading={startLoading}
           />
         );
 

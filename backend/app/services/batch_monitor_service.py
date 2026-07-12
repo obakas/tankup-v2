@@ -23,6 +23,7 @@ ACTIVE_BATCH_STATUSES = [
     "near_ready",
     "ready_for_assignment",
     "assigned",
+    "queued",
     "loading",
     "delivering",
 ]
@@ -38,7 +39,7 @@ def refresh_batch_after_member_change(db: Session, batch_id: int) -> Batch:
     if batch.target_volume > 0:
         fill_ratio = batch.current_volume / batch.target_volume
 
-    if batch.status in {"assigned", "loading", "delivering", "arrived", "completed", "expired"}:
+    if batch.status in {"assigned", "queued", "loading", "delivering", "arrived", "completed", "expired"}:
         return batch
 
     if batch.current_volume <= 0:
@@ -208,7 +209,7 @@ def process_single_batch(db: Session, batch: Batch) -> dict:
                 result["assigned"] = True
                 db.refresh(batch)
 
-        if batch.status in ["assigned", "loading", "delivering"]:
+        if batch.status in ["assigned", "queued", "loading", "delivering"]:
             plan_batch_delivery_order(db, batch.id)
             result["delivery_plan_updated"] = True
 

@@ -2,6 +2,8 @@ export type DriverStep =
   | "offline"
   | "available"
   | "incoming"
+  | "assigned"
+  | "queued"
   | "loading"
   | "delivering"
   | "completed";

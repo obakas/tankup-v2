@@ -32,7 +32,7 @@ const POLL_MS = 300_000;
 const PAGE_SIZE = 25;
 
 const REQUEST_STATUSES = [
-  "pending", "searching_driver", "assigned", "loading", "delivering",
+  "pending", "searching_driver", "assigned", "queued", "loading", "delivering",
   "arrived", "completed", "partially_completed", "failed", "expired",
   "assignment_failed", "cancelled",
 ];

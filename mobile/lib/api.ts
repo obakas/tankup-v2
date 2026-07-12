@@ -462,6 +462,12 @@ export const rejectOffer = (tankerId: number) =>
 export const getCurrentJob = (tankerId: number) =>
   apiRequest<any>(`/tankers/${tankerId}/current-job`);
 
+export const markBatchJoinQueue = (tankerId: number, batchId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/queue/${batchId}`, { method: "POST" });
+
+export const markPriorityJoinQueue = (tankerId: number, requestId: number) =>
+  apiRequest<any>(`/tankers/${tankerId}/queue-priority/${requestId}`, { method: "POST" });
+
 export const markBatchStartLoading = (tankerId: number, batchId: number) =>
   apiRequest<any>(`/tankers/${tankerId}/accept/${batchId}`, { method: "POST" });
 

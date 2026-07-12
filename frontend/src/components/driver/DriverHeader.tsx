@@ -18,6 +18,7 @@ const stepTitles: Record<DriverStep, string> = {
   offline: "Driver Dashboard",
   available: "Driver Dashboard",
   assigned: "New Assignment",
+  queued: "In Queue to Load",
   loading: "Loading Water",
   delivering: "Deliveries",
   arrived: "Arrival Confirmation",

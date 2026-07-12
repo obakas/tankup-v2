@@ -46,6 +46,8 @@ const getBatchHeadline = (status?: string) => {
             return "Your batch is ready for tanker assignment";
         case "assigned":
             return "A tanker has been assigned";
+        case "queued":
+            return "Your tanker is queued to load water";
         case "loading":
             return "Your tanker is loading water";
         case "delivering":
@@ -75,6 +77,8 @@ const getBatchSubtext = (status?: string) => {
             return "Your batch is full enough and is waiting for the best tanker match.";
         case "assigned":
             return "A driver has been matched to your batch.";
+        case "queued":
+            return "The assigned tanker is in line to load water for your batch.";
         case "loading":
             return "The assigned tanker is currently loading for delivery.";
         case "delivering":
@@ -95,7 +99,7 @@ const getBatchSubtext = (status?: string) => {
 };
 
 const canViewTanker = (status?: string) => {
-    return ["assigned", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(
+    return ["assigned", "queued", "loading", "delivering", "arrived", "completed", "partially_completed", "failed"].includes(
         status ?? ""
     );
 };

@@ -31,6 +31,7 @@ class LiquidRequest(Base):
 
     site_profile_id = Column(Integer, ForeignKey("customer_site_profiles.id"), nullable=True)
 
+    queued_at = Column(DateTime, nullable=True)
     loading_deadline = Column(DateTime, nullable=True)
     accepted_at = Column(DateTime, nullable=True)
     delivering_started_at = Column(DateTime, nullable=True)

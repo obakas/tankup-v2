@@ -47,9 +47,9 @@ def require_admin_secret(x_admin_secret: str | None = Header(default=None)) -> s
 # router = APIRouter(prefix="/admin", tags=["Admin"], dependencies=[Depends(require_admin_secret)])
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-ACTIVE_BATCH_STATUSES = {"forming", "near_ready", "ready_for_assignment", "assigned", "loading", "delivering", "arrived"}
-ACTIVE_REQUEST_STATUSES = {"pending", "searching_driver", "assignment_pending", "assigned", "loading", "delivering", "arrived"}
-ACTIVE_TANKER_STATUSES = {"available", "assigned", "loading", "delivering", "arrived"}
+ACTIVE_BATCH_STATUSES = {"forming", "near_ready", "ready_for_assignment", "assigned", "queued", "loading", "delivering", "arrived"}
+ACTIVE_REQUEST_STATUSES = {"pending", "searching_driver", "assignment_pending", "assigned", "queued", "loading", "delivering", "arrived"}
+ACTIVE_TANKER_STATUSES = {"available", "assigned", "queued", "loading", "delivering", "arrived"}
 ACTIVE_DELIVERY_STATUSES = {"pending", "en_route", "arrived", "measuring", "awaiting_otp"}
 RESOLVED_DELIVERY_STATUSES = {"delivered", "failed", "skipped"}
 
@@ -238,7 +238,7 @@ def _resolve_admin_request_status(db: Session, request: LiquidRequest) -> str:
     if batch:
         if batch.status == "completed":
             return "completed"
-        if batch.status in {"partially_completed", "failed", "expired", "delivering", "arrived", "loading", "assigned"}:
+        if batch.status in {"partially_completed", "failed", "expired", "delivering", "arrived", "loading", "queued", "assigned"}:
             return batch.status
 
     return request.status
@@ -1056,9 +1056,9 @@ def reset_tanker_availability(tanker_id: int, db: Session = Depends(get_db), cur
 
     _NON_TERMINAL_BATCH_STATUSES = {
         "forming", "near_ready", "ready_for_assignment",
-        "assigned", "loading", "delivering", "arrived",
+        "assigned", "queued", "loading", "delivering", "arrived",
     }
-    _PRE_DELIVERY = {"assigned", "loading"}
+    _PRE_DELIVERY = {"assigned", "queued", "loading"}
 
     released_batches = []
     stale_batches = (

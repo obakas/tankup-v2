@@ -18,6 +18,7 @@ _ACTIVE_REQUEST_STATUSES = {
     "pending",
     "searching_driver",
     "assigned",
+    "queued",
     "loading",
     "delivering",
     "arrived",
