@@ -771,7 +771,19 @@ def complete_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, aut
     }
 
 
-def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason: str) -> dict[str, Any]:
+def _apply_site_too_difficult_refund(db: Session, delivery: DeliveryRecord) -> None:
+    if delivery.job_type != "priority" or not delivery.request_id:
+        return
+    request = db.query(LiquidRequest).filter(LiquidRequest.id == delivery.request_id).first()
+    if not request:
+        return
+    request.refund_eligible = True
+    request.cancellation_stage = "site_too_difficult"
+    request.cancellation_refund_pct = 1.0
+    db.add(request)
+
+
+def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason: str, reason_code: str | None = None) -> dict[str, Any]:
     delivery = get_delivery_by_id(db, delivery_id)
     _ensure_delivery_owned_by_tanker(delivery, tanker_id)
     if delivery.delivery_status == "failed":
@@ -785,6 +797,8 @@ def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     delivery.notes = clean_reason
     delivery.failed_at = delivery.failed_at or _utcnow()
     _sync_customer_state_for_stop(db, delivery)
+    if reason_code == "site_too_difficult":
+        _apply_site_too_difficult_refund(db, delivery)
     next_stop = _activate_next_open_stop(db, delivery)
     db.add(delivery)
     db.commit()
@@ -799,7 +813,7 @@ def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     }
 
 
-def skip_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason: str) -> dict[str, Any]:
+def skip_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason: str, reason_code: str | None = None) -> dict[str, Any]:
     delivery = get_delivery_by_id(db, delivery_id)
     _ensure_delivery_owned_by_tanker(delivery, tanker_id)
     if delivery.delivery_status == "skipped":
@@ -813,6 +827,8 @@ def skip_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     delivery.notes = clean_reason
     delivery.skipped_at = delivery.skipped_at or _utcnow()
     _sync_customer_state_for_stop(db, delivery)
+    if reason_code == "site_too_difficult":
+        _apply_site_too_difficult_refund(db, delivery)
     next_stop = _activate_next_open_stop(db, delivery)
     db.add(delivery)
     db.commit()

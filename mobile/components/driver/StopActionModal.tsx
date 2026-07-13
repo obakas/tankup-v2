@@ -23,13 +23,15 @@ const FAIL_REASONS = [
   "Other",
 ];
 
+const SITE_TOO_DIFFICULT_REASON = "Tank too high / hose too short";
+
 type Props = {
   visible: boolean;
   mode: "skip" | "fail";
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onSubmit: (reason: string) => void;
+  onSubmit: (reason: string, reasonCode?: string) => void;
 };
 
 export function StopActionModal({ visible, mode, loading, error, onClose, onSubmit }: Props) {
@@ -140,7 +142,12 @@ export function StopActionModal({ visible, mode, loading, error, onClose, onSubm
             )}
 
             <Pressable
-              onPress={() => onSubmit(reason.trim())}
+              onPress={() =>
+                onSubmit(
+                  reason.trim(),
+                  selected === SITE_TOO_DIFFICULT_REASON ? "site_too_difficult" : undefined
+                )
+              }
               disabled={!canSubmit}
               className="rounded-xl py-4 items-center"
               style={{ backgroundColor: accent, opacity: canSubmit ? 1 : 0.5 }}

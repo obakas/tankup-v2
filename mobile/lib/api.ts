@@ -518,16 +518,16 @@ export const confirmOtp = (deliveryId: number, tankerId: number, otpCode: string
 export const completeStop = (deliveryId: number, tankerId: number) =>
   apiRequest<any>(`/deliveries/${deliveryId}/complete?tanker_id=${tankerId}`, { method: "POST" });
 
-export const failStop = (deliveryId: number, tankerId: number, reason: string) =>
+export const failStop = (deliveryId: number, tankerId: number, reason: string, reasonCode?: string) =>
   apiRequest<any>(`/deliveries/${deliveryId}/fail?tanker_id=${tankerId}`, {
     method: "POST",
-    body: { reason },
+    body: { reason, reason_code: reasonCode },
   });
 
-export const skipStop = (deliveryId: number, tankerId: number, reason: string) =>
+export const skipStop = (deliveryId: number, tankerId: number, reason: string, reasonCode?: string) =>
   apiRequest<any>(`/deliveries/${deliveryId}/skip?tanker_id=${tankerId}`, {
     method: "POST",
-    body: { reason },
+    body: { reason, reason_code: reasonCode },
   });
 
 export const verifySite = (

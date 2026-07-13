@@ -25,7 +25,12 @@ from app.models.tanker import Tanker
 from app.models.request import LiquidRequest
 from app.models.batch_member import BatchMember
 from app.models.batch import Batch
-from app.utils.status_rules import ensure_valid_transition, REQUEST_STATUS_TRANSITIONS
+from app.utils.status_rules import (
+    ensure_valid_transition,
+    REQUEST_STATUS_TRANSITIONS,
+    TANKER_STATUS_TRANSITIONS,
+)
+from app.services import push_service
 
 _BATCH_TERMINAL_STATUSES = {
     "completed", "partially_completed", "failed", "expired",
@@ -433,9 +438,9 @@ def _compute_cancellation(
             detail="Cancellation not allowed — water has already been fully pumped.",
         )
 
-    # Pre-loading: offer accepted but tanker hasn't started loading yet
-    if request.status in ("assigned", "queued") and dr_status in (None, "pending"):
-        return "pre_loading", 0.5
+    # Pre-loading / loading: tanker hasn't departed yet — full refund.
+    if request.status in ("assigned", "queued", "loading") and dr_status in (None, "pending"):
+        return "pre_loading", 1.0
 
     # Measuring with both meter readings: prorate by liters actually delivered
     if dr_status == "measuring" and delivery:
@@ -451,6 +456,13 @@ def _compute_cancellation(
     # All other stages: tanker committed, full forfeit
     if dr_status in ("arrived", "measuring"):
         return "arrived", 0.0
+
+    # Tanker is already en route — no refund, and cancellation is blocked entirely.
+    if dr_status == "en_route":
+        raise HTTPException(
+            status_code=409,
+            detail="Cancellation not allowed — the tanker is already en route.",
+        )
 
     return "en_route", 0.0
 
@@ -488,8 +500,28 @@ def cancel_priority_mid_delivery_flow(db: Session, request_id: int) -> dict[str,
         delivery.failure_reason = "client_cancelled"
         delivery.failed_at = datetime.utcnow()
 
+    if refund_pct > 0:
+        tanker = db.query(Tanker).filter(Tanker.current_request_id == request.id).first()
+        if tanker:
+            ensure_valid_transition(tanker.status, "available", TANKER_STATUS_TRANSITIONS, "Tanker")
+            tanker.status = "available"
+            tanker.is_available = True
+            tanker.current_request_id = None
+            tanker.pending_offer_type = None
+            tanker.pending_offer_id = None
+            tanker.offer_expires_at = None
+            db.add(tanker)
+
     db.commit()
     db.refresh(request)
+
+    if refund_pct > 0 and tanker:
+        push_service.notify_driver(
+            db, tanker.id,
+            title="Delivery cancelled",
+            body="This delivery was cancelled by the customer. You're free for a new job.",
+            data={"type": "job_cancelled", "request_id": request.id},
+        )
 
     return {
         "message": "Priority delivery cancelled.",

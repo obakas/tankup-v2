@@ -445,6 +445,7 @@ def fail_stop(
         tanker_id=tanker_id,
         delivery_id=delivery_id,
         reason=reason,
+        reason_code=payload.reason_code,
     )
 
     updated_delivery = result["delivery"]
@@ -491,6 +492,7 @@ def skip_stop(
         tanker_id=tanker_id,
         delivery_id=delivery_id,
         reason=reason,
+        reason_code=payload.reason_code,
     )
 
     updated_delivery = result["delivery"]

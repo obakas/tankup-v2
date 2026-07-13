@@ -193,6 +193,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [failureReason, setFailureReason] = useState("");
   const [skipReason, setSkipReason] = useState("");
+  const [failureReasonCode, setFailureReasonCode] = useState<string | undefined>(undefined);
 
   const [hadActiveStop, setHadActiveStop] = useState(false);
 
@@ -276,6 +277,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     setDeliveryNotes("");
     setFailureReason("");
     setSkipReason("");
+    setFailureReasonCode(undefined);
   }, []);
 
   useEffect(() => {
@@ -780,12 +782,12 @@ export const useDriverFlow = (driver: DriverUser | null) => {
 
     await runAction(
       async () => {
-        await failStop(tankerId, currentStop.delivery_id, failureReason.trim());
+        await failStop(tankerId, currentStop.delivery_id, failureReason.trim(), failureReasonCode);
       },
       "Stop marked as failed.",
       { clearInputs: true }
     );
-  }, [tankerId, currentStop, failureReason, runAction]);
+  }, [tankerId, currentStop, failureReason, failureReasonCode, runAction]);
 
   const skipCurrentStop = useCallback(async () => {
     if (!tankerId) {
@@ -856,6 +858,8 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     setFailureReason,
     skipReason,
     setSkipReason,
+    failureReasonCode,
+    setFailureReasonCode,
 
     isLoading,
     isActionLoading,
