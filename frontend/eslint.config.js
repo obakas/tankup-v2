@@ -23,4 +23,12 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    // Generated shadcn/ui primitives — don't hand-edit these files, but the
+    // empty-interface pattern they use for future extensibility is intentional.
+    files: ["src/components/ui/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-empty-object-type": "off",
+    },
+  },
 );

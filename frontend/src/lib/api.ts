@@ -41,8 +41,8 @@ export async function apiRequest<T>(
       const detail = (data as { detail?: unknown }).detail;
 
       if (Array.isArray(detail)) {
-        message = detail
-          .map((item: any) => `${item.loc?.join(".")}: ${item.msg}`)
+        message = (detail as { loc?: (string | number)[]; msg: string }[])
+          .map((item) => `${item.loc?.join(".")}: ${item.msg}`)
           .join(" | ");
       } else if (typeof detail === "string") {
         message = detail;

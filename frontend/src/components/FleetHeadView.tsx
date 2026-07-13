@@ -100,8 +100,8 @@ function FleetHeadLoginScreen({
     try {
       const token = await loginFleetHead(username, password);
       onLogin(token);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -293,7 +293,7 @@ function LiveTab({
       {/* Active priority requests */}
       {priority_requests.length > 0 && (
         <Section title="Priority Requests" count={priority_requests.length}>
-          {priority_requests.map((r: any) => (
+          {priority_requests.map((r) => (
             <div key={r.id} className="bg-card rounded-2xl border border-border p-4 flex items-center justify-between gap-3">
               <div>
                 <p className="font-semibold text-foreground">Request #{r.id}</p>
@@ -453,8 +453,8 @@ function TankersTab({
       setShowForm(false);
       onTankerAdded();
       setTimeout(() => setFormSuccess(false), 3000);
-    } catch (err: any) {
-      setFormError(err.message);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to register tanker");
     } finally {
       setSubmitting(false);
     }
@@ -803,9 +803,10 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
       setFinancials(financialsData);
       setPendingRequests(pendingData.items ?? []);
       setLastUpdated(new Date());
-    } catch (e: any) {
-      setError(e.message);
-      if (e.message.includes("401") || e.message.includes("403")) {
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load fleet data";
+      setError(message);
+      if (message.includes("401") || message.includes("403")) {
         handleLogout();
       }
     } finally {
@@ -849,8 +850,8 @@ export default function FleetHeadView({ onBack }: FleetHeadViewProps) {
       toast.success(result.message);
       setAssignModalRequest(null);
       fetchAll(true);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to send offer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send offer");
     } finally {
       setOfferLoading(false);
     }

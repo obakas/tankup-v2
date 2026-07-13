@@ -3,14 +3,8 @@ name: backend-ci
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
   push:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
 
 jobs:
   backend-test:
@@ -21,12 +15,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/backend-ci.yml'
+
       - uses: actions/setup-python@v5
+        if: steps.filter.outputs.backend == 'true'
         with:
           python-version: "3.11"
 
       - name: Install dependencies
+        if: steps.filter.outputs.backend == 'true'
         run: pip install -r requirements-dev.txt
 
       - name: Run tests
+        if: steps.filter.outputs.backend == 'true'
         run: pytest
