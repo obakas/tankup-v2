@@ -3,14 +3,8 @@ name: mobile-ci
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "mobile/**"
-      - ".github/workflows/mobile-ci.yml"
   push:
     branches: [main]
-    paths:
-      - "mobile/**"
-      - ".github/workflows/mobile-ci.yml"
 
 jobs:
   mobile-lint:
@@ -21,14 +15,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            mobile:
+              - 'mobile/**'
+              - '.github/workflows/mobile-ci.yml'
+
       - uses: actions/setup-node@v4
+        if: steps.filter.outputs.mobile == 'true'
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
+        if: steps.filter.outputs.mobile == 'true'
         run: npm ci
 
       - name: Lint
+        if: steps.filter.outputs.mobile == 'true'
         run: npm run lint
