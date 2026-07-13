@@ -198,6 +198,8 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     setDeliveryNotes,
     failureReason,
     setFailureReason,
+    failureReasonCode,
+    setFailureReasonCode,
     skipReason,
     setSkipReason,
     isLoading,
@@ -457,6 +459,8 @@ const DriverView = ({ onBack }: DriverViewProps) => {
               setDeliveryNotes={setDeliveryNotes}
               failureReason={failureReason}
               setFailureReason={setFailureReason}
+              failureReasonCode={failureReasonCode}
+              setFailureReasonCode={setFailureReasonCode}
               skipReason={skipReason}
               setSkipReason={setSkipReason}
               isLoading={isActionLoading}

@@ -530,7 +530,8 @@ export async function completeStop(
 export async function failStop(
   tankerId: number,
   deliveryId: number,
-  reason: string
+  reason: string,
+  reasonCode?: string
 ): Promise<DriverActionResponse> {
   return apiRequest<DriverActionResponse>(
     `/deliveries/${deliveryId}/fail?tanker_id=${tankerId}`,
@@ -538,6 +539,7 @@ export async function failStop(
       method: "POST",
       body: JSON.stringify({
         reason: reason.trim(),
+        reason_code: reasonCode,
       }),
     }
   );
@@ -546,7 +548,8 @@ export async function failStop(
 export async function skipStop(
   tankerId: number,
   deliveryId: number,
-  reason: string
+  reason: string,
+  reasonCode?: string
 ): Promise<DriverActionResponse> {
   return apiRequest<DriverActionResponse>(
     `/deliveries/${deliveryId}/skip?tanker_id=${tankerId}`,
@@ -554,6 +557,7 @@ export async function skipStop(
       method: "POST",
       body: JSON.stringify({
         reason: reason.trim(),
+        reason_code: reasonCode,
       }),
     }
   );

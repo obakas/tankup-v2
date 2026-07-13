@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import LiveDeliveryMap from "@/components/shared/LiveDeliveryMap";
 import type { DriverStop } from "@/types/driver";
 
+const SITE_TOO_DIFFICULT_REASON = "Tank too high / hose too short";
+
 interface DriverDeliveringStepProps {
   currentDelivery: DriverStop | null;
   activeDeliveryIdx: number;
@@ -27,6 +29,8 @@ interface DriverDeliveringStepProps {
 
   failureReason: string;
   setFailureReason: (value: string) => void;
+  failureReasonCode?: string;
+  setFailureReasonCode?: (value: string | undefined) => void;
 
   skipReason: string;
   setSkipReason: (value: string) => void;
@@ -70,6 +74,8 @@ export const DriverDeliveringStep = ({
   setDeliveryNotes,
   failureReason,
   setFailureReason,
+  failureReasonCode,
+  setFailureReasonCode,
   skipReason,
   setSkipReason,
   isLoading,
@@ -389,9 +395,28 @@ export const DriverDeliveringStep = ({
             <p className="text-sm text-muted-foreground">
               Use this when the customer is absent or the stop cannot be completed.
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFailureReason(SITE_TOO_DIFFICULT_REASON);
+                setFailureReasonCode?.("site_too_difficult");
+              }}
+              className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
+                failureReasonCode === "site_too_difficult"
+                  ? "border-destructive bg-destructive/10 text-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Site too difficult ({SITE_TOO_DIFFICULT_REASON}) — customer refund eligible
+            </button>
             <textarea
               value={failureReason}
-              onChange={(e) => setFailureReason(e.target.value)}
+              onChange={(e) => {
+                setFailureReason(e.target.value);
+                if (e.target.value !== SITE_TOO_DIFFICULT_REASON) {
+                  setFailureReasonCode?.(undefined);
+                }
+              }}
               placeholder="Why did this stop fail?"
               rows={3}
               className="w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"

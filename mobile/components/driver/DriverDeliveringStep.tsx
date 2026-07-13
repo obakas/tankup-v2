@@ -99,15 +99,15 @@ export function DriverDeliveringStep({
     }
   };
 
-  const submitStopAction = async (reason: string) => {
+  const submitStopAction = async (reason: string, reasonCode?: string) => {
     if (!actionModalMode || !stop) return;
     setActionSubmitting(true);
     setActionError(null);
     try {
       if (actionModalMode === "skip") {
-        await skipStop(stop.delivery_id, driver.tankerId, reason);
+        await skipStop(stop.delivery_id, driver.tankerId, reason, reasonCode);
       } else {
-        await failStop(stop.delivery_id, driver.tankerId, reason);
+        await failStop(stop.delivery_id, driver.tankerId, reason, reasonCode);
       }
       await onRefresh();
       setActionModalMode(null);
