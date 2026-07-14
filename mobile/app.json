@@ -15,7 +15,9 @@
       "package": "com.obakas.tankupmobile",
       "googleServicesFile": "./google-services.json",
       "permissions": [
-        "android.permission.ACCESS_BACKGROUND_LOCATION"
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.USE_FULL_SCREEN_INTENT",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -59,7 +61,8 @@
         {
           "icon": "./assets/images/icon.png",
           "color": "#ffffff",
-          "defaultChannel": "default"
+          "defaultChannel": "default",
+          "sounds": ["./assets/sounds/ring_placeholder.wav"]
         }
       ],
       "expo-font",
@@ -77,6 +80,18 @@
         {
           "photosPermission": "TankUp needs access to your photos to add a tank photo to your site.",
           "cameraPermission": "TankUp needs camera access to take a photo of your tank."
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "react-native-notify-kit",
+        {
+          "android": {
+            "foregroundService": {
+              "types": ["mediaPlayback"]
+            }
+          }
         }
       ]
     ],
