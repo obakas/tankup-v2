@@ -176,10 +176,12 @@ class ConfirmOtpIn(BaseModel):
 
 class FailDeliveryIn(BaseModel):
     reason: str = Field(..., min_length=3, max_length=255)
+    reason_code: Optional[Literal["site_too_difficult"]] = None
 
 
 class SkipDeliveryIn(BaseModel):
     reason: str = Field(..., min_length=3, max_length=255)
+    reason_code: Optional[Literal["site_too_difficult"]] = None
 
 
 class SiteVerificationIn(BaseModel):
