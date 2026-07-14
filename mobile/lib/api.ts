@@ -881,10 +881,10 @@ export function updatePushToken(userId: number, token: string) {
   });
 }
 
-export function updateDriverPushToken(tankerId: number, token: string) {
+export function updateDriverPushToken(tankerId: number, token: string, fcmToken?: string | null) {
   return apiRequest(`/tankers/${tankerId}/push-token`, {
     method: "PATCH",
-    body: { expo_push_token: token },
+    body: { expo_push_token: token, fcm_token: fcmToken ?? undefined },
   });
 }
 

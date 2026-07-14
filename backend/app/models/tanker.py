@@ -31,6 +31,7 @@ class Tanker(Base):
     offer_reminder_sent = Column(Boolean, default=False, nullable=False)
 
     expo_push_token = Column(String, nullable=True)
+    fcm_token = Column(String, nullable=True)
 
     # driver offline mid-delivery tracking
     last_heartbeat_at = Column(DateTime, nullable=True)

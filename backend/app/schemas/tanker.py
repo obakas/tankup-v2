@@ -65,6 +65,7 @@ class OnlineToggle(BaseModel):
 
 class TankerPushTokenUpdate(BaseModel):
     expo_push_token: str
+    fcm_token: Optional[str] = None
 
 
 class TankerOut(TankerBase):
