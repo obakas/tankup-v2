@@ -386,8 +386,8 @@ export function useClientFlow() {
     setStep("request");
     toast.success(`Welcome, ${u.name}!`);
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
-    registerForPushNotificationsAsync().then((token) => {
-      if (token) updatePushToken(u.id, token).catch(() => {});
+    registerForPushNotificationsAsync().then(({ expoPushToken }) => {
+      if (expoPushToken) updatePushToken(u.id, expoPushToken).catch(() => {});
     }).catch(() => {});
   };
 

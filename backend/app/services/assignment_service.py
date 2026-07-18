@@ -457,11 +457,13 @@ def assign_best_tanker_for_priority(
     db.refresh(tanker)
     db.refresh(request)
 
-    push_service.notify_driver(
+    push_service.notify_driver_ring(
         db, tanker.id,
-        title="New delivery offer",
+        offer_id=tanker.pending_offer_id,
+        offer_type="priority",
+        expires_at=tanker.offer_expires_at,
+        title="New Priority Delivery Offer",
         body="Tap to view and accept",
-        data={"type": "job_offer"},
     )
 
     return {
@@ -818,11 +820,13 @@ def process_offer_reminders(db: Session) -> list[dict[str, Any]]:
         tanker.offer_reminder_sent = True
         db.commit()
 
-        push_service.notify_driver(
+        push_service.notify_driver_ring(
             db, tanker.id,
+            offer_id=tanker.pending_offer_id,
+            offer_type=tanker.pending_offer_type,
+            expires_at=tanker.offer_expires_at,
             title="Offer still waiting",
             body="Your delivery offer is about to expire — tap to respond",
-            data={"type": "job_offer"},
         )
         results.append({"tanker_id": tanker.id, "pending_offer_type": tanker.pending_offer_type})
 
@@ -905,11 +909,13 @@ def assign_best_tanker_for_batch(
     db.refresh(tanker)
     db.refresh(batch)
 
-    push_service.notify_driver(
+    push_service.notify_driver_ring(
         db, tanker.id,
-        title="New delivery offer",
+        offer_id=tanker.pending_offer_id,
+        offer_type="batch",
+        expires_at=tanker.offer_expires_at,
+        title="New Batch Delivery Offer",
         body="Tap to view and accept",
-        data={"type": "job_offer"},
     )
 
     return {

@@ -35,6 +35,7 @@ import {
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 import { fireLocalNotification, addNotificationArrivedListener } from "@/lib/localNotifications";
+import { promptRingPermissionsOnce, stopRingNotification } from "@/lib/ringNotification";
 
 // Offer expiry window is 60s — 10s detection still leaves ~50s to respond.
 const POLL_AVAILABLE_MS = 10_000;
@@ -336,8 +337,9 @@ export function useDriverFlow() {
       setDriver(d);
       setOnline(d.is_online);
 
-      registerForPushNotificationsAsync().then((token) => {
-        if (token) updateDriverPushToken(d.tankerId, token).catch(() => {});
+      registerForPushNotificationsAsync().then(({ expoPushToken, fcmToken }) => {
+        if (expoPushToken) updateDriverPushToken(d.tankerId, expoPushToken, fcmToken).catch(() => {});
+        if (fcmToken) promptRingPermissionsOnce().catch(() => {});
       }).catch(() => {});
 
       // Always resolve the step from live backend status rather than the
@@ -436,6 +438,7 @@ export function useDriverFlow() {
 
     try {
       void cancelAlarm();
+      void stopRingNotification(offer?.id);
       await acceptOffer(driver.tankerId);
       const jobRes = await getCurrentJob(driver.tankerId);
       setJob(jobRes);
@@ -449,7 +452,7 @@ export function useDriverFlow() {
     } finally {
       setActionLoading(false);
     }
-  }, [driver, cancelAlarm]);
+  }, [driver, offer, cancelAlarm]);
 
   const handleJoinQueue = useCallback(async () => {
     if (!driver || !job) return;
@@ -511,6 +514,7 @@ export function useDriverFlow() {
 
     try {
       void cancelAlarm();
+      void stopRingNotification(offer?.id);
       await rejectOffer(driver.tankerId);
       setOffer(null);
       setStep("available");
@@ -521,7 +525,7 @@ export function useDriverFlow() {
     } finally {
       setActionLoading(false);
     }
-  }, [driver, cancelAlarm]);
+  }, [driver, offer, cancelAlarm]);
 
   const handleLoaded = useCallback(async () => {
     if (!driver || !job) return;

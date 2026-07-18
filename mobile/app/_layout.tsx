@@ -1,8 +1,12 @@
 import "@/global.css";
 import "@/tasks/locationTask";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
+import messaging from "@react-native-firebase/messaging";
+import notifee from "react-native-notify-kit";
+import { registerRingForegroundHandler } from "@/lib/ringNotification";
 
 try {
   Notifications.setNotificationHandler({
@@ -35,6 +39,20 @@ import { ThemeProvider, useAppTheme } from "@/hooks/useAppTheme";
 
 function AppShell() {
   const { isDark, theme } = useAppTheme();
+
+  useEffect(() => {
+    const unsubscribeForegroundEvents = registerRingForegroundHandler();
+    const unsubscribeMessage = messaging().onMessage(async (remoteMessage) => {
+      // RemoteMessage.data is typed loosely (string | object); FCM payloads we
+      // send are always plain strings, matching notifee's FcmRemoteMessage shape.
+      await notifee.handleFcmMessage(remoteMessage as any);
+    });
+    return () => {
+      unsubscribeForegroundEvents();
+      unsubscribeMessage();
+    };
+  }, []);
+
   return (
     <>
       <StatusBar style={isDark ? "light" : "dark"} />
