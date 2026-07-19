@@ -10,9 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { adminRefundMember, adminResetTanker, getAdminPayments, getAdminTankers } from "@/lib/admin";
+import {
+  adminRefundMember,
+  adminResetTanker,
+  adminSetTankerVerified,
+  getAdminPayments,
+  getAdminTankers,
+} from "@/lib/admin";
 import { formatNigeriaTime } from "@/lib/datetime";
-import { formatNumber, StatusPill } from "./shared";
+import { formatNumber, StatusPill, VerifiedBadge } from "./shared";
 
 const POLL_MS = 30_000;
 
@@ -186,7 +192,12 @@ export function PaymentsTab({ canLoad, isActionLoading, askConfirm }: Props) {
                   return (
                   <TableRow key={item.id}>
                     <TableCell>#{item.id}</TableCell>
-                    <TableCell>{item.driver_name}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5">
+                        {item.driver_name}
+                        <VerifiedBadge verified={item.is_verified} />
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <StatusPill status={item.status} />
                       {isPunished && (
@@ -197,20 +208,38 @@ export function PaymentsTab({ canLoad, isActionLoading, askConfirm }: Props) {
                     <TableCell>{item.is_available ? "Yes" : "No"}</TableCell>
                     <TableCell>{item.tank_plate_number}</TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isActionLoading}
-                        onClick={() =>
-                          askConfirm(
-                            "Reset tanker",
-                            `Clear pending offer/current assignment for tanker #${item.id} when possible.`,
-                            () => adminResetTanker(item.id),
-                          )
-                        }
-                      >
-                        Reset
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isActionLoading}
+                          onClick={() =>
+                            askConfirm(
+                              item.is_verified ? "Unverify driver" : "Verify driver",
+                              item.is_verified
+                                ? `Remove verified status from driver #${item.id}.`
+                                : `Mark driver #${item.id} as verified.`,
+                              () => adminSetTankerVerified(item.id, !item.is_verified),
+                            )
+                          }
+                        >
+                          {item.is_verified ? "Unverify" : "Verify"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isActionLoading}
+                          onClick={() =>
+                            askConfirm(
+                              "Reset tanker",
+                              `Clear pending offer/current assignment for tanker #${item.id} when possible.`,
+                              () => adminResetTanker(item.id),
+                            )
+                          }
+                        >
+                          Reset
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                   );

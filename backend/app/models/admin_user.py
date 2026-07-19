@@ -15,4 +15,5 @@ class AdminUser(Base):
     role = Column(String, nullable=False, default="admin")
     hub_id = Column(Integer, ForeignKey("hubs.id"), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    is_verified = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

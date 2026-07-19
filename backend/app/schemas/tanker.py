@@ -72,6 +72,7 @@ class TankerOut(TankerBase):
     id: int
     status: TankerStatus
     is_available: bool
+    is_verified: bool = False
     current_request_id: Optional[int] = None
     last_location_update_at: Optional[datetime] = None
 
