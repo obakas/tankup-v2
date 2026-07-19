@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils";
 import type { ClientStep, RequestMode } from "@/types/client";
 import {
   BATCH_FILL_TIMEOUT_MINUTES,
-  LOADING_TIMEOUT_MINUTES,
   PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES,
-  DELIVERY_TIMEOUT_HOURS,
+  EXPECTED_QUEUE_MINUTES,
+  EXPECTED_LOADING_MINUTES,
 } from "@/constants/timePolicy";
 
 const DOT_SIZE = 18;
@@ -16,23 +16,29 @@ interface StepDef {
   timeLabel: string;
 }
 
-const BATCH_STEPS: StepDef[] = [
-  { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
-  { label: "Queued",         timeLabel: "" },
-  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
-  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { label: "Arrived",        timeLabel: "" },
-  { label: "Delivered",      timeLabel: "" },
-];
+function buildSteps(mode: RequestMode, etaMinutes?: number | null): StepDef[] {
+  const enRouteLabel = typeof etaMinutes === "number" ? `~${etaMinutes} min` : "";
 
-const PRIORITY_STEPS: StepDef[] = [
-  { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
-  { label: "Queued",         timeLabel: "" },
-  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
-  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { label: "Arrived",        timeLabel: "" },
-  { label: "Delivered",      timeLabel: "" },
-];
+  if (mode === "priority") {
+    return [
+      { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
+      { label: "Queued",         timeLabel: `≤ ${EXPECTED_QUEUE_MINUTES} min` },
+      { label: "Loading",        timeLabel: `≤ ${EXPECTED_LOADING_MINUTES} min` },
+      { label: "En Route",       timeLabel: enRouteLabel },
+      { label: "Arrived",        timeLabel: "" },
+      { label: "Delivered",      timeLabel: "" },
+    ];
+  }
+
+  return [
+    { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
+    { label: "Queued",         timeLabel: `≤ ${EXPECTED_QUEUE_MINUTES} min` },
+    { label: "Loading",        timeLabel: `≤ ${EXPECTED_LOADING_MINUTES} min` },
+    { label: "En Route",       timeLabel: enRouteLabel },
+    { label: "Arrived",        timeLabel: "" },
+    { label: "Delivered",      timeLabel: "" },
+  ];
+}
 
 // Minimal shape covering both BatchLiveResponse and PriorityLiveResponse
 interface LiveSnapshot {
@@ -41,6 +47,7 @@ interface LiveSnapshot {
   request_status?: string | null;
   delivery_status?: string | null;
   tanker_status?: string | null;
+  eta_minutes?: number | null;
 }
 
 function computeStepIndex(
@@ -97,7 +104,7 @@ interface DeliveryStepBarProps {
 }
 
 export default function DeliveryStepBar({ step, requestMode, liveData }: DeliveryStepBarProps) {
-  const steps = requestMode === "priority" ? PRIORITY_STEPS : BATCH_STEPS;
+  const steps = buildSteps(requestMode, liveData?.eta_minutes);
   const currentIndex = computeStepIndex(requestMode, liveData, step);
 
   return (
