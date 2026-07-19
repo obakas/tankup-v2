@@ -111,7 +111,7 @@ export default function DeliveryStepBar({ step, requestMode, liveData }: Deliver
           // Line before step i is green when i <= currentIndex
           const lineGreen = i <= currentIndex;
           const labelMarginLeft = isFirst
-            ? 0
+            ? LABEL_WIDTH - DOT_SIZE
             : isLast
             ? -(LABEL_WIDTH - DOT_SIZE)
             : -(LABEL_WIDTH - DOT_SIZE) / 2;
