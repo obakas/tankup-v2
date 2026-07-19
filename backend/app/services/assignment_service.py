@@ -22,6 +22,7 @@ from app.models.customer_site_profile import CustomerSiteProfile
 from app.services.site_intelligence_service import compute_site_difficulty_score
 from app.services.operation_alert_service import create_operation_alert
 from app.services import push_service
+from app.services.offer_ws_registry import registry as offer_ws_registry
 from app.utils.time_policy import (
     OFFER_TIMEOUT_BLACKLIST_MINUTES, 
     OFFER_EXPIRY_ALERT_AFTER_FAILURES,
@@ -465,6 +466,7 @@ def assign_best_tanker_for_priority(
         title="New Priority Delivery Offer",
         body="Tap to view and accept",
     )
+    offer_ws_registry.notify_offer_available_sync(tanker.id)
 
     return {
         "tanker": tanker,
@@ -917,6 +919,7 @@ def assign_best_tanker_for_batch(
         title="New Batch Delivery Offer",
         body="Tap to view and accept",
     )
+    offer_ws_registry.notify_offer_available_sync(tanker.id)
 
     return {
         "assigned": True,
