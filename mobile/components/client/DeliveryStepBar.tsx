@@ -115,7 +115,7 @@ export function DeliveryStepBar({ currentStep, mode, liveData, theme }: Delivery
           const labelColor = isDone ? theme.success : isCurrent ? theme.primary : theme.mutedForeground;
           // Negative margin centers the wider label under the narrow dot
           const labelMarginLeft = isFirst
-            ? 0
+            ? LABEL_WIDTH - DOT_SIZE
             : isLast
             ? -(LABEL_WIDTH - DOT_SIZE)
             : -(LABEL_WIDTH - DOT_SIZE) / 2;

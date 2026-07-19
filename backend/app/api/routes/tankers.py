@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -17,6 +17,7 @@ from app.models.customer_site_profile import CustomerSiteProfile
 from app.schemas.tanker import TankerCreate, TankerOut, TankerUpdate, TankerLocationUpdate, TankerLocationOut, OnlineToggle, TankerPushTokenUpdate
 from app.services.operation_alert_service import create_operation_alert
 from app.services import push_service
+from app.services.offer_ws_registry import registry as offer_ws_registry
 from app.services.assignment_service import (
     clear_tanker_offer,
     mark_offer_accepted,
@@ -523,6 +524,24 @@ def get_incoming_offer(tanker_id: int, db: Session = Depends(get_db)):
             return {"has_offer": False, "offer": None}
         return {"has_offer": True, "offer": build_batch_offer_payload(db, batch, seconds_left)}
     return {"has_offer": False, "offer": None}
+
+
+@router.websocket("/{tanker_id}/offers/ws")
+async def offers_ws(websocket: WebSocket, tanker_id: int):
+    """Push channel for the driver app: signals only `{"type": "offer_available"}`
+    when a new offer lands for this tanker, so the client re-fetches via the
+    existing GET /{tanker_id}/incoming-offer rather than duplicating payload
+    logic here. No auth — matches the other offer endpoints in this file.
+    """
+    await websocket.accept()
+    offer_ws_registry.register(tanker_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        offer_ws_registry.unregister(tanker_id, websocket)
 
 
 @router.post("/{tanker_id}/offers/accept")

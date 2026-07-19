@@ -1,3 +1,5 @@
+import { BadgeCheck } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 export const statusTone = (status?: string | null) => {
@@ -40,6 +42,16 @@ export function StatusPill({ status }: { status?: string | null }) {
     >
       {status || "unknown"}
     </span>
+  );
+}
+
+export function VerifiedBadge({ verified }: { verified?: boolean }) {
+  if (!verified) return null;
+  return (
+    <BadgeCheck
+      className="inline h-4 w-4 shrink-0 fill-blue-500 text-white dark:fill-blue-400"
+      aria-label="Verified"
+    />
   );
 }
 

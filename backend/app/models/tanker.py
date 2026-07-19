@@ -19,6 +19,7 @@ class Tanker(Base):
 
     status = Column(String, default="available", nullable=False)
     is_available = Column(Boolean, default=True, nullable=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
 
     current_request_id = Column(Integer, nullable=True)
     paused_until = Column(DateTime, nullable=True)

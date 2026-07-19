@@ -32,6 +32,7 @@ import { OverviewTab } from "@/components/admin/OverviewTab";
 import { LiveTab } from "@/components/admin/LiveTab";
 import { HistoryTab } from "@/components/admin/HistoryTab";
 import { PaymentsTab } from "@/components/admin/PaymentsTab";
+import { FleetHeadsTab } from "@/components/admin/FleetHeadsTab";
 import { EmergencyTab } from "@/components/admin/EmergencyTab";
 import { FinancialsTab } from "@/components/admin/FinancialsTab";
 
@@ -224,6 +225,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="live" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Live</TabsTrigger>
             <TabsTrigger value="history" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">History</TabsTrigger>
             <TabsTrigger value="payments" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Payments &amp; Tankers</TabsTrigger>
+            <TabsTrigger value="fleet-heads" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Fleet Heads</TabsTrigger>
             <TabsTrigger value="financials" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Financials</TabsTrigger>
             <TabsTrigger value="emergency" className="data-[state=active]:bg-red-500 data-[state=active]:text-white">Emergency</TabsTrigger>
           </TabsList>
@@ -254,6 +256,14 @@ export default function AdminDashboard() {
 
           <TabsContent value="payments" className="mt-6">
             <PaymentsTab
+              canLoad={canLoad}
+              isActionLoading={isActionLoading}
+              askConfirm={askConfirm}
+            />
+          </TabsContent>
+
+          <TabsContent value="fleet-heads" className="mt-6">
+            <FleetHeadsTab
               canLoad={canLoad}
               isActionLoading={isActionLoading}
               askConfirm={askConfirm}

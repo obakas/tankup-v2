@@ -50,6 +50,7 @@ class BatchLiveResponse(BaseModel):
     tanker_latitude: Optional[float] = None
     tanker_longitude: Optional[float] = None
     last_location_update_at: Optional[datetime.datetime] = None
+    eta_minutes: Optional[int] = None
 
     customer_latitude: Optional[float] = None
     customer_longitude: Optional[float] = None
