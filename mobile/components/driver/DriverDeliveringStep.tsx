@@ -12,6 +12,7 @@ import {
   confirmOtp,
   failStop,
   finishMeasurement,
+  requestOtp,
   skipSiteReport,
   skipStop,
   startMeasurement,
@@ -60,6 +61,8 @@ export function DriverDeliveringStep({
   const deliveredCount = summary.filter((s: any) => s.delivery_status === "delivered").length;
   const totalCount = summary.length;
   const stopStatus: string = stop?.delivery_status ?? "";
+  const allowedActions: string[] = currentStop?.allowed_actions ?? [];
+  const canRequestOtp = allowedActions.includes("request_otp");
 
   const { theme } = useAppTheme();
   const [otpInput, setOtpInput] = useState("");
@@ -266,7 +269,45 @@ export function DriverDeliveringStep({
             </Pressable>
           )}
 
-          {stopStatus === "arrived" && (
+          {stopStatus === "arrived" && canRequestOtp && (
+            <View className="gap-2">
+              <Text className="text-sm" style={{ color: theme.mutedForeground }}>
+                Deliver the water, then request the customer&apos;s OTP.
+              </Text>
+              <Pressable
+                disabled={stopLoading}
+                onPress={() => doAction(() => requestOtp(stop.delivery_id, driver.tankerId))}
+                className="rounded-xl py-3 items-center"
+                style={{ backgroundColor: theme.success }}
+              >
+                {stopLoading ? (
+                  <ActivityIndicator color={theme.primaryForeground} />
+                ) : (
+                  <Text className="font-semibold" style={{ color: theme.primaryForeground }}>Request OTP</Text>
+                )}
+              </Pressable>
+              <View className="flex-row gap-2">
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => setActionModalMode("skip")}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.border }}
+                >
+                  <Text className="font-medium" style={{ color: theme.mutedForeground }}>Skip</Text>
+                </Pressable>
+                <Pressable
+                  disabled={stopLoading}
+                  onPress={() => setActionModalMode("fail")}
+                  className="flex-1 rounded-xl py-3 items-center"
+                  style={{ borderWidth: 1, borderColor: theme.destructive + "66" }}
+                >
+                  <Text className="font-medium" style={{ color: theme.destructive }}>Fail</Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
+          {stopStatus === "arrived" && !canRequestOtp && (
             <View className="gap-2">
               <Text className="text-sm" style={{ color: theme.mutedForeground }}>Meter start reading</Text>
               <TextInput

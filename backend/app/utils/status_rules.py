@@ -46,7 +46,7 @@ REQUEST_STATUS_TRANSITIONS = {
 DELIVERY_STATUS_TRANSITIONS = {
     "pending": {"en_route", "arrived", "failed", "skipped"},
     "en_route": {"arrived", "failed", "skipped"},
-    "arrived": {"measuring", "failed", "skipped"},
+    "arrived": {"measuring", "awaiting_otp", "failed", "skipped"},
     "measuring": {"awaiting_otp", "failed", "skipped"},
     "awaiting_otp": {"delivered", "failed", "skipped"},
     "delivered": set(),

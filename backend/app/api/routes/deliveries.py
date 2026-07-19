@@ -12,6 +12,7 @@ from app.schemas.delivery import (
     DeliveryOut,
     FailDeliveryIn,
     FinishMeasurementIn,
+    RequestOtpIn,
     SkipDeliveryIn,
     SiteVerificationIn,
     StartMeasurementIn,
@@ -25,6 +26,7 @@ from app.services.delivery_service import (
     finish_measurement,
     get_current_delivery_for_tanker,
     get_delivery_by_id,
+    request_delivery_otp,
     skip_delivery_stop,
     start_measurement,
 )
@@ -225,6 +227,43 @@ def end_measurement(
 
     return {
         "message": "Measurement completed. Waiting for customer OTP.",
+        "delivery": DeliveryOut.model_validate(updated).model_dump(),
+    }
+
+
+@router.post("/{delivery_id}/request-otp")
+def request_otp_for_delivery(
+    delivery_id: int,
+    payload: RequestOtpIn,
+    tanker_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Skip measurement and move the stop straight to awaiting_otp.
+    Used while MEASUREMENT_ENABLED is off — the driver delivers the water
+    and requests the customer's OTP without recording meter readings.
+    """
+    delivery = _get_owned_delivery_or_403(
+        db,
+        tanker_id=tanker_id,
+        delivery_id=delivery_id,
+    )
+
+    if delivery.delivery_status != "arrived":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot request OTP from status '{delivery.delivery_status}'",
+        )
+
+    updated = request_delivery_otp(
+        db,
+        tanker_id=tanker_id,
+        delivery_id=delivery_id,
+        notes=payload.notes,
+    )
+
+    return {
+        "message": "OTP requested. Waiting for customer OTP.",
         "delivery": DeliveryOut.model_validate(updated).model_dump(),
     }
 
