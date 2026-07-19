@@ -209,6 +209,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
     markArrived,
     beginMeasurement,
     finishMeasurement,
+    requestOtp,
     verifyOtp,
     completeDelivery,
     failCurrentStop,
@@ -467,6 +468,7 @@ const DriverView = ({ onBack }: DriverViewProps) => {
               onMarkArrived={markArrived}
               onBeginMeasurement={beginMeasurement}
               onFinishMeasurement={finishMeasurement}
+              onRequestOtp={requestOtp}
               onVerifyOtp={verifyOtp}
               onCompleteDelivery={completeDelivery}
               onFailStop={failCurrentStop}

@@ -76,7 +76,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
   const [step, setStep] = useState<ClientStep>("auth");
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<number | null>(null);
-  const [requestMode, setRequestMode] = useState<RequestMode>("batch");
+  const [requestMode, setRequestMode] = useState<RequestMode>("priority");
   const [priorityMode, setPriorityMode] = useState<"asap" | "scheduled">("asap");
   const [scheduledFor, setScheduledFor] = useState<string>("");
 
@@ -330,7 +330,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
       setBatchId(parsed.batchId ?? null);
       setMemberId(parsed.memberId ?? null);
       setPaymentDeadline(parsed.paymentDeadline ?? null);
-      setRequestMode(parsed.requestMode ?? "batch");
+      setRequestMode(parsed.requestMode ?? "priority");
       setSelectedSize(parsed.selectedSize ?? null);
       setSelectedSiteId(parsed.selectedSiteId ?? null);
       setPriorityMode(parsed.priorityMode ?? "asap");
@@ -521,7 +521,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setStep("request");
     setSelectedSize(null);
     setSelectedSiteId(null);
-    setRequestMode("batch");
+    setRequestMode("priority");
     setPriorityMode("asap");
     setScheduledFor("");
     setShowHelp(false);
@@ -747,7 +747,7 @@ export const useClientFlow = ({ onBack }: UseClientFlowParams) => {
     setSelectedSiteId(null);
     setPriorityMode("asap");
     setScheduledFor("");
-    setRequestMode("batch");
+    setRequestMode("priority");
     setOtp("");
     setPaymentIdempotencyKey(null);
     toast.success("Request cancelled before payment");

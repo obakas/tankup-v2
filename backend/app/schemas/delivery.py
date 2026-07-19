@@ -170,6 +170,10 @@ class FinishMeasurementIn(BaseModel):
     notes: Optional[str] = None
 
 
+class RequestOtpIn(BaseModel):
+    notes: Optional[str] = None
+
+
 class ConfirmOtpIn(BaseModel):
     otp_code: str = Field(..., min_length=4, max_length=10)
 

@@ -46,6 +46,7 @@ interface DriverDeliveringStepProps {
   onMarkArrived: () => void | Promise<void>;
   onBeginMeasurement: () => void | Promise<void>;
   onFinishMeasurement: () => void | Promise<void>;
+  onRequestOtp: () => void | Promise<void>;
   onVerifyOtp: () => void | Promise<void>;
   onCompleteDelivery: () => void | Promise<void>;
   onFailStop: () => void | Promise<void>;
@@ -82,6 +83,7 @@ export const DriverDeliveringStep = ({
   onMarkArrived,
   onBeginMeasurement,
   onFinishMeasurement,
+  onRequestOtp,
   onVerifyOtp,
   onCompleteDelivery,
   onFailStop,
@@ -94,6 +96,7 @@ export const DriverDeliveringStep = ({
   const canArrive = allowedActions.includes("arrive");
   const canStartMeasurement = allowedActions.includes("start_measurement");
   const canFinishMeasurement = allowedActions.includes("finish_measurement");
+  const canRequestOtp = allowedActions.includes("request_otp");
   // const canVerifyOtp = allowedActions.includes("confirm_otp");
   // const canComplete = allowedActions.includes("complete");
   const canFail = allowedActions.includes("fail");
@@ -199,7 +202,7 @@ export const DriverDeliveringStep = ({
           <div>
             <p className="font-medium text-foreground">Delivery OTP</p>
             <p className="text-sm text-muted-foreground">
-              Ask the customer for the OTP only after measurement is complete.
+              Ask the customer for the OTP once the water has been delivered.
             </p>
           </div>
         </div>
@@ -235,7 +238,7 @@ export const DriverDeliveringStep = ({
         <div>
           <h3 className="text-lg font-semibold text-foreground">Delivery Actions</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Follow the stop flow in order: arrive, measurement, OTP, then complete. If real life misbehaves, fail or skip the stop with a reason.
+            Follow the stop flow in order: arrive, then request OTP once water is delivered, then complete. If real life misbehaves, fail or skip the stop with a reason.
           </p>
         </div>
 
@@ -320,6 +323,32 @@ export const DriverDeliveringStep = ({
           </div>
         ) : null}
 
+        {canRequestOtp ? (
+          <div className="rounded-xl border p-4 space-y-3">
+            <h4 className="font-medium text-foreground">2. Request OTP</h4>
+            <p className="text-sm text-muted-foreground">
+              Once the water has been delivered, request the customer's OTP to confirm.
+            </p>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Notes (optional)
+              </label>
+              <textarea
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                placeholder="Any note about the delivery..."
+                rows={3}
+                className="w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+
+            <Button onClick={onRequestOtp} disabled={isLoading}>
+              {isLoading ? "Processing..." : "Request OTP"}
+            </Button>
+          </div>
+        ) : null}
+
         {/* {isAwaitingOtp && canVerifyOtp ? (
           <div className="rounded-xl border p-4 space-y-3">
             <h4 className="font-medium text-foreground">4. Verify Customer OTP</h4>
@@ -351,7 +380,7 @@ export const DriverDeliveringStep = ({
           <div className="rounded-xl border p-4 space-y-3">
             <h4 className="font-medium text-foreground">4. Verify Customer OTP</h4>
             <p className="text-sm text-muted-foreground">
-              Collect the OTP from the customer after measurement is completed.
+              Collect the OTP from the customer once the water has been delivered.
             </p>
 
             <div className="space-y-2">

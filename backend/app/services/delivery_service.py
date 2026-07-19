@@ -18,6 +18,7 @@ from app.utils.status_rules import ensure_valid_transition, TANKER_STATUS_TRANSI
 from app.services.site_intelligence_service import update_site_on_delivery_complete
 from app.services import push_service
 from app.models.driver_metric import DriverMetric
+from app.core.config import settings
 
 OTP_WINDOW_MINUTES = 15
 ANOMALY_FACTOR = 1.2
@@ -115,7 +116,7 @@ def create_delivery_record_for_priority(
         planned_liters=request_obj.volume_liters,
         delivery_status="pending",
         stop_order=1,
-        measurement_required=True,
+        measurement_required=settings.MEASUREMENT_ENABLED,
         measurement_valid=False,
         anomaly_flagged=False,
         otp_required=True,
@@ -205,7 +206,7 @@ def create_delivery_records_for_batch(
             planned_liters=member.volume_liters,
             delivery_status="pending",
             stop_order=index,
-            measurement_required=True,
+            measurement_required=settings.MEASUREMENT_ENABLED,
             measurement_valid=False,
             anomaly_flagged=False,
             otp_required=True,
@@ -309,7 +310,10 @@ def _allowed_action_list(delivery: DeliveryRecord) -> list[str]:
     if status == "en_route" or (status == "pending" and bool(delivery.dispatched_at)):
         actions.append("arrive")
     if status == "arrived":
-        actions.append("start_measurement")
+        if settings.MEASUREMENT_ENABLED:
+            actions.append("start_measurement")
+        else:
+            actions.append("request_otp")
     if status == "measuring":
         actions.append("finish_measurement")
     if status == "awaiting_otp":
@@ -682,6 +686,34 @@ def finish_measurement(db: Session, *, tanker_id: int, delivery_id: int, meter_e
     else:
         delivery.anomaly_flagged = False
         delivery.anomaly_reason = None
+    db.add(delivery)
+    db.commit()
+    db.refresh(delivery)
+    if delivery.user_id:
+        push_service.notify_user(
+            db, delivery.user_id,
+            title="Enter your OTP",
+            body="Your driver is ready — confirm delivery in the app",
+            data={"type": "delivery_otp", "delivery_id": delivery.id},
+        )
+    return delivery
+
+
+def request_delivery_otp(db: Session, *, tanker_id: int, delivery_id: int, notes: Optional[str] = None) -> DeliveryRecord:
+    delivery = get_delivery_by_id(db, delivery_id)
+    _ensure_delivery_owned_by_tanker(delivery, tanker_id)
+    if delivery.delivery_status == "awaiting_otp":
+        return delivery
+    _ensure_not_resolved(delivery)
+    if delivery.delivery_status != "arrived":
+        raise HTTPException(status_code=400, detail=f"Cannot request OTP from status '{delivery.delivery_status}'")
+    delivery.delivery_status = "awaiting_otp"
+    delivery.otp_verified = False
+    delivery.otp_verified_at = None
+    delivery.otp_consumed_at = None
+    delivery.otp_expires_at = _utcnow() + timedelta(minutes=OTP_WINDOW_MINUTES)
+    if notes is not None:
+        delivery.notes = notes
     db.add(delivery)
     db.commit()
     db.refresh(delivery)

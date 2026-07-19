@@ -509,6 +509,12 @@ export const finishMeasurement = (deliveryId: number, tankerId: number, meterEnd
     body: { meter_end_reading: meterEndReading, notes },
   });
 
+export const requestOtp = (deliveryId: number, tankerId: number, notes?: string) =>
+  apiRequest<any>(`/deliveries/${deliveryId}/request-otp?tanker_id=${tankerId}`, {
+    method: "POST",
+    body: { notes },
+  });
+
 export const confirmOtp = (deliveryId: number, tankerId: number, otpCode: string) =>
   apiRequest<any>(`/deliveries/${deliveryId}/confirm-otp?tanker_id=${tankerId}`, {
     method: "POST",

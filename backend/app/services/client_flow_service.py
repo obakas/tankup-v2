@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.schemas.request import RequestCreate
 from app.models.customer_site_profile import CustomerSiteProfile
 from app.services.batch_service import find_or_create_batch
@@ -178,6 +179,8 @@ def create_client_request_flow(db: Session, data: RequestCreate) -> dict[str, An
     warning = _get_tank_capacity_warning(db, data)
 
     if data.delivery_type == "batch":
+        if not settings.BATCH_DELIVERY_ENABLED:
+            raise HTTPException(status_code=400, detail="Batch delivery is currently unavailable")
         result = create_batch_request_flow(db, data)
     elif data.delivery_type == "priority":
         result = create_priority_request_flow(db, data)

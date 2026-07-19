@@ -499,6 +499,22 @@ export async function finishStopMeasurement(
   );
 }
 
+export async function requestStopOtp(
+  tankerId: number,
+  deliveryId: number,
+  notes?: string
+): Promise<DriverActionResponse> {
+  return apiRequest<DriverActionResponse>(
+    `/deliveries/${deliveryId}/request-otp?tanker_id=${tankerId}`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        notes: notes?.trim() || null,
+      }),
+    }
+  );
+}
+
 export async function confirmStopOtp(
   tankerId: number,
   deliveryId: number,

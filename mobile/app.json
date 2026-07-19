@@ -32,6 +32,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withFirebaseMessagingManifestFix.js",
       [
         "expo-build-properties",
         {

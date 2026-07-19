@@ -1,7 +1,7 @@
 import messaging from "@react-native-firebase/messaging";
 import notifee from "react-native-notify-kit";
 
-import { ensureRingChannel, registerRingBackgroundHandler, RING_CHANNEL_ID } from "@/lib/ringNotification";
+import { ensureRingChannel, registerRingBackgroundHandler, recordRingBackgroundDebug, RING_CHANNEL_ID } from "@/lib/ringNotification";
 
 ensureRingChannel();
 registerRingBackgroundHandler();
@@ -12,7 +12,12 @@ notifee.setFcmConfig({
 });
 
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-  await notifee.handleFcmMessage(remoteMessage);
+  try {
+    await notifee.handleFcmMessage(remoteMessage);
+    await recordRingBackgroundDebug({ ok: true, dataKeys: Object.keys(remoteMessage?.data || {}) });
+  } catch (err) {
+    await recordRingBackgroundDebug({ ok: false, error: String(err), dataKeys: Object.keys(remoteMessage?.data || {}) });
+  }
 });
 
 require("expo-router/entry");

@@ -19,6 +19,7 @@ import {
   arriveAtStop,
   startStopMeasurement,
   finishStopMeasurement,
+  requestStopOtp,
   confirmStopOtp,
   completeStop,
   failStop,
@@ -370,6 +371,9 @@ export const useDriverFlow = (driver: DriverUser | null) => {
       if (allowedActions.includes("finish_measurement")) {
         return "Finish measurement and prepare for OTP.";
       }
+      if (allowedActions.includes("request_otp")) {
+        return "Deliver the water, then request the customer's OTP.";
+      }
       if (allowedActions.includes("confirm_otp")) {
         return "Collect and verify the customer's OTP.";
       }
@@ -709,6 +713,30 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     runAction,
   ]);
 
+  const requestOtp = useCallback(async () => {
+    if (!tankerId) {
+      toast.error("Please log in as a driver first.");
+      return;
+    }
+
+    if (!currentStop) {
+      toast.error("No active stop found.");
+      return;
+    }
+
+    if (!allowedActions.includes("request_otp")) {
+      toast.error("OTP cannot be requested right now.");
+      return;
+    }
+
+    await runAction(
+      async () => {
+        await requestStopOtp(tankerId, currentStop.delivery_id, deliveryNotes);
+      },
+      "OTP requested — waiting for the customer to confirm."
+    );
+  }, [tankerId, currentStop, allowedActions, deliveryNotes, runAction]);
+
   const verifyOtp = useCallback(async () => {
     if (!tankerId) {
       toast.error("Please log in as a driver first.");
@@ -871,6 +899,7 @@ export const useDriverFlow = (driver: DriverUser | null) => {
     markArrived,
     beginMeasurement,
     finishMeasurement,
+    requestOtp,
     verifyOtp,
     completeDelivery,
     failCurrentStop,

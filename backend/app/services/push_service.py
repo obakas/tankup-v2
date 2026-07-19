@@ -38,6 +38,7 @@ def _get_firebase_app():
 
     cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
     if not cred_json:
+        logger.warning("FIREBASE_SERVICE_ACCOUNT_JSON not set in environment — falling back to Expo push for all ring notifications")
         return None
 
     try:
@@ -196,6 +197,11 @@ def notify_driver_ring(
         "tanker_id": tanker_id,
         "expires_at": expires_dt.isoformat(),
     }
+
+    logger.info(
+        "notify_driver_ring tanker_id=%s fcm_token_present=%s expo_push_token_present=%s",
+        tanker_id, bool(tanker.fcm_token), bool(tanker.expo_push_token),
+    )
 
     if tanker.fcm_token:
         fcm_data = dict(plain_data)

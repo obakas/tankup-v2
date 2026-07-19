@@ -20,6 +20,8 @@ import {
 import type { RequestMode, PriorityMode } from "@/types/client";
 import type { SiteProfileResponse } from "@/lib/api";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useToast } from "@/hooks/useToast";
+import { ToastMessage } from "@/components/ui/ToastMessage";
 
 type Props = {
   mode: RequestMode;
@@ -89,6 +91,7 @@ export function RequestStep({
   loading,
 }: Props) {
   const { theme } = useAppTheme();
+  const { toast, showToast } = useToast();
   const text = { color: theme.foreground };
   const mutedText = { color: theme.mutedForeground };
   const cardStyle = { backgroundColor: theme.card, borderColor: theme.border };
@@ -203,6 +206,8 @@ export function RequestStep({
 
   return (
     <View className="gap-6">
+      <ToastMessage toast={toast} theme={theme} />
+
       <View className="items-center py-4">
         <View style={{ backgroundColor: theme.primarySoft }} className="w-16 h-16 rounded-2xl items-center justify-center mb-3">
           <Droplets size={34} color={theme.primary} />
@@ -219,8 +224,8 @@ export function RequestStep({
 
       <View className="gap-3">
         <Pressable
-          onPress={() => setMode("batch")}
-          style={{ backgroundColor: mode === "batch" ? theme.primarySoft : theme.card, borderColor: mode === "batch" ? theme.primary : theme.border }}
+          onPress={() => showToast("Batch delivery is coming soon")}
+          style={{ backgroundColor: theme.card, borderColor: theme.border, opacity: 0.5 }}
           className="rounded-xl border-2 p-4"
         >
           <View className="flex-row gap-3 items-start">
@@ -234,9 +239,9 @@ export function RequestStep({
                   Standard Delivery
                 </Text>
 
-                <View style={{ backgroundColor: theme.primarySoft }} className="px-2 py-1 rounded-full">
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
-                    Lower Cost
+                <View style={{ backgroundColor: theme.cardSoft }} className="px-2 py-1 rounded-full">
+                  <Text className="text-xs font-medium" style={mutedText}>
+                    Coming soon
                   </Text>
                 </View>
               </View>

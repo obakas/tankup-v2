@@ -1,3 +1,5 @@
+import { Alert, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import notifee, { AndroidImportance, EventType } from "react-native-notify-kit";
 
 import { acceptOffer, rejectOffer } from "@/lib/api";
@@ -74,4 +76,121 @@ export function registerRingForegroundHandler() {
     if (event.type !== EventType.ACTION_PRESS) return;
     void handleRingActionPress(event);
   });
+}
+
+const RING_BG_DEBUG_KEY = "ring_bg_debug_v1";
+
+/**
+ * Breadcrumb for the FCM background handler (mobile/index.js), which runs
+ * outside any screen and can't show UI directly. Records whether it ran and
+ * whether notifee.handleFcmMessage succeeded, so the next app open can
+ * surface it — this is the only way to diagnose a background handler that
+ * silently never fires without a device-connected debugger.
+ */
+export async function recordRingBackgroundDebug(info: Record<string, unknown>): Promise<void> {
+  try {
+    await AsyncStorage.setItem(RING_BG_DEBUG_KEY, JSON.stringify({ ...info, recordedAt: new Date().toISOString() }));
+  } catch {
+    // no-op
+  }
+}
+
+export async function consumeRingBackgroundDebug(): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(RING_BG_DEBUG_KEY);
+    if (raw) await AsyncStorage.removeItem(RING_BG_DEBUG_KEY);
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+const RING_PERMISSIONS_PROMPTED_KEY = "ring_permissions_prompted_v1";
+// Full-screen-intent became a runtime-gated permission starting Android 14 (API 34).
+// Below that, USE_FULL_SCREEN_INTENT in the manifest is enough and no prompt is needed.
+const FULL_SCREEN_INTENT_MIN_SDK = 34;
+
+function confirmAlert(title: string, message: string, confirmLabel: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(title, message, [
+      { text: "Not now", style: "cancel", onPress: () => resolve(false) },
+      { text: confirmLabel, onPress: () => resolve(true) },
+    ]);
+  });
+}
+
+/**
+ * One-time-per-install nudge (plus a live re-check for battery optimization on
+ * every call) to grant the OS permissions the call-style ring depends on.
+ * Without these, notifee.handleFcmMessage() still runs but the OS silently
+ * downgrades the ring to a normal, non-looping heads-up notification instead
+ * of the full-screen call UI — the exact failure mode this exists to prevent.
+ * Call once, right after push token registration succeeds (see useDriverFlow).
+ */
+export async function promptRingPermissionsOnce(): Promise<void> {
+  if (Platform.OS !== "android") return;
+
+  const alreadyPrompted = await AsyncStorage.getItem(RING_PERMISSIONS_PROMPTED_KEY);
+
+  // notifee has no API to check whether full-screen-intent is already granted,
+  // so this can only ever be a one-time nudge, not a self-resolving re-check.
+  if (!alreadyPrompted && Number(Platform.Version) >= FULL_SCREEN_INTENT_MIN_SDK) {
+    const shouldOpen = await confirmAlert(
+      "Enable full-screen ringing",
+      "So you never miss a job offer, allow TankUp to show a full-screen call-style alert — even when your phone is locked.",
+      "Enable"
+    );
+    if (shouldOpen) {
+      try {
+        await notifee.openNotificationSettings();
+      } catch {
+        // no-op: nothing we can do if the settings screen won't open
+      }
+    }
+  }
+
+  try {
+    // Live check (not gated on alreadyPrompted) — self-resolving, only nags
+    // while the app is actually still battery-restricted.
+    const isRestricted = await notifee.isBatteryOptimizationEnabled();
+    if (isRestricted) {
+      const shouldOpen = await confirmAlert(
+        "Allow TankUp to run in the background",
+        "Some phones stop apps running in the background to save power. Disable battery optimization for TankUp so job offer alerts always reach you.",
+        "Allow"
+      );
+      if (shouldOpen) {
+        try {
+          await notifee.openBatteryOptimizationSettings();
+        } catch {
+          // no-op
+        }
+      }
+    }
+
+    if (!alreadyPrompted) {
+      const powerManagerInfo = await notifee.getPowerManagerInfo();
+      if (powerManagerInfo.activity) {
+        const shouldOpen = await confirmAlert(
+          "One more setting for reliable alerts",
+          `${powerManagerInfo.manufacturer ?? "Your phone"} has its own battery manager. Allow TankUp to run in the background there too, so job offers always ring.`,
+          "Open settings"
+        );
+        if (shouldOpen) {
+          try {
+            await notifee.openPowerManagerSettings();
+          } catch {
+            // no-op
+          }
+        }
+      }
+    }
+  } catch {
+    // Battery optimization / power manager APIs aren't available on this
+    // device firmware — skip silently rather than blocking the driver flow.
+  }
+
+  if (!alreadyPrompted) {
+    await AsyncStorage.setItem(RING_PERMISSIONS_PROMPTED_KEY, "1");
+  }
 }
