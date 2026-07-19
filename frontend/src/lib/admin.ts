@@ -85,6 +85,7 @@ export interface AdminTankerCard {
   status: string;
   is_available: boolean;
   is_online: boolean;
+  is_verified: boolean;
   current_request_id?: number | null;
   active_batch_id?: number | null;
   active_request_status?: string | null;
@@ -95,6 +96,17 @@ export interface AdminTankerCard {
   longitude?: number | null;
   last_location_update_at?: string | null;
   paused_until?: string | null;
+}
+
+export interface AdminFleetHeadCard {
+  id: number;
+  username: string;
+  email?: string | null;
+  hub_id?: number | null;
+  hub_name?: string | null;
+  is_active: boolean;
+  is_verified: boolean;
+  created_at?: string | null;
 }
 
 export interface AdminDeliveryCard {
@@ -235,6 +247,14 @@ export const getAdminTankers = (params?: { limit?: number; status?: string; sear
   return adminRequest<{ items: AdminTankerCard[] }>(`/admin/tankers?${q.toString()}`);
 };
 
+export const getAdminFleetHeads = (params?: { limit?: number; search?: string; hubId?: number }) => {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set("limit", String(params.limit));
+  if (params?.search) q.set("search", params.search);
+  if (params?.hubId) q.set("hub_id", String(params.hubId));
+  return adminRequest<{ items: AdminFleetHeadCard[] }>(`/admin/fleet-heads?${q.toString()}`);
+};
+
 export const getAdminDeliveries = (params?: { limit?: number; offset?: number; status?: string; jobType?: string; search?: string; fromDate?: string; toDate?: string }) => {
   const q = new URLSearchParams();
   if (params?.limit) q.set("limit", String(params.limit));
@@ -264,6 +284,12 @@ export const adminForgiveDriver = (tankerId: number) =>
 
 export const adminPunishDriver = (tankerId: number, hours: 2 | 24 | 48) =>
   adminRequest(`/admin/tankers/${tankerId}/punish`, { method: "POST", body: { hours } });
+
+export const adminSetTankerVerified = (tankerId: number, isVerified: boolean) =>
+  adminRequest(`/admin/tankers/${tankerId}/verify`, { method: "POST", body: { is_verified: isVerified } });
+
+export const adminSetFleetHeadVerified = (adminId: number, isVerified: boolean) =>
+  adminRequest(`/admin/fleet-heads/${adminId}/verify`, { method: "POST", body: { is_verified: isVerified } });
 
 export const adminCleanupExpired = () =>
   adminRequest(`/admin/maintenance/cleanup-expired`, { method: "POST" });

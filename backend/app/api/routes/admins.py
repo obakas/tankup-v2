@@ -12,13 +12,16 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.admin_user import AdminUser
 from app.models.batch import Batch
 from app.models.batch_member import BatchMember
 from app.models.DeliveryRecord import DeliveryRecord
+from app.models.hub import Hub
 from app.models.payment import Payment
 from app.models.request import LiquidRequest
 from app.models.tanker import Tanker
 from app.models.user import User
+from app.services.admin_audit_service import create_admin_audit_log
 from app.services.batch_service import cleanup_expired_members
 from app.services.delivery_service import _finalize_job_if_possible
 from app.services.refund_service import execute_member_refund
@@ -145,6 +148,7 @@ def _build_tanker_card(db: Session, tanker: Tanker) -> dict[str, Any]:
         "status": tanker.status,
         "is_available": tanker.is_available,
         "is_online": getattr(tanker, "is_online", False),
+        "is_verified": getattr(tanker, "is_verified", False),
         "current_request_id": tanker.current_request_id,
         "active_batch_id": active_batch.id if active_batch else None,
         "active_request_status": active_request.status if active_request else None,
@@ -155,6 +159,20 @@ def _build_tanker_card(db: Session, tanker: Tanker) -> dict[str, Any]:
         "longitude": tanker.longitude,
         "last_location_update_at": _iso(tanker.last_location_update_at),
         "paused_until": _iso(getattr(tanker, "paused_until", None)),
+    }
+
+
+def _build_fleet_head_card(db: Session, admin: AdminUser) -> dict[str, Any]:
+    hub = db.query(Hub).filter(Hub.id == admin.hub_id).first() if admin.hub_id else None
+    return {
+        "id": admin.id,
+        "username": admin.username,
+        "email": admin.email,
+        "hub_id": admin.hub_id,
+        "hub_name": hub.name if hub else None,
+        "is_active": admin.is_active,
+        "is_verified": getattr(admin, "is_verified", False),
+        "created_at": _iso(admin.created_at),
     }
 
 
@@ -691,6 +709,30 @@ def admin_tankers(
         )
     tankers = query.order_by(Tanker.id.desc()).limit(limit).all()
     return {"items": [_build_tanker_card(db, item) for item in tankers]}
+
+
+@router.get("/fleet-heads")
+def admin_fleet_heads(
+    limit: int = Query(50, ge=1, le=200),
+    search: str | None = Query(None),
+    hub_id: int | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    scope_hub_id = _resolve_hub_scope(current_admin, hub_id)
+    query = db.query(AdminUser).filter(AdminUser.role == "fleet_head")
+    if scope_hub_id is not None:
+        query = query.filter(AdminUser.hub_id == scope_hub_id)
+    if search and search.strip():
+        term = _search_like(search)
+        query = query.filter(
+            or_(
+                AdminUser.username.ilike(term),
+                AdminUser.email.ilike(term),
+            )
+        )
+    fleet_heads = query.order_by(AdminUser.id.desc()).limit(limit).all()
+    return {"items": [_build_fleet_head_card(db, item) for item in fleet_heads]}
 
 
 @router.get("/deliveries")
@@ -1368,6 +1410,75 @@ def forgive_driver(tanker_id: int, db: Session = Depends(get_db), current_admin:
         "status": tanker.status,
         "is_available": tanker.is_available,
     }
+
+
+class SetVerifiedPayload(BaseModel):
+    is_verified: bool
+
+
+def _require_admin_role(current_admin: dict) -> None:
+    if current_admin.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can change verification status")
+
+
+@router.post("/tankers/{tanker_id}/verify")
+def set_tanker_verified(
+    tanker_id: int,
+    payload: SetVerifiedPayload,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    _require_admin_role(current_admin)
+
+    tanker = db.query(Tanker).filter(Tanker.id == tanker_id).first()
+    if not tanker:
+        raise HTTPException(status_code=404, detail="Tanker not found")
+
+    tanker.is_verified = payload.is_verified
+    db.add(tanker)
+    db.commit()
+    db.refresh(tanker)
+
+    create_admin_audit_log(
+        db,
+        action="set_tanker_verified",
+        entity_type="tanker",
+        entity_id=tanker.id,
+        admin_identifier=current_admin.get("username", "admin"),
+        metadata={"is_verified": tanker.is_verified},
+    )
+
+    return {"tanker_id": tanker.id, "is_verified": tanker.is_verified}
+
+
+@router.post("/fleet-heads/{admin_id}/verify")
+def set_fleet_head_verified(
+    admin_id: int,
+    payload: SetVerifiedPayload,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    _require_admin_role(current_admin)
+
+    fleet_head = db.query(AdminUser).filter(AdminUser.id == admin_id).first()
+    if not fleet_head:
+        raise HTTPException(status_code=404, detail="Fleet head not found")
+
+    fleet_head.is_verified = payload.is_verified
+    db.add(fleet_head)
+    db.commit()
+    db.refresh(fleet_head)
+
+    create_admin_audit_log(
+        db,
+        action="set_fleet_head_verified",
+        entity_type="admin_user",
+        entity_id=fleet_head.id,
+        admin_identifier=current_admin.get("username", "admin"),
+        metadata={"is_verified": fleet_head.is_verified},
+    )
+
+    return {"admin_id": fleet_head.id, "is_verified": fleet_head.is_verified}
 
 
 @router.post("/operation-alerts/{alert_id}/dismiss", dependencies=[Depends(require_admin)])
