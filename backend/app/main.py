@@ -1,3 +1,4 @@
+import asyncio
 import re
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,7 @@ from app.core.database import Base, engine
 from app.models import driver_earning  # noqa: F401
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.core.config import settings
+from app.services.offer_ws_registry import registry as offer_ws_registry
 from app.api.routes import (
     requests,
     batches,
@@ -108,6 +110,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def on_startup():
     start_scheduler()
+    offer_ws_registry.attach_loop(asyncio.get_running_loop())
 
 
 @app.on_event("shutdown")
