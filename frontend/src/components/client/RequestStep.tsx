@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { CalendarClock, CheckCircle2, Droplets, Loader2, MapPin, Plus, Users, Zap, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -122,11 +123,9 @@ const RequestStep = ({
 
       <div className="space-y-3">
         <button
-          onClick={() => onSelectMode("batch")}
-          className={`w-full rounded-xl border-2 p-4 text-left transition-all duration-200 ${requestMode === "batch"
-            ? "border-primary bg-primary/5 shadow-md shadow-primary/10"
-            : "border-border bg-card hover:border-primary/30"
-            }`}
+          onClick={() => toast("Batch delivery is coming soon")}
+          aria-disabled="true"
+          className="w-full rounded-xl border-2 p-4 text-left transition-all duration-200 border-border bg-card opacity-50 cursor-not-allowed hover:border-border"
         >
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -135,8 +134,8 @@ const RequestStep = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-foreground">Standard Delivery</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                  Lower Cost
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                  Coming soon
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">

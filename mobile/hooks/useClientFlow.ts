@@ -83,7 +83,7 @@ export function useClientFlow() {
   const [step, setStep] = useState<ClientStep | "auth">("auth");
   const [user, setUser] = useState<CurrentUser | null>(null);
 
-  const [mode, setMode] = useState<RequestMode>("batch");
+  const [mode, setMode] = useState<RequestMode>("priority");
   const [size, setSize] = useState<number | null>(null);
   const [priorityMode, setPriorityMode] = useState<PriorityMode>("asap");
 
@@ -455,7 +455,7 @@ export function useClientFlow() {
   const handleCancelBeforePayment = () => {
     setRequestResp(null);
     setSize(null);
-    setMode("batch");
+    setMode("priority");
     setPriorityMode("asap");
     setScheduledFor("");
     setSelectedSiteId(null);
@@ -467,7 +467,7 @@ export function useClientFlow() {
   const handleStartNewRequest = useCallback(() => {
     setRequestResp(null);
     setSize(null);
-    setMode("batch");
+    setMode("priority");
     setPriorityMode("asap");
     setScheduledFor("");
     setSelectedSiteId(null);
