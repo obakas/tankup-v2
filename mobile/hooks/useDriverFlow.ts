@@ -35,10 +35,14 @@ import {
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 import { fireLocalNotification, addNotificationArrivedListener } from "@/lib/localNotifications";
-import { promptRingPermissionsOnce, stopRingNotification } from "@/lib/ringNotification";
+import { Alert } from "react-native";
+import { promptRingPermissionsOnce, stopRingNotification, consumeRingBackgroundDebug } from "@/lib/ringNotification";
+import * as offerSocket from "@/lib/offerSocket";
 
-// Offer expiry window is 60s — 10s detection still leaves ~50s to respond.
-const POLL_AVAILABLE_MS = 10_000;
+// Primary offer detection is the WebSocket in offerSocket.ts (near-instant).
+// This is just the backstop poll in case the socket dies silently — offer
+// expiry window is 60s, so this alone would be too slow to rely on solo.
+const POLL_AVAILABLE_BACKSTOP_MS = 45_000;
 // Loading takes up to 45 min — no reason to hammer the backend every 4s.
 const POLL_LOADING_MS = 15_000;
 // Active delivery needs responsive stop progression.
@@ -97,6 +101,7 @@ export function useDriverFlow() {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
+    offerSocket.disconnect();
   }, []);
 
   const goRoleHome = useCallback(async () => {
@@ -154,6 +159,19 @@ export function useDriverFlow() {
     }
   }, [driver, stopPolling, triggerAlarm]);
 
+  // Opens the offer push channel and a slow backstop poll for the "available"
+  // step. Called explicitly (not left to the step-driven effect below) at
+  // every entry point into "available", since some of those entries (e.g.
+  // refreshJob re-confirming the same status after an app resume) set step
+  // to a value React sees as unchanged, which would silently skip the effect.
+  const startAvailableWatch = useCallback(() => {
+    if (!driver) return;
+    offerSocket.connect(driver.tankerId, () => {
+      void pollOffer();
+    });
+    pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_BACKSTOP_MS);
+  }, [driver, pollOffer]);
+
   const pollJob = useCallback(async () => {
     if (!driver) return;
 
@@ -179,12 +197,12 @@ export function useDriverFlow() {
         setStep("available");
         setJob(null);
         stopPolling();
-        pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+        startAvailableWatch();
       }
     } catch {
       // Keep screen stable while backend/network breathes.
     }
-  }, [driver, pollOffer, stopPolling]);
+  }, [driver, stopPolling, startAvailableWatch]);
 
   useEffect(() => {
     if (driver) driverIdRef.current = driver.tankerId;
@@ -218,7 +236,7 @@ export function useDriverFlow() {
     if (!driver || !online) return;
 
     if (step === "available") {
-      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
+      startAvailableWatch();
     }
 
     if (step === "assigned" || step === "queued") {
@@ -241,38 +259,10 @@ export function useDriverFlow() {
       stopPolling();
       stopHeartbeat();
     };
-  }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
+  }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat, startAvailableWatch]);
 
-  const restartPolling = useCallback(() => {
-    stopPolling();
-    stopHeartbeat();
-    if (!driver || !online) return;
-    if (step === "available") {
-      pollOffer();
-      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
-    } else if (step === "assigned" || step === "queued") {
-      pollJob();
-      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
-    } else if (step === "loading") {
-      pollJob();
-      pollRef.current = setInterval(pollJob, POLL_LOADING_MS);
-    } else if (step === "delivering") {
-      pollJob();
-      pollRef.current = setInterval(pollJob, POLL_DELIVERING_MS);
-    }
-    if (step === "delivering") startHeartbeat();
-  }, [driver, online, step, pollOffer, pollJob, stopPolling, stopHeartbeat, startHeartbeat]);
-
-  useAppStatePause(stopPolling, restartPolling);
-
-  useLocationHeartbeat({
-    tankerId: driver?.tankerId ?? null,
-    enabled: online && step !== "offline" && step !== "auth",
-    onLocationUpdate: (latitude, longitude) => setDriverLocation({ latitude, longitude }),
-  });
-
-  const refreshJob = useCallback(async (d: DriverResponse) => {
-    setLoading(true);
+  const refreshJob = useCallback(async (d: DriverResponse, opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
 
     try {
       const res = await getCurrentStop(d.tankerId);
@@ -315,22 +305,51 @@ export function useDriverFlow() {
         setStep("offline");
       } else {
         setStep("available");
-        // Check immediately instead of waiting for the next 10s poll tick (POLL_AVAILABLE_MS) —
+        // Check immediately instead of waiting on the offer channel/backstop poll —
         // this is exactly the path a driver takes after tapping a job-offer notification.
         getIncomingOffer(d.tankerId).then((res) => {
           if (res.has_offer) {
             setOffer(res.offer);
             setStep("incoming");
             void triggerAlarm(res.offer?.offer_type ?? "batch");
+          } else {
+            // restartPolling (app-resume) routes through here rather than
+            // re-arming directly, and setStep("available") above is a no-op
+            // when the step was already "available" — so this call is what
+            // actually reconnects the offer socket/backstop poll on resume.
+            startAvailableWatch();
           }
         }).catch(() => {});
       }
     } catch {
-      setStep("available");
+      // Silent resume-refreshes must not clobber a good screen on a transient
+      // network blip — same "polling stays quiet" rule as pollJob/pollOffer.
+      if (!opts?.silent) setStep("available");
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, [triggerAlarm]);
+  }, [triggerAlarm, startAvailableWatch]);
+
+  const restartPolling = useCallback(() => {
+    stopPolling();
+    stopHeartbeat();
+    if (!driver || !online) return;
+    // Re-derive step from live backend truth rather than trusting whatever the
+    // screen showed before backgrounding. An offer accepted/declined via the OS
+    // ring notification's action buttons (mobile/lib/ringNotification.ts) runs
+    // outside this hook entirely and never updates local state — without this,
+    // a driver who accepts from a backgrounded/locked-screen notification comes
+    // back to a stale "waiting for offer" screen that never shows the job.
+    void refreshJob({ ...driver, is_online: online }, { silent: true });
+  }, [driver, online, refreshJob]);
+
+  useAppStatePause(stopPolling, restartPolling);
+
+  useLocationHeartbeat({
+    tankerId: driver?.tankerId ?? null,
+    enabled: online && step !== "offline" && step !== "auth",
+    onLocationUpdate: (latitude, longitude) => setDriverLocation({ latitude, longitude }),
+  });
 
   const handleAuthComplete = useCallback(
     (d: DriverResponse) => {
@@ -340,6 +359,14 @@ export function useDriverFlow() {
       registerForPushNotificationsAsync().then(({ expoPushToken, fcmToken }) => {
         if (expoPushToken) updateDriverPushToken(d.tankerId, expoPushToken, fcmToken).catch(() => {});
         if (fcmToken) promptRingPermissionsOnce().catch(() => {});
+      }).catch(() => {});
+
+      // Temporary diagnostic — the FCM background handler (mobile/index.js) runs
+      // with no UI of its own, so this is the only way to see whether it fired
+      // at all without a device-connected debugger. Remove once the ring is
+      // confirmed working end-to-end from a backgrounded/locked state.
+      consumeRingBackgroundDebug().then((raw) => {
+        if (raw) Alert.alert("Ring background debug", raw);
       }).catch(() => {});
 
       // Always resolve the step from live backend status rather than the
@@ -562,10 +589,8 @@ export function useDriverFlow() {
     setOffer(null);
     setJob(null);
     stopPolling();
-    if (driverIdRef.current) {
-      pollRef.current = setInterval(pollOffer, POLL_AVAILABLE_MS);
-    }
-  }, [stopPolling, pollOffer]);
+    startAvailableWatch();
+  }, [stopPolling, startAvailableWatch]);
 
   const titles: Record<FlowStep, string> = {
     auth: "Driver Sign In",
