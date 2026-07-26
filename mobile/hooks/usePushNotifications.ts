@@ -1,4 +1,4 @@
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 
 export type PushTokens = {
   expoPushToken: string | null;
@@ -41,14 +41,10 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokens> {
     const messaging = (await import("@react-native-firebase/messaging")).default;
     fcmToken = await messaging().getToken();
     if (!fcmToken) {
-      // getToken() resolving with an empty value is otherwise silent —
-      // surfacing it directly avoids needing a device-connected debugger
-      // to notice the call-style ring feature has quietly stopped working.
-      Alert.alert("Ring setup", "FCM getToken() returned empty — job offer ringing won't work until this is fixed.");
+      console.warn("[PushNotifications] fcm getToken() returned empty — ring notifications won't work");
     }
   } catch (err) {
     console.error("[PushNotifications] fcm token registration failed:", err);
-    Alert.alert("Ring setup failed", String(err instanceof Error ? err.message : err));
   }
 
   return { expoPushToken, fcmToken };
