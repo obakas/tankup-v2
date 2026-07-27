@@ -78,33 +78,6 @@ export function registerRingForegroundHandler() {
   });
 }
 
-const RING_BG_DEBUG_KEY = "ring_bg_debug_v1";
-
-/**
- * Breadcrumb for the FCM background handler (mobile/index.js), which runs
- * outside any screen and can't show UI directly. Records whether it ran and
- * whether notifee.handleFcmMessage succeeded, so the next app open can
- * surface it — this is the only way to diagnose a background handler that
- * silently never fires without a device-connected debugger.
- */
-export async function recordRingBackgroundDebug(info: Record<string, unknown>): Promise<void> {
-  try {
-    await AsyncStorage.setItem(RING_BG_DEBUG_KEY, JSON.stringify({ ...info, recordedAt: new Date().toISOString() }));
-  } catch {
-    // no-op
-  }
-}
-
-export async function consumeRingBackgroundDebug(): Promise<string | null> {
-  try {
-    const raw = await AsyncStorage.getItem(RING_BG_DEBUG_KEY);
-    if (raw) await AsyncStorage.removeItem(RING_BG_DEBUG_KEY);
-    return raw;
-  } catch {
-    return null;
-  }
-}
-
 const RING_PERMISSIONS_PROMPTED_KEY = "ring_permissions_prompted_v1";
 // Full-screen-intent became a runtime-gated permission starting Android 14 (API 34).
 // Below that, USE_FULL_SCREEN_INTENT in the manifest is enough and no prompt is needed.
@@ -130,6 +103,15 @@ function confirmAlert(title: string, message: string, confirmLabel: string): Pro
 export async function promptRingPermissionsOnce(): Promise<void> {
   if (Platform.OS !== "android") return;
 
+  try {
+    await promptRingPermissionsOnceImpl();
+  } catch {
+    // Defense in depth — a permissions nudge must never be able to take
+    // down the driver flow, even if a notifee OEM-specific call misbehaves.
+  }
+}
+
+async function promptRingPermissionsOnceImpl(): Promise<void> {
   const alreadyPrompted = await AsyncStorage.getItem(RING_PERMISSIONS_PROMPTED_KEY);
 
   // notifee has no API to check whether full-screen-intent is already granted,
@@ -167,8 +149,16 @@ export async function promptRingPermissionsOnce(): Promise<void> {
         }
       }
     }
+  } catch {
+    // Battery optimization API unavailable on this device firmware — skip.
+  }
 
-    if (!alreadyPrompted) {
+  if (!alreadyPrompted) {
+    // Isolated in its own try/catch — getPowerManagerInfo() is a Samsung/OEM-
+    // specific reflection-based check in notifee and the least battle-tested
+    // call in this flow; a failure here must not block the battery-optimization
+    // nudge above or the "already prompted" flag from being set below.
+    try {
       const powerManagerInfo = await notifee.getPowerManagerInfo();
       if (powerManagerInfo.activity) {
         const shouldOpen = await confirmAlert(
@@ -184,10 +174,9 @@ export async function promptRingPermissionsOnce(): Promise<void> {
           }
         }
       }
+    } catch {
+      // Power manager API unavailable on this device firmware — skip.
     }
-  } catch {
-    // Battery optimization / power manager APIs aren't available on this
-    // device firmware — skip silently rather than blocking the driver flow.
   }
 
   if (!alreadyPrompted) {
