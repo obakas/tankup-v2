@@ -393,19 +393,24 @@ export function useDriverFlow() {
   // Restore a persisted session on mount so navigating back into this screen
   // (e.g. via a tapped push notification, or simply reopening the app) doesn't
   // force a fresh login. Mirrors the hydration pattern in useClientFlow.ts.
+  //
+  // Guarded with hydratedRef set *synchronously* (not just in .finally) because
+  // handleAuthComplete's identity churns every time it runs (it calls setDriver,
+  // which recreates pollOffer/startAvailableWatch/refreshJob/handleAuthComplete
+  // via the `driver` dependency chain). Without closing this race up front, the
+  // effect re-fires on every one of those identity changes, calling
+  // handleAuthComplete (and promptRingPermissionsOnce) in an infinite loop.
   useEffect(() => {
-    AsyncStorage.getItem(DRIVER_AUTH_KEY)
-      .then((stored) => {
-        if (!stored) return;
-        try {
-          handleAuthComplete(JSON.parse(stored));
-        } catch {
-          // corrupted session — fall through to the auth screen
-        }
-      })
-      .finally(() => {
-        hydratedRef.current = true;
-      });
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+    AsyncStorage.getItem(DRIVER_AUTH_KEY).then((stored) => {
+      if (!stored) return;
+      try {
+        handleAuthComplete(JSON.parse(stored));
+      } catch {
+        // corrupted session — fall through to the auth screen
+      }
+    });
   }, [handleAuthComplete]);
 
   // Keep the persisted session's `is_online` in sync with live toggles

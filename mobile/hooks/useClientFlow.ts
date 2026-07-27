@@ -36,7 +36,7 @@ import {
   type SiteProfileResponse,
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
-import { fireLocalNotification, addNotificationArrivedListener } from "@/lib/localNotifications";
+import { addNotificationArrivedListener } from "@/lib/localNotifications";
 
 
 import {
@@ -275,7 +275,6 @@ export function useClientFlow() {
           const msg = CLIENT_STATUS_MESSAGES[effectiveStatus];
           if (msg && prevStatusRef.current !== "") {
             toast.info(msg);
-            void fireLocalNotification("Delivery Update", msg, { type: "delivery_status" });
           }
           prevStatusRef.current = effectiveStatus;
         }
@@ -303,7 +302,6 @@ export function useClientFlow() {
           const msg = CLIENT_STATUS_MESSAGES[reqStatus];
           if (msg && prevStatusRef.current !== "") {
             toast.info(msg);
-            void fireLocalNotification("Delivery Update", msg, { type: "delivery_status" });
           }
           prevStatusRef.current = reqStatus;
         }

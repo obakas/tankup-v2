@@ -32,7 +32,11 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
         setattr(user, key, value)
     if updates.get("expo_push_token"):
         # Same physical device may have previously registered this token as a driver.
-        db.query(Tanker).filter(Tanker.expo_push_token == updates["expo_push_token"]).update({"expo_push_token": None})
+        # Clear fcm_token too — notify_driver_ring checks it first, so leaving it set
+        # would keep ringing this device as a driver after it switches to client.
+        db.query(Tanker).filter(Tanker.expo_push_token == updates["expo_push_token"]).update(
+            {"expo_push_token": None, "fcm_token": None}
+        )
     db.commit()
     db.refresh(user)
     return user

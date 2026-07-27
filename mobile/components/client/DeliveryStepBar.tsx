@@ -3,9 +3,9 @@ import { View, Text } from "react-native";
 import type { TankupTheme } from "@/components/ui/theme";
 import {
   BATCH_FILL_TIMEOUT_MINUTES,
-  LOADING_TIMEOUT_MINUTES,
   PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES,
-  DELIVERY_TIMEOUT_HOURS,
+  EXPECTED_QUEUE_MINUTES,
+  EXPECTED_LOADING_MINUTES,
 } from "@/constants/timePolicy";
 
 const DOT_SIZE = 18;
@@ -16,23 +16,29 @@ interface StepDef {
   timeLabel: string;
 }
 
-const BATCH_STEPS: StepDef[] = [
-  { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
-  { label: "Queued",         timeLabel: "" },
-  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
-  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { label: "Arrived",        timeLabel: "" },
-  { label: "Delivered",      timeLabel: "" },
-];
+function buildSteps(mode: "batch" | "priority", etaMinutes?: number | null): StepDef[] {
+  const enRouteLabel = typeof etaMinutes === "number" ? `~${etaMinutes} min` : "";
 
-const PRIORITY_STEPS: StepDef[] = [
-  { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
-  { label: "Queued",         timeLabel: "" },
-  { label: "Loading",        timeLabel: `≤ ${LOADING_TIMEOUT_MINUTES} min` },
-  { label: "En Route",       timeLabel: `≤ ${DELIVERY_TIMEOUT_HOURS} h` },
-  { label: "Arrived",        timeLabel: "" },
-  { label: "Delivered",      timeLabel: "" },
-];
+  if (mode === "priority") {
+    return [
+      { label: "Finding Tanker", timeLabel: `≤ ${PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES} min` },
+      { label: "Queued",         timeLabel: `≤ ${EXPECTED_QUEUE_MINUTES} min` },
+      { label: "Loading",        timeLabel: `≤ ${EXPECTED_LOADING_MINUTES} min` },
+      { label: "En Route",       timeLabel: enRouteLabel },
+      { label: "Arrived",        timeLabel: "" },
+      { label: "Delivered",      timeLabel: "" },
+    ];
+  }
+
+  return [
+    { label: "Batch Forming",  timeLabel: `≤ ${BATCH_FILL_TIMEOUT_MINUTES} min` },
+    { label: "Queued",         timeLabel: `≤ ${EXPECTED_QUEUE_MINUTES} min` },
+    { label: "Loading",        timeLabel: `≤ ${EXPECTED_LOADING_MINUTES} min` },
+    { label: "En Route",       timeLabel: enRouteLabel },
+    { label: "Arrived",        timeLabel: "" },
+    { label: "Delivered",      timeLabel: "" },
+  ];
+}
 
 function computeStepIndex(
   mode: "batch" | "priority",
@@ -89,7 +95,7 @@ interface DeliveryStepBarProps {
 }
 
 export function DeliveryStepBar({ currentStep, mode, liveData, theme }: DeliveryStepBarProps) {
-  const steps = mode === "priority" ? PRIORITY_STEPS : BATCH_STEPS;
+  const steps = buildSteps(mode, liveData?.eta_minutes);
   const currentIndex = computeStepIndex(mode, liveData, currentStep);
 
   return (
@@ -113,12 +119,13 @@ export function DeliveryStepBar({ currentStep, mode, liveData, theme }: Delivery
           // Line before step i is green when step i-1 is done (i.e. i <= currentIndex)
           const lineBgColor = i <= currentIndex ? theme.success : theme.border;
           const labelColor = isDone ? theme.success : isCurrent ? theme.primary : theme.mutedForeground;
-          // Negative margin centers the wider label under the narrow dot
-          const labelMarginLeft = isFirst
-            ? LABEL_WIDTH - DOT_SIZE
+          // Grows away from the screen edge for the endpoints; the parent's alignItems:"center"
+          // already centers a wider label under the narrow dot for every step in between.
+          const labelAlignSelf: "flex-start" | "flex-end" | "center" = isFirst
+            ? "flex-start"
             : isLast
-            ? -(LABEL_WIDTH - DOT_SIZE)
-            : -(LABEL_WIDTH - DOT_SIZE) / 2;
+            ? "flex-end"
+            : "center";
           const labelAlign: "left" | "center" | "right" = isFirst ? "left" : isLast ? "right" : "center";
 
           return (
@@ -159,11 +166,11 @@ export function DeliveryStepBar({ currentStep, mode, liveData, theme }: Delivery
                   )}
                 </View>
 
-                {/* Label — extends beyond the 18px column via marginLeft */}
+                {/* Label — overflows the 18px column via alignSelf so it can be wider than the dot */}
                 <Text
                   style={{
                     width: LABEL_WIDTH,
-                    marginLeft: labelMarginLeft,
+                    alignSelf: labelAlignSelf,
                     marginTop: 4,
                     fontSize: 10,
                     fontWeight: isCurrent || isDone ? "700" : "500",
@@ -178,7 +185,7 @@ export function DeliveryStepBar({ currentStep, mode, liveData, theme }: Delivery
                   <Text
                     style={{
                       width: LABEL_WIDTH,
-                      marginLeft: labelMarginLeft,
+                      alignSelf: labelAlignSelf,
                       marginTop: 1,
                       fontSize: 9,
                       color: theme.mutedForeground,
