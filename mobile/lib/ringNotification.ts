@@ -1,4 +1,4 @@
-import { Alert, Platform } from "react-native";
+import { Alert, Platform, Vibration } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import notifee, { AndroidImportance, EventType } from "react-native-notify-kit";
 
@@ -51,6 +51,7 @@ async function handleRingActionPress(event: {
       await rejectOffer(tankerId);
     }
   } finally {
+    Vibration.cancel();
     await stopRingNotification();
     if (event.detail.notification?.id) {
       try {

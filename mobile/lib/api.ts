@@ -887,10 +887,10 @@ export function updatePushToken(userId: number, token: string) {
   });
 }
 
-export function updateDriverPushToken(tankerId: number, token: string, fcmToken?: string | null) {
+export function updateDriverPushToken(tankerId: number, token?: string | null, fcmToken?: string | null) {
   return apiRequest(`/tankers/${tankerId}/push-token`, {
     method: "PATCH",
-    body: { expo_push_token: token, fcm_token: fcmToken ?? undefined },
+    body: { expo_push_token: token ?? undefined, fcm_token: fcmToken ?? undefined },
   });
 }
 

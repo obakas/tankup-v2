@@ -80,6 +80,17 @@ export function useDriverFlow() {
 
   const { triggerAlarm, cancelAlarm } = useDriverOfferAlarm();
 
+  // The offer accept window (OFFER_ACCEPT_TIMEOUT_SECONDS in
+  // backend/app/utils/time_policy.py) can lapse while this screen is still
+  // showing "incoming" and the driver never taps Accept/Decline — nothing
+  // else stops the alarm in that case, so it would otherwise buzz forever.
+  useEffect(() => {
+    if (step !== "incoming" || !offer) return;
+    const secondsLeft = offer.seconds_left ?? offer.expires_in_seconds ?? 120;
+    const timer = setTimeout(() => cancelAlarm(), secondsLeft * 1000);
+    return () => clearTimeout(timer);
+  }, [step, offer, cancelAlarm]);
+
   const stopHeartbeat = useCallback(() => {
     if (heartbeatRef.current) {
       clearInterval(heartbeatRef.current);
@@ -357,7 +368,7 @@ export function useDriverFlow() {
       setOnline(d.is_online);
 
       registerForPushNotificationsAsync().then(({ expoPushToken, fcmToken }) => {
-        if (expoPushToken) updateDriverPushToken(d.tankerId, expoPushToken, fcmToken).catch(() => {});
+        if (expoPushToken || fcmToken) updateDriverPushToken(d.tankerId, expoPushToken, fcmToken).catch(() => {});
         if (fcmToken) promptRingPermissionsOnce().catch(() => {});
       }).catch(() => {});
 
