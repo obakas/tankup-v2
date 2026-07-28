@@ -32,6 +32,7 @@ from app.utils.status_rules import (
     TANKER_STATUS_TRANSITIONS,
 )
 from app.services import push_service
+from app.utils.time_policy import EXPECTED_LOADING_MINUTES
 
 _BATCH_TERMINAL_STATUSES = {
     "completed", "partially_completed", "failed", "expired",
@@ -66,6 +67,27 @@ def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, An
             .first()
         )
 
+    eta_minutes = (
+        max(round((calculate_distance_km(
+            tanker.longitude, tanker.latitude,
+            request.longitude, request.latitude,
+        ) * 1.3) / 25.0 * 60), 1)
+        if tanker and tanker.latitude and tanker.longitude
+        and request.latitude and request.longitude
+        else None
+    )
+
+    # Total door-to-door ETA: while the tanker is still at/near pickup, add the
+    # field-observed loading duration on top of travel time. Deliberately
+    # excludes the pre-acceptance "finding driver" phase, which has no
+    # distance-based prediction behind it — only an SLA ceiling.
+    total_eta_minutes = None
+    if eta_minutes is not None:
+        if tanker.status in ("assigned", "loading"):
+            total_eta_minutes = EXPECTED_LOADING_MINUTES + eta_minutes
+        else:
+            total_eta_minutes = eta_minutes
+
     return {
         "request_id": request.id,
         "delivery_type": request.delivery_type,
@@ -84,15 +106,8 @@ def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, An
         "tanker_latitude": tanker.latitude if tanker else None,
         "tanker_longitude": tanker.longitude if tanker else None,
         "last_location_update_at": tanker.last_location_update_at.isoformat() if tanker and tanker.last_location_update_at else None,
-        "eta_minutes": (
-            max(round((calculate_distance_km(
-                tanker.longitude, tanker.latitude,
-                request.longitude, request.latitude,
-            ) * 1.3) / 25.0 * 60), 1)
-            if tanker and tanker.latitude and tanker.longitude
-            and request.latitude and request.longitude
-            else None
-        ),
+        "eta_minutes": eta_minutes,
+        "total_eta_minutes": total_eta_minutes,
 
         "customer_latitude": request.latitude,
         "customer_longitude": request.longitude,

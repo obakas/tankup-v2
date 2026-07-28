@@ -291,7 +291,7 @@ export function TankerStep({
   const tankerLon: number | null = liveData?.tanker_longitude ?? null;
   const customerLat: number | null = liveData?.customer_latitude ?? null;
   const customerLon: number | null = liveData?.customer_longitude ?? null;
-  const etaMinutes: number | null = liveData?.eta_minutes ?? null;
+  const etaMinutes: number | null = liveData?.total_eta_minutes ?? liveData?.eta_minutes ?? null;
   const hasMap = state.tankerId != null && tankerLat != null && tankerLon != null;
 
   return (
