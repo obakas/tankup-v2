@@ -1,6 +1,6 @@
 import { Alert, Platform, Vibration } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import notifee, { AndroidImportance, EventType } from "react-native-notify-kit";
+import notifee, { AndroidForegroundServiceType, AndroidImportance, EventType } from "react-native-notify-kit";
 
 import { acceptOffer, rejectOffer } from "@/lib/api";
 
@@ -15,6 +15,66 @@ export async function ensureRingChannel() {
     name: "Job Offer Ring",
     importance: AndroidImportance.HIGH,
     sound: RING_SOUND,
+  });
+}
+
+/**
+ * `notifee.registerForegroundService` requires a runner or `asForegroundService`
+ * notifications silently fail to display. The never-resolving promise is the
+ * standard pattern — the service is stopped externally via
+ * `stopRingNotification()`'s `notifee.stopForegroundService()` call.
+ */
+export function registerRingForegroundService() {
+  notifee.registerForegroundService(() => new Promise(() => {}));
+}
+
+/**
+ * `notifee.handleFcmMessage()` reconstructs a notification from `notifee_options`
+ * via a restricted allowlist (channelId/pressAction/actions/smallIcon/largeIcon/
+ * color/style only — see `react-native-notify-kit/dist/fcm/reconstructNotification.js`)
+ * that silently drops `asForegroundService`, `fullScreenAction`, `sound`,
+ * `loopSound`, `category`, and `timeoutAfter` — exactly the fields that make this
+ * a call-style ring rather than a plain heads-up notification. Those richer
+ * fields are only honored by `displayNotification()` called directly, so the
+ * payload is parsed here and passed straight through instead of relying on the
+ * FCM auto-reconstruction path.
+ */
+export async function displayRingNotification(remoteMessage: { data?: Record<string, string> }): Promise<void> {
+  const raw = remoteMessage?.data?.notifee_options;
+  if (typeof raw !== "string") return;
+
+  let parsed: { title?: string; body?: string; android?: Record<string, unknown> };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  const android = parsed.android ?? {};
+  const offerId = remoteMessage?.data?.offer_id;
+  const asForegroundService = android.asForegroundService === true;
+
+  await notifee.displayNotification({
+    // Matches the id stopRingNotification() cancels by — without this it
+    // defaults to the FCM messageId, so that cancel call silently no-ops.
+    id: offerId != null ? `offer-${offerId}` : undefined,
+    title: parsed.title ?? "",
+    body: parsed.body ?? "",
+    data: remoteMessage?.data,
+    android: {
+      channelId: (android.channelId as string) ?? RING_CHANNEL_ID,
+      category: android.category as any,
+      asForegroundService,
+      foregroundServiceTypes: asForegroundService
+        ? [AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK]
+        : undefined,
+      fullScreenAction: android.fullScreenAction as any,
+      pressAction: (android.pressAction as any) ?? { id: "default" },
+      sound: android.sound as string,
+      loopSound: android.loopSound as boolean,
+      actions: android.actions as any,
+      timeoutAfter: android.timeoutAfter as number,
+    },
   });
 }
 

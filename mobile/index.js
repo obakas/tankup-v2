@@ -2,7 +2,14 @@ import messaging from "@react-native-firebase/messaging";
 import notifee from "react-native-notify-kit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { ensureRingChannel, registerRingBackgroundHandler, recordRingBackgroundDebug, RING_CHANNEL_ID } from "@/lib/ringNotification";
+import {
+  ensureRingChannel,
+  registerRingBackgroundHandler,
+  registerRingForegroundService,
+  displayRingNotification,
+  recordRingBackgroundDebug,
+  RING_CHANNEL_ID,
+} from "@/lib/ringNotification";
 import { updateDriverPushToken } from "@/lib/api";
 
 // Must match DRIVER_AUTH_KEY in hooks/useDriverFlow.ts and app/index.tsx.
@@ -10,6 +17,7 @@ const DRIVER_AUTH_KEY = "driver_auth";
 
 ensureRingChannel();
 registerRingBackgroundHandler();
+registerRingForegroundService();
 
 notifee.setFcmConfig({
   defaultChannelId: RING_CHANNEL_ID,
@@ -18,7 +26,9 @@ notifee.setFcmConfig({
 
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
   try {
-    await notifee.handleFcmMessage(remoteMessage);
+    // displayRingNotification (not handleFcmMessage) — see its doc comment in
+    // ringNotification.ts for why the auto-reconstruction path can't be used.
+    await displayRingNotification(remoteMessage);
     await recordRingBackgroundDebug({ ok: true, dataKeys: Object.keys(remoteMessage?.data || {}) });
   } catch (err) {
     await recordRingBackgroundDebug({ ok: false, error: String(err), dataKeys: Object.keys(remoteMessage?.data || {}) });

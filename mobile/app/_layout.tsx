@@ -5,8 +5,7 @@ import { Platform } from "react-native";
 import { Stack } from "expo-router";
 import * as Notifications from "expo-notifications";
 import messaging from "@react-native-firebase/messaging";
-import notifee from "react-native-notify-kit";
-import { registerRingForegroundHandler } from "@/lib/ringNotification";
+import { registerRingForegroundHandler, displayRingNotification } from "@/lib/ringNotification";
 
 try {
   Notifications.setNotificationHandler({
@@ -43,9 +42,9 @@ function AppShell() {
   useEffect(() => {
     const unsubscribeForegroundEvents = registerRingForegroundHandler();
     const unsubscribeMessage = messaging().onMessage(async (remoteMessage) => {
-      // RemoteMessage.data is typed loosely (string | object); FCM payloads we
-      // send are always plain strings, matching notifee's FcmRemoteMessage shape.
-      await notifee.handleFcmMessage(remoteMessage as any);
+      // displayRingNotification (not handleFcmMessage) — see its doc comment in
+      // ringNotification.ts for why the auto-reconstruction path can't be used.
+      await displayRingNotification(remoteMessage as any);
     });
     return () => {
       unsubscribeForegroundEvents();
