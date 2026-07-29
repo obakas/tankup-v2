@@ -24,6 +24,7 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { OrderHistoryModal } from "@/components/client/OrderHistoryModal";
 import { ProfileModal } from "@/components/client/ProfileModal";
 import { SitesModal } from "@/components/client/SitesModal";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ClientFlow() {
   const flow = useClientFlow();
@@ -78,10 +79,18 @@ export default function ClientFlow() {
         keyboardShouldPersistTaps="handled"
       >
 
+        {flow.isBootstrapping ? (
+          <View style={{ gap: 12, paddingTop: 24 }}>
+            <Skeleton theme={theme} width={"100%"} height={80} borderRadius={16} />
+            <Skeleton theme={theme} width={"100%"} height={120} borderRadius={16} />
+            <Skeleton theme={theme} width={"60%"} height={20} borderRadius={8} />
+          </View>
+        ) : (
+        <>
         {flow.step === "auth" && (
           <AuthStep
             onComplete={(user, isSignup) => {
-              flow.handleAuthComplete(user);
+              flow.handleAuthComplete(user, isSignup);
               if (isSignup) isNewUserRef.current = true;
             }}
           />
@@ -198,6 +207,8 @@ export default function ClientFlow() {
 
         {flow.step === "failed" && (
           <FailedStep onHome={flow.handleStartNewRequest} />
+        )}
+        </>
         )}
       </ScrollView>
       </KeyboardAvoidingView>

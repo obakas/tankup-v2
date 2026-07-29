@@ -20,6 +20,7 @@ from app.services.request_service import (
     get_request_by_id,
 )
 from app.services.batch_orchestration_service import refresh_batch_state
+from app.services.batch_member_service import find_active_batch_membership_for_user
 from app.services.operation_alert_service import create_operation_alert
 from app.models.DeliveryRecord import DeliveryRecord
 from app.models.tanker import Tanker
@@ -135,38 +136,90 @@ def get_priority_request_live_flow(db: Session, request_id: int) -> dict[str, An
     }
 
 
-def get_active_priority_request_for_user_flow(
-    db: Session,
-    user_id: int,
-) -> dict[str, Any] | None:
-    active_statuses = {
-        "scheduled",
-        "pending",
-        "paid",
-        "searching_driver",
-        "assigned",
-        "queued",
-        "loading",
-        "delivering",
-        "arrived",
-        "cancel_requested",
-    }
+ACTIVE_PRIORITY_REQUEST_STATUSES = {
+    "scheduled",
+    "pending",
+    "paid",
+    "searching_driver",
+    "assigned",
+    "queued",
+    "loading",
+    "delivering",
+    "arrived",
+    "cancel_requested",
+}
 
-    request = (
+
+def find_active_priority_request_for_user(db: Session, user_id: int) -> LiquidRequest | None:
+    return (
         db.query(LiquidRequest)
         .filter(
             LiquidRequest.user_id == user_id,
             LiquidRequest.delivery_type == "priority",
-            LiquidRequest.status.in_(active_statuses),
+            LiquidRequest.status.in_(ACTIVE_PRIORITY_REQUEST_STATUSES),
         )
         .order_by(LiquidRequest.created_at.desc())
         .first()
     )
 
+
+def get_active_priority_request_for_user_flow(
+    db: Session,
+    user_id: int,
+) -> dict[str, Any] | None:
+    request = find_active_priority_request_for_user(db, user_id)
+
     if not request:
         return None
 
     return get_priority_request_live_flow(db, request.id)
+
+
+def get_active_delivery_for_user_flow(db: Session, user_id: int) -> dict[str, Any]:
+    """Identity-only lookup of a user's active delivery (priority or batch),
+    used by the mobile client to reconcile state on cold start when local
+    session storage is missing. Callers use the existing live-status flows
+    (get_priority_request_live_flow / batch live) to resolve the full status
+    once seeded with these ids — this deliberately doesn't duplicate that.
+    """
+    priority_request = find_active_priority_request_for_user(db, user_id)
+    batch_member = find_active_batch_membership_for_user(db, user_id)
+
+    if priority_request and batch_member:
+        # No DB constraint prevents both existing at once; tie-break on
+        # recency since this shouldn't happen under normal product rules.
+        use_priority = priority_request.created_at >= batch_member.joined_at
+    else:
+        use_priority = priority_request is not None
+
+    if use_priority and priority_request:
+        return {
+            "has_active_delivery": True,
+            "delivery_type": "priority",
+            "request_id": priority_request.id,
+            "batch_id": None,
+            "member_id": None,
+            "request_status": priority_request.status,
+        }
+
+    if batch_member:
+        return {
+            "has_active_delivery": True,
+            "delivery_type": "batch",
+            "request_id": batch_member.request_id,
+            "batch_id": batch_member.batch_id,
+            "member_id": batch_member.id,
+            "request_status": batch_member.status,
+        }
+
+    return {
+        "has_active_delivery": False,
+        "delivery_type": None,
+        "request_id": None,
+        "batch_id": None,
+        "member_id": None,
+        "request_status": None,
+    }
 
 
 def _get_tank_capacity_warning(db: Session, data: RequestCreate) -> str | None:

@@ -771,8 +771,17 @@ export interface CancelPriorityResponse {
 export const cancelPriorityRequest = (requestId: number) =>
   apiRequest<CancelPriorityResponse>(`/requests/${requestId}/cancel`, { method: "POST" });
 
-// export const getActivePriorityRequest = (userId: number) =>
-//   apiRequest<any>(`/requests/users/${userId}/active-priority`);
+export interface ActiveDeliveryResponse {
+  has_active_delivery: boolean;
+  delivery_type: "priority" | "batch" | null;
+  request_id: number | null;
+  batch_id: number | null;
+  member_id: number | null;
+  request_status: string | null;
+}
+
+export const getActiveDeliveryForUser = (userId: number) =>
+  apiRequest<ActiveDeliveryResponse>(`/requests/users/${userId}/active-delivery`);
 
 // // ── Batch Members ─────────────────────────────────────────────────────────────
 

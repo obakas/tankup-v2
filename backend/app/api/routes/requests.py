@@ -10,6 +10,7 @@ from app.services.client_flow_service import (
     get_priority_request_live_flow,
     get_scheduled_request_live_flow,
     get_active_priority_request_for_user_flow,
+    get_active_delivery_for_user_flow,
     cancel_priority_mid_delivery_flow,
 )
 
@@ -43,7 +44,23 @@ def get_active_priority_request_for_user(
             status_code=500,
             detail=f"Failed to fetch active priority request: {str(e)}",
         )
-    
+
+
+@router.get("/users/{user_id}/active-delivery")
+def get_active_delivery_for_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    try:
+        return get_active_delivery_for_user_flow(db, user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch active delivery: {str(e)}",
+        )
+
 
 @router.get("/{request_id}/status")
 def get_request_status(request_id: int, db: Session = Depends(get_db)):

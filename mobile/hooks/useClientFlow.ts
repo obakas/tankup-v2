@@ -23,6 +23,7 @@ import type {
 
 import {
   createWaterRequest,
+  getActiveDeliveryForUser,
   getBatchLive,
   getPriorityRequestLive,
   getRequestLive,
@@ -112,13 +113,59 @@ export function useClientFlow() {
   // overwrite a saved session with the default empty state.
   const hydratedRef = useRef(false);
 
+  // True until hydration (including any server reconciliation fallback)
+  // finishes, so the UI can show a skeleton instead of flashing "auth".
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+
+  // Falls back to the backend's "what's my active delivery" lookup when
+  // local session state (tankup_client_flow) is missing — e.g. after a
+  // reinstall or cleared storage — so the user still resumes into the
+  // correct step instead of landing on a blank request screen.
+  const reconcileFromServer = useCallback(async (userId: number) => {
+    try {
+      const active = await getActiveDeliveryForUser(userId);
+      if (!active.has_active_delivery || !active.delivery_type || active.request_id == null) {
+        setStep("request");
+        return;
+      }
+
+      setMode(active.delivery_type);
+      setRequestResp({
+        request_id: active.request_id,
+        delivery_type: active.delivery_type,
+        batch_id: active.batch_id ?? undefined,
+        member_id: active.member_id ?? undefined,
+        request_status: active.request_status ?? undefined,
+      });
+      // fetchLive() (already wired to run for these steps once requestResp
+      // is set) resolves the precise step/OTP from live status next poll.
+      setStep(active.delivery_type === "batch" ? "batch" : "searching");
+    } catch {
+      // No network / server error on cold start — don't strand the user on
+      // a skeleton, fall back to the normal entry point.
+      setStep("request");
+    }
+  }, []);
+
   // ── Session hydration ─────────────────────────────────────────────────────
 
   useEffect(() => {
     async function hydrate() {
       try {
         const raw = await AsyncStorage.getItem(CLIENT_FLOW_KEY);
-        if (!raw) return;
+        if (!raw) {
+          const savedUserRaw = await AsyncStorage.getItem(CLIENT_USER_KEY);
+          if (savedUserRaw) {
+            try {
+              const savedUser: CurrentUser = JSON.parse(savedUserRaw);
+              setUser(savedUser);
+              await reconcileFromServer(savedUser.id);
+            } catch {
+              // Corrupted water_user — fall through to the normal auth step
+            }
+          }
+          return;
+        }
 
         const session: ClientFlowSession = JSON.parse(raw);
 
@@ -150,11 +197,12 @@ export function useClientFlow() {
         // Corrupted session — start fresh
       } finally {
         hydratedRef.current = true;
+        setIsBootstrapping(false);
       }
     }
 
     hydrate();
-  }, []);
+  }, [reconcileFromServer]);
 
   // ── Session persistence ───────────────────────────────────────────────────
 
@@ -379,14 +427,22 @@ export function useClientFlow() {
     }
   }, [user, loadSites]);
 
-  const handleAuthComplete = (u: CurrentUser) => {
+  const handleAuthComplete = (u: CurrentUser, isSignup?: boolean) => {
     setUser(u);
-    setStep("request");
     toast.success(`Welcome, ${u.name}!`);
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
     registerForPushNotificationsAsync().then(({ expoPushToken }) => {
       if (expoPushToken) updatePushToken(u.id, expoPushToken).catch(() => {});
     }).catch(() => {});
+
+    if (isSignup) {
+      // Brand-new user — nothing to reconcile.
+      setStep("request");
+    } else {
+      // Returning user with no local session (e.g. reinstall/device
+      // switch) — reconnect to any in-progress delivery on the backend.
+      reconcileFromServer(u.id);
+    }
   };
 
   const handleSubmitRequest = () => {
@@ -618,6 +674,7 @@ export function useClientFlow() {
 
   return {
     step,
+    isBootstrapping,
     titles,
     user,
     mode,
