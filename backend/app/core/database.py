@@ -8,6 +8,8 @@ DATABASE_URL = settings.DATABASE_URL
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+else:
+    connect_args = {"connect_timeout": 10}
 
 engine = create_engine(
     DATABASE_URL,
