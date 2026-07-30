@@ -127,10 +127,21 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    migration_url = config.get_main_option("sqlalchemy.url") or ""
+    connect_args = (
+        {}
+        if migration_url.startswith("sqlite")
+        else {
+            "connect_timeout": 10,
+            "options": "-c lock_timeout=10000 -c statement_timeout=60000",
+        }
+    )
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
 
     with connectable.connect() as connection:
