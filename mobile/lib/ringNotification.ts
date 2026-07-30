@@ -9,12 +9,25 @@ import { acceptOffer, rejectOffer } from "@/lib/api";
 export const RING_CHANNEL_ID = "job_offer_ring";
 const RING_SOUND = "ring_placeholder";
 
-export async function ensureRingChannel() {
+// Must match ARRIVAL_RING_CHANNEL_ID / ARRIVAL_RING_SOUND in push_service.py.
+// Separate channel id from the job-offer one — Android bakes sound/importance
+// into a channel permanently once created on a device, so the two ring types
+// can't share a channel even though they reuse the same bundled sound asset.
+export const ARRIVAL_RING_CHANNEL_ID = "delivery_arrival_ring";
+const ARRIVAL_RING_SOUND = "ring_placeholder";
+
+export async function ensureRingChannels() {
   await notifee.createChannel({
     id: RING_CHANNEL_ID,
     name: "Job Offer Ring",
     importance: AndroidImportance.HIGH,
     sound: RING_SOUND,
+  });
+  await notifee.createChannel({
+    id: ARRIVAL_RING_CHANNEL_ID,
+    name: "Delivery Arrival Ring",
+    importance: AndroidImportance.HIGH,
+    sound: ARRIVAL_RING_SOUND,
   });
 }
 
@@ -52,12 +65,13 @@ export async function displayRingNotification(remoteMessage: { data?: Record<str
 
   const android = parsed.android ?? {};
   const offerId = remoteMessage?.data?.offer_id;
+  const deliveryId = remoteMessage?.data?.delivery_id;
   const asForegroundService = android.asForegroundService === true;
 
   await notifee.displayNotification({
-    // Matches the id stopRingNotification() cancels by — without this it
-    // defaults to the FCM messageId, so that cancel call silently no-ops.
-    id: offerId != null ? `offer-${offerId}` : undefined,
+    // Matches the id stopRingNotification()/stopArrivalRingNotification() cancel
+    // by — without this it defaults to the FCM messageId, so cancel silently no-ops.
+    id: offerId != null ? `offer-${offerId}` : deliveryId != null ? `arrival-${deliveryId}` : undefined,
     title: parsed.title ?? "",
     body: parsed.body ?? "",
     data: remoteMessage?.data,
@@ -93,11 +107,55 @@ export async function stopRingNotification(offerId?: number | string | null) {
   }
 }
 
+export async function stopArrivalRingNotification(deliveryId?: number | string | null) {
+  try {
+    await notifee.stopForegroundService();
+  } catch {
+    // no-op: nothing was running
+  }
+  if (deliveryId != null) {
+    try {
+      await notifee.cancelNotification(`arrival-${deliveryId}`);
+    } catch {
+      // no-op: already cancelled/expired
+    }
+  }
+}
+
 async function handleRingActionPress(event: {
+  type: EventType;
   detail: { notification?: { id?: string; data?: Record<string, unknown> }; pressAction?: { id?: string } };
 }) {
+  const notification = event.detail.notification;
+  const data = notification?.data;
   const actionId = event.detail.pressAction?.id;
-  const tankerIdRaw = event.detail.notification?.data?.tanker_id;
+
+  if (data?.type === "delivery_arrival") {
+    // Unlike job offers (explicit Accept/Decline only), an arrival ring also
+    // stops on a plain notification tap (opening the app) or a swipe-dismiss —
+    // there's no "reject" concept for an arrival, just "I've seen it."
+    const isStopTrigger =
+      event.type === EventType.DISMISSED ||
+      event.type === EventType.PRESS ||
+      (event.type === EventType.ACTION_PRESS && actionId === "dismiss");
+    if (!isStopTrigger) return;
+
+    Vibration.cancel();
+    const deliveryIdRaw = data?.delivery_id;
+    await stopArrivalRingNotification(deliveryIdRaw != null ? Number(deliveryIdRaw) : undefined);
+    if (notification?.id) {
+      try {
+        await notifee.cancelNotification(notification.id);
+      } catch {
+        // no-op
+      }
+    }
+    return;
+  }
+
+  // Job-offer branch — only explicit Accept/Decline action presses matter.
+  if (event.type !== EventType.ACTION_PRESS) return;
+  const tankerIdRaw = data?.tanker_id;
   const tankerId = tankerIdRaw != null ? Number(tankerIdRaw) : NaN;
 
   if (!actionId || actionId === "default" || Number.isNaN(tankerId)) {
@@ -113,9 +171,9 @@ async function handleRingActionPress(event: {
   } finally {
     Vibration.cancel();
     await stopRingNotification();
-    if (event.detail.notification?.id) {
+    if (notification?.id) {
       try {
-        await notifee.cancelNotification(event.detail.notification.id);
+        await notifee.cancelNotification(notification.id);
       } catch {
         // no-op
       }
@@ -123,10 +181,12 @@ async function handleRingActionPress(event: {
   }
 }
 
+const RING_EVENT_TYPES = [EventType.ACTION_PRESS, EventType.PRESS, EventType.DISMISSED];
+
 /** Register once, in mobile/index.js before the app registers. */
 export function registerRingBackgroundHandler() {
   notifee.onBackgroundEvent(async (event) => {
-    if (event.type !== EventType.ACTION_PRESS) return;
+    if (!RING_EVENT_TYPES.includes(event.type)) return;
     await handleRingActionPress(event);
   });
 }
@@ -134,7 +194,7 @@ export function registerRingBackgroundHandler() {
 /** Call once from a top-level component (app/_layout.tsx); returns an unsubscribe fn. */
 export function registerRingForegroundHandler() {
   return notifee.onForegroundEvent((event) => {
-    if (event.type !== EventType.ACTION_PRESS) return;
+    if (!RING_EVENT_TYPES.includes(event.type)) return;
     void handleRingActionPress(event);
   });
 }

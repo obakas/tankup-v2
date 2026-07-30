@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Optional
 import secrets
@@ -16,9 +17,14 @@ from app.models.user import User
 from app.models.customer_site_profile import CustomerSiteProfile
 from app.utils.status_rules import ensure_valid_transition, TANKER_STATUS_TRANSITIONS
 from app.services.site_intelligence_service import update_site_on_delivery_complete
-from app.services import push_service
+from app.services import push_service, email_service
+from app.services.notification_preference_service import is_enabled
+from app.services.receipt_service import build_customer_receipt_data
+from app.services.pdf.receipt_pdf import render_customer_receipt
 from app.models.driver_metric import DriverMetric
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 OTP_WINDOW_MINUTES = 15
 ANOMALY_FACTOR = 1.2
@@ -233,7 +239,10 @@ def _ensure_not_resolved(delivery: DeliveryRecord) -> None:
         raise HTTPException(status_code=400, detail=f"Delivery already resolved as '{delivery.delivery_status}'")
 
 
-def _sync_customer_state_for_stop(db: Session, delivery: DeliveryRecord) -> None:
+def _sync_customer_state_for_stop(db: Session, delivery: DeliveryRecord) -> int | None:
+    """Resolve the customer-facing LiquidRequest to a terminal status when this
+    stop resolves. Returns the request_id that just transitioned to terminal
+    (for triggering the receipt email), or None if nothing transitioned."""
     if delivery.job_type == "batch" and delivery.member_id:
         member = db.query(BatchMember).filter(BatchMember.id == delivery.member_id).first()
         if member:
@@ -269,9 +278,13 @@ def _sync_customer_state_for_stop(db: Session, delivery: DeliveryRecord) -> None
                     elif delivery.delivery_status == "skipped":
                         request.status = "partially_completed"
                     db.add(request)
+                    return request.id
     elif delivery.job_type == "priority" and delivery.request_id:
         request = db.query(LiquidRequest).filter(LiquidRequest.id == delivery.request_id).first()
-        if request:
+        if request and request.status not in {
+            "completed", "partially_completed", "failed",
+            "expired", "assignment_failed", "cancelled",
+        }:
             if delivery.delivery_status == "delivered":
                 request.status = "completed"
                 request.completed_at = delivery.delivered_at or _utcnow()
@@ -280,6 +293,27 @@ def _sync_customer_state_for_stop(db: Session, delivery: DeliveryRecord) -> None
             elif delivery.delivery_status == "skipped":
                 request.status = "partially_completed"
             db.add(request)
+            return request.id
+    return None
+
+
+def _maybe_send_receipt_email(db: Session, request_id: int | None) -> None:
+    if not request_id:
+        return
+    try:
+        request = db.query(LiquidRequest).filter(LiquidRequest.id == request_id).first()
+        if not request or not request.user_id:
+            return
+        user = db.query(User).filter(User.id == request.user_id).first()
+        if not user or not user.email:
+            return
+        if not is_enabled(db, "customer", str(user.id), "email_receipt"):
+            return
+        data = build_customer_receipt_data(db, request_id)
+        pdf_bytes = render_customer_receipt(data)
+        email_service.send_customer_receipt_email(user.email, pdf_bytes, data)
+    except Exception:
+        logger.exception("receipt email send failed for request_id=%s", request_id)
 
 
 def _get_job_stops(db: Session, delivery: DeliveryRecord) -> list[DeliveryRecord]:
@@ -608,6 +642,11 @@ def arrive_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int) -> De
             body="Your delivery driver is at your location",
             data={"type": "delivery_status", "status": "arrived", "delivery_id": delivery.id},
         )
+        push_service.notify_customer_arrival_ring(
+            db, delivery.user_id, delivery.id,
+            title="Tanker arrived!",
+            body="Your delivery driver is at your location",
+        )
     return delivery
 
 
@@ -773,7 +812,7 @@ def complete_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, aut
         raise HTTPException(status_code=400, detail="OTP verification record is missing")
     delivery.delivery_status = "delivered"
     delivery.delivered_at = delivery.delivered_at or _utcnow()
-    _sync_customer_state_for_stop(db, delivery)
+    terminal_request_id = _sync_customer_state_for_stop(db, delivery)
     tanker = get_tanker_by_id(db, tanker_id)
     if tanker.status != "delivering":
         tanker.status = "delivering"
@@ -793,6 +832,7 @@ def complete_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, aut
         metric.earnings_today = round((metric.earnings_today or 0.0) + earning.total_earnings, 2)
         db.add(metric)
     db.commit()
+    _maybe_send_receipt_email(db, terminal_request_id)
 
     finalize_result = _finalize_job_if_possible(db, delivery) if auto_finalize_job else None
     return {
@@ -828,7 +868,7 @@ def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     delivery.failure_reason = clean_reason
     delivery.notes = clean_reason
     delivery.failed_at = delivery.failed_at or _utcnow()
-    _sync_customer_state_for_stop(db, delivery)
+    terminal_request_id = _sync_customer_state_for_stop(db, delivery)
     if reason_code == "site_too_difficult":
         _apply_site_too_difficult_refund(db, delivery)
     next_stop = _activate_next_open_stop(db, delivery)
@@ -837,6 +877,7 @@ def fail_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     db.refresh(delivery)
     if next_stop is not None:
         db.refresh(next_stop)
+    _maybe_send_receipt_email(db, terminal_request_id)
     return {
         "message": "Delivery stop marked as failed",
         "delivery": delivery,
@@ -858,7 +899,7 @@ def skip_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     delivery.skip_reason = clean_reason
     delivery.notes = clean_reason
     delivery.skipped_at = delivery.skipped_at or _utcnow()
-    _sync_customer_state_for_stop(db, delivery)
+    terminal_request_id = _sync_customer_state_for_stop(db, delivery)
     if reason_code == "site_too_difficult":
         _apply_site_too_difficult_refund(db, delivery)
     next_stop = _activate_next_open_stop(db, delivery)
@@ -867,6 +908,7 @@ def skip_delivery_stop(db: Session, *, tanker_id: int, delivery_id: int, reason:
     db.refresh(delivery)
     if next_stop is not None:
         db.refresh(next_stop)
+    _maybe_send_receipt_email(db, terminal_request_id)
     return {
         "message": "Delivery stop skipped",
         "delivery": delivery,

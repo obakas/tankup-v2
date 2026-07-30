@@ -5,8 +5,9 @@ export type PushTokens = {
   fcmToken: string | null;
 };
 
-export async function registerForPushNotificationsAsync(): Promise<PushTokens> {
+export async function registerForPushNotificationsAsync(options?: { silentOnFcmFailure?: boolean }): Promise<PushTokens> {
   if (Platform.OS === "web") return { expoPushToken: null, fcmToken: null };
+  const silentOnFcmFailure = options?.silentOnFcmFailure ?? false;
 
   let expoPushToken: string | null = null;
   try {
@@ -40,7 +41,7 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokens> {
   try {
     const messaging = (await import("@react-native-firebase/messaging")).default;
     fcmToken = await messaging().getToken();
-    if (!fcmToken) {
+    if (!fcmToken && !silentOnFcmFailure) {
       // getToken() resolving with an empty value is otherwise silent —
       // surfacing it directly avoids needing a device-connected debugger
       // to notice the call-style ring feature has quietly stopped working.
@@ -48,7 +49,9 @@ export async function registerForPushNotificationsAsync(): Promise<PushTokens> {
     }
   } catch (err) {
     console.error("[PushNotifications] fcm token registration failed:", err);
-    Alert.alert("Ring setup failed", String(err instanceof Error ? err.message : err));
+    if (!silentOnFcmFailure) {
+      Alert.alert("Ring setup failed", String(err instanceof Error ? err.message : err));
+    }
   }
 
   return { expoPushToken, fcmToken };

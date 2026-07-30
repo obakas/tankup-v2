@@ -38,6 +38,7 @@ import {
 } from "@/lib/api";
 import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications";
 import { addNotificationArrivedListener } from "@/lib/localNotifications";
+import { stopArrivalRingNotification } from "@/lib/ringNotification";
 
 
 import {
@@ -77,6 +78,11 @@ const CLIENT_STATUS_MESSAGES: Record<string, string> = {
   failed: "Delivery failed — contact support",
   expired: "Batch expired",
 };
+
+// DeliveryRecord statuses past "arrived" — reaching any of these means the
+// customer has already been engaged (measuring/OTP/done), so any active
+// arrival ring should stop.
+const ARRIVAL_RING_STOP_STATUSES = new Set(["measuring", "awaiting_otp", "delivered", "failed", "skipped"]);
 
 
 
@@ -327,6 +333,13 @@ export function useClientFlow() {
           prevStatusRef.current = effectiveStatus;
         }
 
+        if (data?.member_delivery_status && ARRIVAL_RING_STOP_STATUSES.has(data.member_delivery_status)) {
+          // BatchLiveResponse has no delivery_id to target a specific
+          // notification card, but stopping the foreground service still
+          // silences the loop sound.
+          stopArrivalRingNotification();
+        }
+
         if (data?.member_delivery_status === "delivered") setStep("completed");
         else if (["completed", "partially_completed"].includes(batchStatus)) setStep("completed");
         else if (["delivering", "arrived"].includes(batchStatus)) setStep("delivery");
@@ -354,6 +367,10 @@ export function useClientFlow() {
           prevStatusRef.current = reqStatus;
         }
 
+        if (data?.delivery_status && ARRIVAL_RING_STOP_STATUSES.has(data.delivery_status)) {
+          stopArrivalRingNotification(data?.delivery_id ?? undefined);
+        }
+
         if (data?.otp) setOtp(data.otp);
 
         // "assigned" and "loading" stay on the "searching" step so the user
@@ -374,6 +391,9 @@ export function useClientFlow() {
 
   useEffect(() => {
     if (POLLING_STEPS.includes(step) && requestResp) {
+      // Opening/mounting this screen means the customer has seen the app —
+      // silence any arrival ring still sounding from a previous background push.
+      stopArrivalRingNotification();
       fetchLive();
       pollRef.current = setInterval(fetchLive, POLL_INTERVAL_MS);
     } else {
@@ -386,6 +406,8 @@ export function useClientFlow() {
   const restartPolling = useCallback(() => {
     stopPolling();
     if (POLLING_STEPS.includes(step) && requestResp) {
+      // App resumed from background — same reasoning as the mount effect above.
+      stopArrivalRingNotification();
       fetchLive();
       pollRef.current = setInterval(fetchLive, POLL_INTERVAL_MS);
     }
@@ -431,8 +453,8 @@ export function useClientFlow() {
     setUser(u);
     toast.success(`Welcome, ${u.name}!`);
     AsyncStorage.setItem(CLIENT_USER_KEY, JSON.stringify(u)).catch(() => {});
-    registerForPushNotificationsAsync().then(({ expoPushToken }) => {
-      if (expoPushToken) updatePushToken(u.id, expoPushToken).catch(() => {});
+    registerForPushNotificationsAsync({ silentOnFcmFailure: true }).then(({ expoPushToken, fcmToken }) => {
+      if (expoPushToken || fcmToken) updatePushToken(u.id, expoPushToken, fcmToken).catch(() => {});
     }).catch(() => {});
 
     if (isSignup) {

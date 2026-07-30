@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_KEY: str = ""
 
+    RESEND_API_KEY: str = ""
+    RECEIPT_EMAIL_FROM: str = "receipts@yourdomain.com"
+
     DEBUG: bool = False
 
     BATCH_DELIVERY_ENABLED: bool = False

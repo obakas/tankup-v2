@@ -112,6 +112,7 @@ export interface UserResponse {
   name: string;
   phone: string;
   address: string;
+  email?: string | null;
 }
 
 export function createUser(payload: CreateUserPayload) {
@@ -132,7 +133,7 @@ export function loginUser(payload: LoginUserPayload) {
   });
 }
 
-export function updateUser(userId: number, payload: { name?: string; address?: string }) {
+export function updateUser(userId: number, payload: { name?: string; address?: string; email?: string | null }) {
   return apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
 }
 

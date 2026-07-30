@@ -366,7 +366,7 @@ export function TankerStep({
       </View>
 
       {/* ETA pill */}
-      {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading") && (
+      {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading" || state.tankerStatus === "assigned") && (
         <View
           className="flex-row items-center gap-3 rounded-2xl px-4 py-3"
           style={{ backgroundColor: theme.successSoft, borderWidth: 1, borderColor: theme.success + "66" }}

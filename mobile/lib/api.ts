@@ -123,6 +123,7 @@ export interface UserResponse {
   name: string;
   phone: string;
   address: string;
+  email?: string | null;
 }
 
 export function createUser(payload: CreateUserPayload) {
@@ -320,7 +321,7 @@ export function fetchDriverHistory(tankerId: number) {
   return apiRequest<DriverHistoryResponse>(`/history/tankers/${tankerId}`);
 }
 
-export const updateUser = (userId: number, payload: { name?: string; address?: string }) =>
+export const updateUser = (userId: number, payload: { name?: string; address?: string; email?: string | null }) =>
   apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
 
 export type TankFloorLevel = "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop";
@@ -891,10 +892,10 @@ export const getActiveDeliveryForUser = (userId: number) =>
 //     body: { reason },
 //   });
 
-export function updatePushToken(userId: number, token: string) {
+export function updatePushToken(userId: number, token?: string | null, fcmToken?: string | null) {
   return apiRequest(`/users/${userId}`, {
     method: "PATCH",
-    body: { expo_push_token: token },
+    body: { expo_push_token: token ?? undefined, fcm_token: fcmToken ?? undefined },
   });
 }
 
