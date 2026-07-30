@@ -143,6 +143,17 @@ export function useDriverFlow() {
         // best-effort
       }
     }
+    // Must null the driver/online state before clearing storage — the
+    // persistence effect below rewrites DRIVER_AUTH_KEY whenever driver/online
+    // change, and it only skips doing so when `driver` is falsy. Otherwise a
+    // stray re-render after multiRemove can resurrect the session we just
+    // signed out of.
+    setDriver(null);
+    setOnline(false);
+    setStep("auth");
+    setJob(null);
+    setOffer(null);
+    setCurrentStop(null);
     await AsyncStorage.multiRemove([ROLE_KEY, DRIVER_AUTH_KEY]);
     router.replace("/");
   }, [driver, stopPolling, stopHeartbeat]);

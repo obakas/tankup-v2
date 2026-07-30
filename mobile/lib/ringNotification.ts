@@ -251,6 +251,15 @@ function confirmAlert(title: string, message: string, confirmLabel: string): Pro
 export async function promptRingPermissionsOnce(): Promise<void> {
   if (Platform.OS !== "android") return;
 
+  try {
+    await promptRingPermissionsOnceImpl();
+  } catch {
+    // Defense in depth — a permissions nudge must never be able to take
+    // down the driver flow, even if a notifee OEM-specific call misbehaves.
+  }
+}
+
+async function promptRingPermissionsOnceImpl(): Promise<void> {
   const alreadyPrompted = await AsyncStorage.getItem(RING_PERMISSIONS_PROMPTED_KEY);
 
   // notifee has no API to check whether full-screen-intent is already granted,
@@ -288,8 +297,16 @@ export async function promptRingPermissionsOnce(): Promise<void> {
         }
       }
     }
+  } catch {
+    // Battery optimization API unavailable on this device firmware — skip.
+  }
 
-    if (!alreadyPrompted) {
+  if (!alreadyPrompted) {
+    // Isolated in its own try/catch — getPowerManagerInfo() is a Samsung/OEM-
+    // specific reflection-based check in notifee and the least battle-tested
+    // call in this flow; a failure here must not block the battery-optimization
+    // nudge above or the "already prompted" flag from being set below.
+    try {
       const powerManagerInfo = await notifee.getPowerManagerInfo();
       if (powerManagerInfo.activity) {
         const shouldOpen = await confirmAlert(
@@ -305,10 +322,9 @@ export async function promptRingPermissionsOnce(): Promise<void> {
           }
         }
       }
+    } catch {
+      // Power manager API unavailable on this device firmware — skip.
     }
-  } catch {
-    // Battery optimization / power manager APIs aren't available on this
-    // device firmware — skip silently rather than blocking the driver flow.
   }
 
   if (!alreadyPrompted) {
