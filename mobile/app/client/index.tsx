@@ -195,6 +195,7 @@ export default function ClientFlow() {
 
         {flow.step === "completed" && (
           <CompletedStep
+            requestId={flow.requestResp?.request_id ?? null}
             size={flow.size!}
             requestMode={flow.mode}
             priorityMode={flow.priorityMode}
@@ -206,7 +207,7 @@ export default function ClientFlow() {
         )}
 
         {flow.step === "failed" && (
-          <FailedStep onHome={flow.handleStartNewRequest} />
+          <FailedStep requestId={flow.requestResp?.request_id ?? null} onHome={flow.handleStartNewRequest} />
         )}
         </>
         )}

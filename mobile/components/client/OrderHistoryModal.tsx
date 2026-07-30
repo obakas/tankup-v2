@@ -7,9 +7,12 @@ import {
   Text,
   View,
 } from "react-native";
-import { ClipboardList, X } from "lucide-react-native";
+import { ClipboardList, Download, X } from "lucide-react-native";
 
 import { fetchClientHistory, type ClientHistoryItem } from "@/lib/api";
+import { useToast } from "@/hooks/useToast";
+import { ToastMessage } from "@/components/ui/ToastMessage";
+import { downloadCustomerReceipt } from "@/lib/receipts";
 import type { CurrentUser } from "@/types/client";
 import { parseApiDate } from "@/lib/utils";
 
@@ -47,6 +50,7 @@ function formatDate(value?: string | null) {
 }
 
 export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {
+  const { toast, showToast } = useToast();
   const [items, setItems] = useState<ClientHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -108,6 +112,8 @@ export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {
             <X color={theme.foreground} size={20} />
           </Pressable>
         </View>
+
+        <ToastMessage toast={toast} theme={theme} />
 
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
           {loading && (
@@ -201,6 +207,21 @@ export function OrderHistoryModal({ visible, onClose, user, theme }: Props) {
                     Status: {prettyStatus(item.delivery_status || item.batch_status || item.request_status)}
                   </Text>
                 </View>
+
+                <Pressable
+                  onPress={() =>
+                    downloadCustomerReceipt(item.request_id).catch(() => {
+                      showToast("Couldn't download receipt. Please try again.", false);
+                    })
+                  }
+                  style={{ borderColor: theme.border }}
+                  className="mt-4 rounded-xl border py-3 items-center flex-row justify-center gap-2"
+                >
+                  <Download color={theme.foreground} size={16} />
+                  <Text style={{ color: theme.foreground }} className="text-sm font-semibold">
+                    Download Receipt
+                  </Text>
+                </Pressable>
               </View>
             ))}
         </ScrollView>

@@ -1,8 +1,11 @@
-import { AlertTriangle, CheckCircle2, RefreshCcw, Wallet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, RefreshCcw, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { downloadCustomerReceipt } from "@/lib/receipts";
 import type { RequestMode } from "@/types/client";
 
 interface DeliveryOutcomeStepProps {
+  requestId: number | null;
   status: "failed" | "partial";
   requestMode: RequestMode;
   selectedSize: number | null;
@@ -32,6 +35,7 @@ function bodyFor(status: "failed" | "partial", requestMode: RequestMode) {
 }
 
 export default function DeliveryOutcomeStep({
+  requestId,
   status,
   requestMode,
   selectedSize,
@@ -44,6 +48,13 @@ export default function DeliveryOutcomeStep({
   onBackHome,
 }: DeliveryOutcomeStepProps) {
   const isPartial = status === "partial";
+
+  const handleDownloadReceipt = () => {
+    if (!requestId) return;
+    downloadCustomerReceipt(requestId).catch(() => {
+      toast.error("Couldn't download receipt. Please try again.");
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -131,6 +142,13 @@ export default function DeliveryOutcomeStep({
           </div>
         </div>
       </div>
+
+      {requestId && (
+        <Button variant="outline" className="w-full" onClick={handleDownloadReceipt}>
+          <Download className="h-4 w-4 mr-2" />
+          Download Receipt
+        </Button>
+      )}
 
       <Button className="w-full" onClick={onBackHome}>Back Home</Button>
     </div>
