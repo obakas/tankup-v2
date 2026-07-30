@@ -1,9 +1,12 @@
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Download } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatScheduledDateTime } from "@/lib/utils";
+import { downloadCustomerReceipt } from "@/lib/receipts";
 import type { RequestMode } from "@/types/client";
 
 interface CompletedStepProps {
+  requestId: number | null;
   selectedSize: number | null;
   requestMode: RequestMode;
   priorityMode: "asap" | "scheduled";
@@ -14,6 +17,7 @@ interface CompletedStepProps {
 }
 
 const CompletedStep = ({
+  requestId,
   selectedSize,
   requestMode,
   priorityMode,
@@ -22,6 +26,13 @@ const CompletedStep = ({
   otp,
   onBackHome,
 }: CompletedStepProps) => {
+  const handleDownloadReceipt = () => {
+    if (!requestId) return;
+    downloadCustomerReceipt(requestId).catch(() => {
+      toast.error("Couldn't download receipt. Please try again.");
+    });
+  };
+
   return (
     <div className="space-y-6 text-center py-10">
       <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center mx-auto">
@@ -79,6 +90,17 @@ const CompletedStep = ({
           </div>
         </div>
       </div>
+
+      {requestId && (
+        <Button
+          variant="outline"
+          className="w-full h-12 rounded-xl"
+          onClick={handleDownloadReceipt}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Receipt
+        </Button>
+      )}
 
       <Button
         variant="hero"

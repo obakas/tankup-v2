@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { CheckCircle2 } from "lucide-react-native";
+import { CheckCircle2, Download } from "lucide-react-native";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useToast } from "@/hooks/useToast";
 import { ToastMessage } from "@/components/ui/ToastMessage";
+import { downloadDriverReceipt } from "@/lib/receipts";
 import {
   fetchDriverEarnings,
   submitSiteReport,
@@ -293,6 +294,15 @@ export function DriverCompletedStep({
   const formsRemaining = pendingEarnings.length - formIndex;
   const allFormsDone = !loadingEarnings && formsRemaining <= 0;
 
+  const jobType: "batch" | "priority" = deliveryType === "batch" ? "batch" : "priority";
+
+  const handleDownloadReceipt = () => {
+    if (!tankerId || jobId == null) return;
+    downloadDriverReceipt(tankerId, jobType, jobId).catch(() => {
+      showToast("Couldn't download receipt. Please try again.", false);
+    });
+  };
+
   return (
     <View className="gap-5 items-center py-8">
       <ToastMessage toast={toast} theme={theme} />
@@ -341,6 +351,17 @@ export function DriverCompletedStep({
               </Text>
             </View>
           </View>
+
+          {tankerId && jobId != null && (
+            <Pressable
+              onPress={handleDownloadReceipt}
+              className="w-full rounded-xl py-3 items-center flex-row justify-center gap-2"
+              style={{ backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border }}
+            >
+              <Download color={theme.foreground} size={16} />
+              <Text className="font-semibold text-sm" style={{ color: theme.foreground }}>Download Receipt</Text>
+            </Pressable>
+          )}
         </View>
       )}
 

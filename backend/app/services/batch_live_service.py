@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.services.batch_service import get_batch_by_id, get_batch_members
 from app.services.routing_service import calculate_distance_km
 from app.models.DeliveryRecord import DeliveryRecord
+from app.utils.time_policy import EXPECTED_LOADING_MINUTES
 
 BATCH_FILL_TIMEOUT_MINUTES = 90
 
@@ -134,6 +135,17 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         )
         eta_minutes = max(round((dist_km * 1.3) / 25.0 * 60), 1)
 
+    # Total door-to-door ETA: while the tanker is still at/near pickup, add the
+    # field-observed loading duration on top of travel time. Deliberately
+    # excludes the pre-assignment "forming"/"queued" phase, which has no
+    # distance-based prediction behind it — only an SLA ceiling.
+    total_eta_minutes = None
+    if eta_minutes is not None:
+        if tanker.status in ("assigned", "loading"):
+            total_eta_minutes = EXPECTED_LOADING_MINUTES + eta_minutes
+        else:
+            total_eta_minutes = eta_minutes
+
     return {
         "batch_id": batch.id,
         "status": batch.status,
@@ -152,6 +164,7 @@ def get_batch_live_snapshot(db: Session, batch_id: int, member_id: int | None = 
         "tanker_longitude": tanker.longitude if tanker else None,
         "last_location_update_at": tanker.last_location_update_at if tanker else None,
         "eta_minutes": eta_minutes,
+        "total_eta_minutes": total_eta_minutes,
 
         # for client-side map: use the logged-in member's own stop if available
         "customer_latitude": getattr(member, "latitude", None) if member else None,

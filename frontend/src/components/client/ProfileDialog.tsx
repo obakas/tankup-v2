@@ -105,6 +105,7 @@ export function ProfileDialog({
   // Profile tab state
   const [name, setName] = useState(user.name ?? "");
   const [address, setAddress] = useState(user.address ?? "");
+  const [email, setEmail] = useState(user.email ?? "");
   const [profileLoading, setProfileLoading] = useState(false);
 
   // Sites tab state
@@ -133,10 +134,11 @@ export function ProfileDialog({
     if (open) {
       setName(user.name ?? "");
       setAddress(user.address ?? "");
+      setEmail(user.email ?? "");
       setSiteView("list");
       void loadSites();
     }
-  }, [open, user.name, user.address, loadSites]);
+  }, [open, user.name, user.address, user.email, loadSites]);
 
   // Profile save
   const handleProfileSave = async () => {
@@ -153,6 +155,7 @@ export function ProfileDialog({
       const updated = await updateUser(user.id, {
         name: name.trim(),
         address: address.trim(),
+        email: email.trim() || null,
       });
       onSaved(updated);
       toast.success("Profile updated");
@@ -309,6 +312,24 @@ export function ProfileDialog({
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Your delivery address"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>
+                    Email{" "}
+                    <span className="text-xs font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Get a PDF receipt emailed after each delivery
+                  </p>
                 </div>
 
                 <div className="space-y-1.5">

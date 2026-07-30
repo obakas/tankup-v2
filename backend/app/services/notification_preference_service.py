@@ -16,6 +16,10 @@ DEFAULT_CATEGORIES: dict[ActorType, dict[str, bool]] = {
         "driver_updates": True,
         "delivery_progress": True,
         "payment_updates": True,
+        "email_receipt": True,
+        # True opt-in — unlike every other category here, a missing preference
+        # record must resolve to False, not True (see is_enabled()).
+        "arrival_ring": False,
     },
     "driver": {
         "job_offers": True,
@@ -88,8 +92,10 @@ def update_preferences(
 
 
 def is_enabled(db: Session, actor_type: str, actor_id: str, category: str) -> bool:
-    """Check a single category. Returns True if no record exists (opt-out model)."""
+    """Check a single category, falling back to its DEFAULT_CATEGORIES default
+    (True for opt-out categories, False for opt-in ones) when no record or key exists."""
+    default = DEFAULT_CATEGORIES.get(actor_type, {}).get(category, True)
     record = _get_record(db, actor_type, actor_id)
     if not record or not record.preferences:
-        return True
-    return bool(record.preferences.get(category, True))
+        return default
+    return bool(record.preferences.get(category, default))

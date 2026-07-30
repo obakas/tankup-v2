@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { CheckCircle2, Leaf } from "lucide-react";
+import { CheckCircle2, Download, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { downloadDriverReceipt } from "@/lib/receipts";
 import type { DriverJob, DriverStop } from "@/types/driver";
 import {
   fetchDriverEarnings,
@@ -276,6 +277,20 @@ export const DriverCompletedStep = ({
             <span className="font-medium text-foreground">{deliveries.length} completed</span>
           </div>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4 w-full"
+          onClick={() =>
+            downloadDriverReceipt(tankerId, job.jobType, job.jobId).catch(() => {
+              toast.error("Couldn't download receipt. Please try again.");
+            })
+          }
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Receipt
+        </Button>
       </div>
 
       {/* Site intelligence forms — shown one at a time */}

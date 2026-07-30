@@ -10,4 +10,6 @@ class User(Base):
     phone = Column(String, unique=True, nullable=False)
     address = Column(String, nullable=False)
     role = Column(String, default="customer")
+    email = Column(String, nullable=True)
     expo_push_token = Column(String, nullable=True)
+    fcm_token = Column(String, nullable=True)

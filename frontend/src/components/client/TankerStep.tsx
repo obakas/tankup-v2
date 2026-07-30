@@ -415,11 +415,11 @@ export default function TankerStep({
 
       {state.tankerId && !state.arrived && (() => {
         const etaMinutes = isPriority
-          ? livePriorityRequest?.eta_minutes
-          : liveBatch?.eta_minutes;
+          ? livePriorityRequest?.total_eta_minutes ?? livePriorityRequest?.eta_minutes
+          : liveBatch?.total_eta_minutes ?? liveBatch?.eta_minutes;
         return (
           <div className="space-y-3">
-            {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading") && (
+            {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading" || state.tankerStatus === "assigned") && (
               <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
                 <Clock3 className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm font-medium text-foreground">

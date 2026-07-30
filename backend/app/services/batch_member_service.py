@@ -18,6 +18,19 @@ ALLOWED_LEAVE_BATCH_STATUSES = {
 }
 
 
+def find_active_batch_membership_for_user(db: Session, user_id: int) -> BatchMember | None:
+    return (
+        db.query(BatchMember)
+        .filter(
+            BatchMember.user_id == user_id,
+            BatchMember.status == "active",
+            BatchMember.payment_status == "paid",
+        )
+        .order_by(BatchMember.joined_at.desc())
+        .first()
+    )
+
+
 def leave_batch_member(db: Session, member_id: int) -> dict:
     member = db.query(BatchMember).filter(BatchMember.id == member_id).first()
     if not member:

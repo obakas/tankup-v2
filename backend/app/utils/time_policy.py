@@ -9,6 +9,11 @@ PRIORITY_ASSIGNMENT_TIMEOUT_MINUTES = 20
 
 LOADING_TIMEOUT_MINUTES = 45
 
+# Field-observed "typical duration" estimate — distinct from the SLA timeout
+# above (which drives operational alerting, not display copy). Mirrors
+# frontend/src/constants/timePolicy.ts and mobile/constants/timePolicy.ts.
+EXPECTED_LOADING_MINUTES = 13
+
 LATE_ARRIVAL_ALERT_MINUTES = 20
 DELIVERY_TIMEOUT_HOURS = 6
 

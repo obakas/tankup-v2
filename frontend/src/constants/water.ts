@@ -1,3 +1,5 @@
+// Mirrored in backend/app/core/pricing_constants.py for receipt generation —
+// keep both files in sync manually, there is no shared package between them.
 export const DRIVER_SITE_BONUS_NAIRA = 1000;
 
 export const BATCH_PRICE_PER_LITER = 5;

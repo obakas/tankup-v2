@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
+import { toast } from "sonner";
 import { fetchClientHistory, type ClientHistoryItem } from "@/lib/history";
 import { formatNigeriaDateTime, formatNigeriaTime } from "@/lib/datetime";
+import { downloadCustomerReceipt } from "@/lib/receipts";
+import { Button } from "@/components/ui/button";
 
 // function formatDate(value: string | null) {
 //     if (!value) return "—";
@@ -157,6 +161,20 @@ export default function OrderHistoryTab({ userId }: Props) {
                             </>
                         )}
                     </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-4"
+                        onClick={() =>
+                            downloadCustomerReceipt(item.request_id).catch(() => {
+                                toast.error("Couldn't download receipt. Please try again.");
+                            })
+                        }
+                    >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Receipt
+                    </Button>
                 </div>
             ))}
         </div>

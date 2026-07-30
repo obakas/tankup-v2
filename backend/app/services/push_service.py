@@ -22,6 +22,11 @@ _EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 RING_CHANNEL_ID = "job_offer_ring"
 RING_SOUND = "ring_placeholder"
 
+# Customer-facing arrival ring — separate Android channel (channel sound/importance
+# is immutable once created on a device) but reuses the same bundled sound asset.
+ARRIVAL_RING_CHANNEL_ID = "delivery_arrival_ring"
+ARRIVAL_RING_SOUND = "ring_placeholder"
+
 _firebase_app = None
 
 
@@ -53,30 +58,43 @@ def _get_firebase_app():
     return _firebase_app
 
 
-def _build_ring_notifee_options(title: str, body: str, timeout_after_ms: int) -> str:
+def _build_ring_notifee_options(
+    title: str,
+    body: str,
+    timeout_after_ms: int,
+    *,
+    channel_id: str = RING_CHANNEL_ID,
+    sound: str = RING_SOUND,
+    actions: list[dict] | None = None,
+) -> str:
     """Hand-build the react-native-notify-kit FCM Mode payload blob.
 
     Mirrors the schema produced by the library's Node-only `buildNotifyKitPayload`
     server SDK (unusable here since this backend is Python) — see
     dist/types/NotificationAndroid.d.ts in the mobile package for the field set.
     The mobile client decodes this via a single `notifee.handleFcmMessage(...)` call.
+
+    Shared by notify_driver_ring (job offers) and notify_customer_arrival_ring
+    (delivery arrival) — only the channel/sound/actions differ between the two.
     """
+    if actions is None:
+        actions = [
+            {"title": "Accept", "pressAction": {"id": "accept"}},
+            {"title": "Decline", "pressAction": {"id": "decline"}},
+        ]
     return json.dumps({
         "_v": 1,
         "title": title,
         "body": body,
         "android": {
-            "channelId": RING_CHANNEL_ID,
+            "channelId": channel_id,
             "category": "call",
             "asForegroundService": True,
             "fullScreenAction": {"id": "default"},
             "pressAction": {"id": "default"},
-            "sound": RING_SOUND,
+            "sound": sound,
             "loopSound": True,
-            "actions": [
-                {"title": "Accept", "pressAction": {"id": "accept"}},
-                {"title": "Decline", "pressAction": {"id": "decline"}},
-            ],
+            "actions": actions,
             "timeoutAfter": timeout_after_ms,
         },
     })
@@ -213,3 +231,46 @@ def notify_driver_ring(
         logger.warning("notify_driver_ring: tanker_id=%s has no expo_push_token fallback", tanker_id)
         return
     _send_expo_push(tanker.expo_push_token, title, body, plain_data)
+
+
+def notify_customer_arrival_ring(
+    db: Session,
+    user_id: int,
+    delivery_id: int,
+    title: str,
+    body: str,
+    timeout_after_ms: int = 60_000,
+) -> None:
+    """Send a call-style ring push telling a customer their driver has arrived.
+
+    True opt-in — only fires if the customer has explicitly enabled "arrival_ring"
+    in their notification preferences (default False, unlike every other customer
+    category). This is additional to notify_user's plain arrival push, which keeps
+    firing unconditionally (gated only on "delivery_progress") from arrive_delivery_stop.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return
+    if not is_enabled(db, "customer", str(user_id), "arrival_ring"):
+        return
+
+    plain_data = {
+        "type": "delivery_arrival",
+        "delivery_id": delivery_id,
+        "user_id": user_id,
+    }
+
+    if user.fcm_token:
+        fcm_data = dict(plain_data)
+        fcm_data["notifee_options"] = _build_ring_notifee_options(
+            title, body, timeout_after_ms,
+            channel_id=ARRIVAL_RING_CHANNEL_ID,
+            sound=ARRIVAL_RING_SOUND,
+            actions=[{"title": "OK", "pressAction": {"id": "dismiss"}}],
+        )
+        if _send_fcm_data_message(user.fcm_token, fcm_data):
+            return
+
+    if not user.expo_push_token:
+        return
+    _send_expo_push(user.expo_push_token, title, body, plain_data)

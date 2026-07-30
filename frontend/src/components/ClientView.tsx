@@ -256,6 +256,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
       case "completed":
         return (
           <CompletedStep
+            requestId={requestId}
             selectedSize={selectedSize}
             requestMode={requestMode}
             priorityMode={priorityMode}
@@ -269,6 +270,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
       case "failed":
         return (
           <DeliveryOutcomeStep
+            requestId={requestId}
             status="failed"
             requestMode={requestMode}
             selectedSize={selectedSize}
@@ -285,6 +287,7 @@ const ClientView = ({ onBack }: ClientViewProps) => {
       case "partial":
         return (
           <DeliveryOutcomeStep
+            requestId={requestId}
             status="partial"
             requestMode={requestMode}
             selectedSize={selectedSize}

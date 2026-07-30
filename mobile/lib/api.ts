@@ -123,6 +123,7 @@ export interface UserResponse {
   name: string;
   phone: string;
   address: string;
+  email?: string | null;
 }
 
 export function createUser(payload: CreateUserPayload) {
@@ -187,6 +188,7 @@ export interface BatchLiveResponse {
   tanker_longitude?: number | null;
   last_location_update_at?: string | null;
   eta_minutes?: number | null;
+  total_eta_minutes?: number | null;
 
   customer_latitude?: number | null;
   customer_longitude?: number | null;
@@ -319,7 +321,7 @@ export function fetchDriverHistory(tankerId: number) {
   return apiRequest<DriverHistoryResponse>(`/history/tankers/${tankerId}`);
 }
 
-export const updateUser = (userId: number, payload: { name?: string; address?: string }) =>
+export const updateUser = (userId: number, payload: { name?: string; address?: string; email?: string | null }) =>
   apiRequest<UserResponse>(`/users/${userId}`, { method: "PATCH", body: payload });
 
 export type TankFloorLevel = "ground" | "first_floor" | "second_floor" | "third_floor" | "rooftop";
@@ -710,6 +712,7 @@ export interface PriorityLiveResponse {
   tanker_longitude: number | null;
   last_location_update_at: string | null;
   eta_minutes?: number | null;
+  total_eta_minutes?: number | null;
 
   customer_latitude: number | null;
   customer_longitude: number | null;
@@ -769,8 +772,17 @@ export interface CancelPriorityResponse {
 export const cancelPriorityRequest = (requestId: number) =>
   apiRequest<CancelPriorityResponse>(`/requests/${requestId}/cancel`, { method: "POST" });
 
-// export const getActivePriorityRequest = (userId: number) =>
-//   apiRequest<any>(`/requests/users/${userId}/active-priority`);
+export interface ActiveDeliveryResponse {
+  has_active_delivery: boolean;
+  delivery_type: "priority" | "batch" | null;
+  request_id: number | null;
+  batch_id: number | null;
+  member_id: number | null;
+  request_status: string | null;
+}
+
+export const getActiveDeliveryForUser = (userId: number) =>
+  apiRequest<ActiveDeliveryResponse>(`/requests/users/${userId}/active-delivery`);
 
 // // ── Batch Members ─────────────────────────────────────────────────────────────
 
@@ -880,17 +892,17 @@ export const cancelPriorityRequest = (requestId: number) =>
 //     body: { reason },
 //   });
 
-export function updatePushToken(userId: number, token: string) {
+export function updatePushToken(userId: number, token?: string | null, fcmToken?: string | null) {
   return apiRequest(`/users/${userId}`, {
     method: "PATCH",
-    body: { expo_push_token: token },
+    body: { expo_push_token: token ?? undefined, fcm_token: fcmToken ?? undefined },
   });
 }
 
-export function updateDriverPushToken(tankerId: number, token: string, fcmToken?: string | null) {
+export function updateDriverPushToken(tankerId: number, token?: string | null, fcmToken?: string | null) {
   return apiRequest(`/tankers/${tankerId}/push-token`, {
     method: "PATCH",
-    body: { expo_push_token: token, fcm_token: fcmToken ?? undefined },
+    body: { expo_push_token: token ?? undefined, fcm_token: fcmToken ?? undefined },
   });
 }
 

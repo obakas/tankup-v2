@@ -291,7 +291,7 @@ export function TankerStep({
   const tankerLon: number | null = liveData?.tanker_longitude ?? null;
   const customerLat: number | null = liveData?.customer_latitude ?? null;
   const customerLon: number | null = liveData?.customer_longitude ?? null;
-  const etaMinutes: number | null = liveData?.eta_minutes ?? null;
+  const etaMinutes: number | null = liveData?.total_eta_minutes ?? liveData?.eta_minutes ?? null;
   const hasMap = state.tankerId != null && tankerLat != null && tankerLon != null;
 
   return (
@@ -366,7 +366,7 @@ export function TankerStep({
       </View>
 
       {/* ETA pill */}
-      {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading") && (
+      {etaMinutes != null && (state.tankerStatus === "delivering" || state.tankerStatus === "loading" || state.tankerStatus === "assigned") && (
         <View
           className="flex-row items-center gap-3 rounded-2xl px-4 py-3"
           style={{ backgroundColor: theme.successSoft, borderWidth: 1, borderColor: theme.success + "66" }}
