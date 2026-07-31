@@ -38,6 +38,8 @@ alembic downgrade -1
 python -m app.scripts.create_admin_user
 ```
 
+**Production migrations are manual.** Render's free tier has no Pre-Deploy Command, so `backend/Procfile`'s `web:` line only runs `uvicorn` — it does not run migrations. After adding a new alembic revision, run `alembic upgrade head` from a local shell with `backend/.env` pointed at the production `DATABASE_URL`/`DIRECT_URL` (Supabase) before or right after deploying. Forgetting this leaves prod on an old schema without any error at deploy time.
+
 ### Frontend
 ```bash
 cd frontend
