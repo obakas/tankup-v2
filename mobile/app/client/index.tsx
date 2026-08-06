@@ -52,7 +52,7 @@ export default function ClientFlow() {
         title={flow.titles[flow.step]}
         user={flow.user}
         onBack={flow.back}
-        onLogout={flow.goRoleHome}
+        onLogout={flow.signOut}
         onEditProfile={() => setProfileVisible(true)}
         onOpenSites={() => setSitesVisible(true)}
         onOpenHelp={() => setHelpVisible(true)}
