@@ -10,7 +10,7 @@ import type { RequestMode, PriorityMode } from "@/types/client";
 
 type Props = {
   requestId: number | null;
-  size: number;
+  size: number | null;
   requestMode: RequestMode;
   priorityMode: PriorityMode;
   scheduledFor: string;
@@ -44,7 +44,7 @@ export function CompletedStep({ requestId, size, requestMode, priorityMode, sche
       <View className="items-center gap-2">
         <Text className="text-2xl font-bold" style={{ color: theme.foreground }}>Water Delivered!</Text>
         <Text className="text-center text-sm leading-5" style={{ color: theme.mutedForeground }}>
-          {size.toLocaleString()}L has been delivered to your tank
+          {size != null ? `${size.toLocaleString()}L has` : "Your water has"} been delivered to your tank
         </Text>
       </View>
 
@@ -72,7 +72,7 @@ export function CompletedStep({ requestId, size, requestMode, priorityMode, sche
           />
         )}
 
-        <Row label="Water delivered" value={`${size.toLocaleString()} L`} />
+        <Row label="Water delivered" value={size != null ? `${size.toLocaleString()} L` : "—"} />
         <Row label="Amount paid" value={`₦${price.toLocaleString()}`} />
         {otp ? <Row label="Delivery OTP" value={otp} /> : null}
       </View>

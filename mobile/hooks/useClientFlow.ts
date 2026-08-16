@@ -264,6 +264,21 @@ export function useClientFlow() {
     }
   }, []);
 
+  // Full sign-out — unlike goRoleHome (which only leaves the current flow so
+  // the same user can be silently resumed later), this also drops the
+  // persisted identity (CLIENT_USER_KEY) so a different user isn't
+  // auto-hydrated into the previous client's session on next launch.
+  const signOut = useCallback(async () => {
+    stopPolling();
+    setUser(null);
+    setStep("auth");
+    setRequestResp(null);
+    setOtp("");
+    setPaymentIdempotencyKey(null);
+    await AsyncStorage.multiRemove([ROLE_KEY, CLIENT_FLOW_KEY, CLIENT_USER_KEY]);
+    router.replace("/");
+  }, [stopPolling]);
+
   // Reset status baseline when a new request is made so the first poll doesn't fire a spurious toast.
   useEffect(() => {
     prevStatusRef.current = "";
@@ -724,6 +739,7 @@ export function useClientFlow() {
     handleCancelBeforePayment,
     handleStartNewRequest,
     goRoleHome,
+    signOut,
     fetchLive,
     handleAuthComplete,
     handleSubmitRequest,
