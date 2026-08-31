@@ -152,8 +152,8 @@ export const getFleetHeadAlerts = (token: string, status = "open") =>
 export const dismissFleetHeadAlert = (token: string, alertId: number) =>
   fleetRequest<{ success: boolean }>(token, `/admin/operation-alerts/${alertId}/dismiss`, { method: "POST" });
 
-export const registerTanker = (payload: CreateTankerPayload) =>
-  apiRequest<TankerCard>("/tankers/", { method: "POST", body: payload });
+export const addDriver = (token: string, payload: CreateTankerPayload) =>
+  fleetRequest<TankerCard>(token, "/admin/tankers", { method: "POST", body: payload });
 
 export const forgiveDriver = (token: string, tankerId: number) =>
   fleetRequest<{ message: string; tanker_id: number; was_paused: boolean; status: string; is_available: boolean }>(

@@ -30,6 +30,7 @@ class Settings(BaseSettings):
 
     BATCH_DELIVERY_ENABLED: bool = False
     MEASUREMENT_ENABLED: bool = False
+    DRIVER_SELF_SIGNUP_ENABLED: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

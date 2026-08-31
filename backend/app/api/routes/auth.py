@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.models.tanker import Tanker
@@ -70,6 +71,12 @@ def driver_login(payload: LoginPayload, db: Session = Depends(get_db)):
 
 @router.post("/driver-signup")
 def driver_signup(payload: DriverSignupPayload, db: Session = Depends(get_db)):
+    if not settings.DRIVER_SELF_SIGNUP_ENABLED:
+        raise HTTPException(
+            status_code=403,
+            detail="Driver signup is currently invite-only — ask your fleet head to add you",
+        )
+
     phone = payload.phone.strip()
     plate = payload.tank_plate_number.strip().upper()
 

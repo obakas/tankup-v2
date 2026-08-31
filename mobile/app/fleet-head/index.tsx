@@ -52,7 +52,7 @@ import {
   getFleetHeadToken,
   forceOfferToTanker,
   loginFleetHead,
-  registerTanker,
+  addDriver,
   setFleetHeadToken,
   type BatchCard,
   type DeliveryCard,
@@ -492,7 +492,7 @@ function TankersTab({
     setSubmitting(true);
     setFormError(null);
     try {
-      await registerTanker(formData);
+      await addDriver(token, formData);
       setFormData({ driver_name: "", phone: "", tank_plate_number: "" });
       setShowForm(false);
       onTankerAdded();

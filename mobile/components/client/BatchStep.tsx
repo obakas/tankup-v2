@@ -18,7 +18,7 @@ type Props = {
   liveData: BatchLiveResponse | any | null;
   liveLoading?: boolean;
   liveError?: string | null;
-  size: number;
+  size: number | null;
   price: number;
   paymentDeadline?: string | null;
   onLeave: () => void;
@@ -144,7 +144,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
             style={{ backgroundColor: theme.cardSoft, borderWidth: 1, borderColor: theme.border }}
           >
             <Text className="text-[11px] uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Quantity</Text>
-            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>{size.toLocaleString()}L</Text>
+            <Text className="mt-1 font-bold" style={{ color: theme.foreground }}>{size != null ? `${size.toLocaleString()}L` : "—"}</Text>
           </View>
           <View
             className="flex-1 rounded-2xl p-4"
@@ -225,7 +225,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
         </View>
       )}
 
-      <BatchProgressCard batch={batch} requestedLiters={size} amountPaid={price} />
+      <BatchProgressCard batch={batch} requestedLiters={size ?? undefined} amountPaid={price} />
       {batch && <BatchLifecycleCard batch={batch as any} isLoading={liveLoading} />}
 
       {liveData?.boost_available && (liveData.status === "forming" || liveData.status === "near_ready") && (
@@ -257,7 +257,7 @@ export function BatchStep({ requestResp, liveData, liveLoading = false, liveErro
         className="rounded-3xl p-5 shadow-sm"
         style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
       >
-        <Row label="Volume" value={`${size.toLocaleString()} L`} />
+        <Row label="Volume" value={size != null ? `${size.toLocaleString()} L` : "—"} />
         <Row label="Paid" value={`₦${price.toLocaleString()}`} />
         <Row label="Batch #" value={String(requestResp.batch_id ?? batch?.batch_id ?? "—")} />
         <Row label="Members" value={String(batch?.member_count ?? "—")} />

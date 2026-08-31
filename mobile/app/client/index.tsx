@@ -52,7 +52,7 @@ export default function ClientFlow() {
         title={flow.titles[flow.step]}
         user={flow.user}
         onBack={flow.back}
-        onLogout={flow.goRoleHome}
+        onLogout={flow.signOut}
         onEditProfile={() => setProfileVisible(true)}
         onOpenSites={() => setSitesVisible(true)}
         onOpenHelp={() => setHelpVisible(true)}
@@ -157,7 +157,7 @@ export default function ClientFlow() {
             liveData={flow.liveData}
             liveLoading={flow.liveLoading}
             liveError={flow.liveError}
-            size={flow.size!}
+            size={flow.size}
             price={flow.price}
             paymentDeadline={flow.requestResp.payment_deadline}
             onLeave={flow.handleLeave}
@@ -196,7 +196,7 @@ export default function ClientFlow() {
         {flow.step === "completed" && (
           <CompletedStep
             requestId={flow.requestResp?.request_id ?? null}
-            size={flow.size!}
+            size={flow.size}
             requestMode={flow.mode}
             priorityMode={flow.priorityMode}
             scheduledFor={flow.scheduledFor}

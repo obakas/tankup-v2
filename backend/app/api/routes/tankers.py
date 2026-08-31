@@ -4,6 +4,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.batch import Batch
 from app.models.batch_member import BatchMember
@@ -967,6 +968,12 @@ def mark_priority_loaded(tanker_id: int, request_id: int, db: Session = Depends(
 
 @router.post("/", response_model=TankerOut)
 def create_tanker(payload: TankerCreate, db: Session = Depends(get_db)):
+    if not settings.DRIVER_SELF_SIGNUP_ENABLED:
+        raise HTTPException(
+            status_code=403,
+            detail="Driver signup is currently invite-only — ask your fleet head to add you",
+        )
+
     normalized_plate = payload.tank_plate_number.upper().strip()
     existing = db.query(Tanker).filter(Tanker.tank_plate_number == normalized_plate).first()
     if existing:
