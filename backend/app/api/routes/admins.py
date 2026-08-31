@@ -1356,6 +1356,65 @@ def admin_reassign_from_operation_alert(
     }
 
 
+class CreateTankerPayload(BaseModel):
+    driver_name: str
+    phone: str
+    tank_plate_number: str
+    fleet_number: str | None = None
+
+
+@router.post("/tankers")
+def create_tanker_as_admin(
+    payload: CreateTankerPayload,
+    db: Session = Depends(get_db),
+    current_admin: dict = Depends(require_admin),
+):
+    phone = payload.phone.strip()
+    plate = payload.tank_plate_number.strip().upper()
+
+    existing_phone = db.query(Tanker).filter(Tanker.phone == phone).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="Driver with this phone already exists")
+
+    existing_plate = db.query(Tanker).filter(Tanker.tank_plate_number == plate).first()
+    if existing_plate:
+        raise HTTPException(status_code=400, detail="Tank plate number already exists")
+
+    tanker = Tanker(
+        driver_name=payload.driver_name.strip(),
+        phone=phone,
+        tank_plate_number=plate,
+        fleet_number=payload.fleet_number.strip() if payload.fleet_number else None,
+        hub_id=_resolve_hub_scope(current_admin),
+        status="available",
+        is_available=True,
+        is_online=False,
+        current_request_id=None,
+    )
+    db.add(tanker)
+    db.commit()
+    db.refresh(tanker)
+
+    create_admin_audit_log(
+        db,
+        action="create_tanker",
+        entity_type="tanker",
+        entity_id=tanker.id,
+        admin_identifier=current_admin.get("username", "admin"),
+        metadata={"driver_name": tanker.driver_name, "phone": tanker.phone, "hub_id": tanker.hub_id},
+    )
+
+    return {
+        "id": tanker.id,
+        "driver_name": tanker.driver_name,
+        "phone": tanker.phone,
+        "tank_plate_number": tanker.tank_plate_number,
+        "hub_id": tanker.hub_id,
+        "status": tanker.status,
+        "is_available": tanker.is_available,
+    }
+
+
 class PunishDriverPayload(BaseModel):
     hours: int = Field(..., description="Punishment duration in hours — must be 2, 24, or 48")
 

@@ -121,8 +121,8 @@ export interface CreateTankerPayload {
   longitude?: number;
 }
 
-export const registerTanker = (payload: CreateTankerPayload) =>
-  apiRequest<TankerCard>("/tankers/", { method: "POST", body: payload });
+export const addDriver = (payload: CreateTankerPayload) =>
+  fleetRequest<TankerCard>("/admin/tankers", { method: "POST", body: payload });
 
 export const fleetForgiveDriver = (tankerId: number) =>
   fleetRequest<{ message: string; tanker_id: number; was_paused: boolean; status: string; is_available: boolean }>(

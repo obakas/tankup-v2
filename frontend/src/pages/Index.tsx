@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Droplets, Truck, Users, Sun, Moon } from "lucide-react";
+import { Droplets, Truck, Sun, Moon } from "lucide-react";
 import ClientView from "@/components/ClientView";
 import DriverView from "@/components/DriverView";
 import FleetHeadView from "@/components/FleetHeadView";
@@ -20,6 +20,8 @@ const Index = () => {
   const navigate = useNavigate();
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleClickCount = useRef(0);
+  const titleClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("tankup-theme") as "light" | "dark" | null;
@@ -84,6 +86,22 @@ const Index = () => {
     }, 2000);
   };
 
+  // 3 rapid clicks on the "TankUp" title opens fleet-head login (hidden while driver signup is locked down)
+  const handleTitleClick = () => {
+    titleClickCount.current += 1;
+    if (titleClickTimer.current) clearTimeout(titleClickTimer.current);
+
+    if (titleClickCount.current >= 3) {
+      titleClickCount.current = 0;
+      selectRole("fleet_head");
+      return;
+    }
+
+    titleClickTimer.current = setTimeout(() => {
+      titleClickCount.current = 0;
+    }, 2000);
+  };
+
   if (!isHydrated) {
     return <div className="min-h-screen bg-background" />;
   }
@@ -114,7 +132,12 @@ const Index = () => {
           >
             <Droplets className="h-10 w-10 text-primary-foreground" />
           </button>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">TankUp</h1>
+          <h1
+            onClick={handleTitleClick}
+            className="text-3xl font-extrabold text-foreground tracking-tight select-none"
+          >
+            TankUp
+          </h1>
           <p className="text-muted-foreground">Water delivery, coordinated.</p>
         </div>
 
@@ -132,13 +155,6 @@ const Index = () => {
             title="I'm a Tanker Driver"
             subtitle="Accept jobs, deliver water, & get paid"
             onClick={() => selectRole("driver")}
-          />
-          <RoleCard
-            icon={<Users className="h-7 w-7 text-violet-500" />}
-            iconBg="bg-violet-500/10"
-            title="Manage My Fleet"
-            subtitle="Coordinate drivers, tankers & operations"
-            onClick={() => selectRole("fleet_head")}
           />
         </div>
 

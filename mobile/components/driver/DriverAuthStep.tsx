@@ -1,16 +1,12 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
-import { driverLogin, driverSignup, DriverResponse } from "@/lib/api";
+import { driverLogin, DriverResponse } from "@/lib/api";
 import { Input } from "@/components/ui/Input";
 import { useAppTheme } from "@/hooks/useAppTheme";
 
 export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse) => void }) {
   const { theme } = useAppTheme();
-  const [isNew, setIsNew] = useState(false);
   const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
-  const [plate, setPlate] = useState("");
-  const [fleetNumber, setFleetNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,30 +29,6 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
     }
   };
 
-  const handleSignup = async () => {
-    if (!phone.trim() || !name.trim() || !plate.trim()) {
-      setError("All fields required");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const d = await driverSignup({
-        phone: phone.trim(),
-        name: name.trim(),
-        tank_plate_number: plate.trim(),
-        fleet_number: fleetNumber.trim() || undefined,
-      });
-      onComplete(d);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <View className="gap-4">
       {error && (
@@ -65,29 +37,20 @@ export function DriverAuthStep({ onComplete }: { onComplete: (d: DriverResponse)
         </View>
       )}
 
-      {isNew ? (
-        <>
-          <Input label="Full Name" value={name} onChangeText={setName} placeholder="Driver Name" />
-          <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
-          <Input label="Plate Number" value={plate} onChangeText={setPlate} placeholder="ABC-123XY" />
-          <Input label="Fleet Number (optional)" value={fleetNumber} onChangeText={setFleetNumber} placeholder="e.g. FL-001" />
-        </>
-      ) : (
-        <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
-      )}
+      <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+234..." keyboardType="phone-pad" />
 
       <Pressable
-        onPress={isNew ? handleSignup : handleLogin}
+        onPress={handleLogin}
         disabled={loading}
         className="rounded-xl py-4 items-center mt-2"
         style={{ backgroundColor: theme.success }}
       >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">{isNew ? "Register" : "Sign In"}</Text>}
+        {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-semibold">Sign In</Text>}
       </Pressable>
 
-      <Pressable onPress={() => { setIsNew(!isNew); setError(null); }} className="items-center py-2">
-        <Text className="text-sm" style={{ color: theme.success }}>{isNew ? "Already registered? Sign in" : "New driver? Register"}</Text>
-      </Pressable>
+      <Text className="text-sm text-center" style={{ color: theme.mutedForeground }}>
+        New driver signups are paused — ask your fleet head to add you.
+      </Text>
     </View>
   );
 }

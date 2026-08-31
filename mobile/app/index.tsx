@@ -55,6 +55,8 @@ export default function RoleSelect() {
   const [authedRoles, setAuthedRoles] = useState<Set<Role>>(new Set());
   const logoTapCount = useRef(0);
   const logoTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleTapCount = useRef(0);
+  const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // expo-notifications throws on import in Expo Go (Android, SDK 53+); guard with require
@@ -145,6 +147,22 @@ export default function RoleSelect() {
     }, 2000);
   };
 
+  // 3 rapid taps on the "TankUp" title opens fleet-head login (hidden while driver signup is locked down)
+  const handleTitleTap = () => {
+    titleTapCount.current += 1;
+    if (titleTapTimer.current) clearTimeout(titleTapTimer.current);
+
+    if (titleTapCount.current >= 3) {
+      titleTapCount.current = 0;
+      selectRole("fleet_head");
+      return;
+    }
+
+    titleTapTimer.current = setTimeout(() => {
+      titleTapCount.current = 0;
+    }, 2000);
+  };
+
   if (!hydrated) {
     return (
       <SafeAreaView
@@ -182,17 +200,18 @@ export default function RoleSelect() {
             >
               <Droplets color="#ffffff" size={42} />
             </Pressable>
-            <Text style={{ color: theme.foreground }} className="text-3xl font-extrabold tracking-tight">
-              TankUp
-            </Text>
+            <Pressable onPress={handleTitleTap}>
+              <Text style={{ color: theme.foreground }} className="text-3xl font-extrabold tracking-tight">
+                TankUp
+              </Text>
+            </Pressable>
             <Text style={{ color: theme.mutedForeground }} className="mt-2 text-base">
               Water delivery, coordinated.
             </Text>
           </View>
 
           <View className="gap-4">
-            {/* {ALL_ROLES.filter((r) => authedRoles.size === 0 || authedRoles.has(r.role)).map((r) => ( */}
-            {ALL_ROLES.map((r) => ( 
+            {ALL_ROLES.filter((r) => r.role !== "fleet_head").map((r) => (
               <RoleCard
                 key={r.role}
                 theme={theme}
